@@ -101,9 +101,9 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Speed (ISO) <span class="text-red-500">*</span></label>
-              <input
-                v-model.number="form.speed"
-                type="number"
+              <SpeedTypeaheadInput
+                v-model="form.speed"
+                :fetchOptions="(q: string) => stockApi.getSpeeds(q).then(r => r.data)"
                 required
                 min="1"
                 placeholder="e.g. 400"
@@ -166,6 +166,7 @@ import { stockApi, filmFormatApi, tagApi, stockTagApi } from '@/services/api-cli
 import type { Stock, FilmFormat, Tag } from '@/types'
 import { Process } from '@/types'
 import TypeaheadInput from '@/components/TypeaheadInput.vue'
+import SpeedTypeaheadInput from '@/components/SpeedTypeaheadInput.vue'
 
 const stocks = ref<Stock[]>([])
 const formats = ref<FilmFormat[]>([])

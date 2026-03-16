@@ -38,6 +38,13 @@ export class StockController {
     return this.stockService.getManufacturers(q ?? '');
   }
 
+  @Get('speeds')
+  @ApiOperation({ summary: 'Get distinct speed values matching a query' })
+  @ApiResponse({ status: 200, description: 'Matching speed values', type: [Number] })
+  getSpeeds(@Query('q') q: string): Promise<number[]> {
+    return this.stockService.getSpeeds(q ?? '');
+  }
+
   @Get(':key')
   @ApiOperation({ summary: 'Get a stock by key' })
   @ApiResponse({ status: 200, description: 'Stock retrieved successfully', type: Stock })
