@@ -89,4 +89,14 @@ export class StockService {
     );
     return await cursor.all();
   }
+
+  async getSpeeds(query: string): Promise<number[]> {
+    const cursor = await this.databaseService.query(
+      `FOR stock IN stocks
+       FILTER CONTAINS(TO_STRING(stock.speed), @query)
+       RETURN DISTINCT stock.speed`,
+      { query },
+    );
+    return await cursor.all();
+  }
 }

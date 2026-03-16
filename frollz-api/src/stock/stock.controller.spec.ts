@@ -31,6 +31,7 @@ describe('StockController', () => {
             remove: jest.fn(),
             getBrands: jest.fn(),
             getManufacturers: jest.fn(),
+            getSpeeds: jest.fn(),
           },
         },
       ],
@@ -91,6 +92,33 @@ describe('StockController', () => {
       service.getManufacturers.mockResolvedValue([]);
 
       const result = await controller.getManufacturers('zzz');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getSpeeds', () => {
+    it('should return speeds from the service', async () => {
+      service.getSpeeds.mockResolvedValue([400, 800]);
+
+      const result = await controller.getSpeeds('4');
+
+      expect(service.getSpeeds).toHaveBeenCalledWith('4');
+      expect(result).toEqual([400, 800]);
+    });
+
+    it('should pass empty string when q is undefined', async () => {
+      service.getSpeeds.mockResolvedValue([]);
+
+      await controller.getSpeeds(undefined as any);
+
+      expect(service.getSpeeds).toHaveBeenCalledWith('');
+    });
+
+    it('should return an empty array when no speeds match', async () => {
+      service.getSpeeds.mockResolvedValue([]);
+
+      const result = await controller.getSpeeds('999');
 
       expect(result).toEqual([]);
     });

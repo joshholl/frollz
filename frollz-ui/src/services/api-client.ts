@@ -23,6 +23,7 @@ export const stockApi = {
   delete: (key: string) => api.delete(`/stocks/${key}`),
   getBrands: (q: string) => api.get<string[]>('/stocks/brands', { params: { q } }),
   getManufacturers: (q: string) => api.get<string[]>('/stocks/manufacturers', { params: { q } }),
+  getSpeeds: (q: string) => api.get<number[]>('/stocks/speeds', { params: { q } }),
 }
 
 // Tag API

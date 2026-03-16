@@ -135,4 +135,55 @@ describe('StockService', () => {
       expect(result).toEqual([]);
     });
   });
+
+  describe('getSpeeds', () => {
+    it('should query using CONTAINS on speed with the provided query', async () => {
+      mockCursor.all.mockResolvedValue([]);
+
+      await service.getSpeeds('40');
+
+      expect(databaseService.query).toHaveBeenCalledWith(
+        expect.stringContaining('CONTAINS'),
+        { query: '40' },
+      );
+    });
+
+    it('should convert speed to string for matching', async () => {
+      mockCursor.all.mockResolvedValue([]);
+
+      await service.getSpeeds('40');
+
+      expect(databaseService.query).toHaveBeenCalledWith(
+        expect.stringContaining('TO_STRING'),
+        expect.anything(),
+      );
+    });
+
+    it('should use DISTINCT to avoid duplicate speed values', async () => {
+      mockCursor.all.mockResolvedValue([]);
+
+      await service.getSpeeds('40');
+
+      expect(databaseService.query).toHaveBeenCalledWith(
+        expect.stringContaining('DISTINCT'),
+        expect.anything(),
+      );
+    });
+
+    it('should return matching speeds from the cursor', async () => {
+      mockCursor.all.mockResolvedValue([400, 800]);
+
+      const result = await service.getSpeeds('4');
+
+      expect(result).toEqual([400, 800]);
+    });
+
+    it('should return an empty array when no speeds match', async () => {
+      mockCursor.all.mockResolvedValue([]);
+
+      const result = await service.getSpeeds('999');
+
+      expect(result).toEqual([]);
+    });
+  });
 });
