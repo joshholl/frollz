@@ -147,7 +147,6 @@ export class DatabaseService implements OnModuleInit {
         const data = raw.map(doc => ({
           ...doc,
           createdAt: doc.createdAt ?? now,
-          updatedAt: doc.updatedAt ?? now,
         }));
 
         await collection.saveAll(data);
