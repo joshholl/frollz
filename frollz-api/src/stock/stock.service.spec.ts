@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StockService } from './stock.service';
 import { DatabaseService } from '../database/database.service';
+import { Process } from './entities/stock.entity';
 
 describe('StockService', () => {
   let service: StockService;
@@ -133,6 +134,62 @@ describe('StockService', () => {
       const result = await service.getManufacturers('zzz');
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('createMultipleFormats', () => {
+    const dto = {
+      formatKeys: ['35mm', '120'],
+      process: Process.C_41,
+      manufacturer: 'Kodak',
+      brand: 'Portra 400',
+      speed: 400,
+    };
+
+    it('should save a stock for each formatKey', async () => {
+      mockCollection.save.mockImplementation((stock: any) => Promise.resolve({ _key: stock._key }));
+
+      const results = await service.createMultipleFormats(dto);
+
+      expect(mockCollection.save).toHaveBeenCalledTimes(2);
+      expect(results).toHaveLength(2);
+    });
+
+    it('should generate _key as {manufacturer}-{brand}-{speed}-{formatKey}', async () => {
+      mockCollection.save.mockImplementation((stock: any) => Promise.resolve({ _key: stock._key }));
+
+      const results = await service.createMultipleFormats(dto);
+
+      expect(results[0]._key).toBe('kodak-portra-400-400-35mm');
+      expect(results[1]._key).toBe('kodak-portra-400-400-120');
+    });
+
+    it('should lowercase and dasherize manufacturer and brand in the key', async () => {
+      const dtoWithSpaces = { ...dto, manufacturer: 'Fuji Film', brand: 'Pro 400H' };
+      mockCollection.save.mockImplementation((stock: any) => Promise.resolve({ _key: stock._key }));
+
+      const results = await service.createMultipleFormats(dtoWithSpaces);
+
+      expect(results[0]._key).toBe('fuji-film-pro-400h-400-35mm');
+    });
+
+    it('should set formatKey on each created stock', async () => {
+      mockCollection.save.mockImplementation((stock: any) => Promise.resolve({ _key: stock._key }));
+
+      const results = await service.createMultipleFormats(dto);
+
+      expect(results[0].formatKey).toBe('35mm');
+      expect(results[1].formatKey).toBe('120');
+    });
+
+    it('should create a single stock when only one formatKey is provided', async () => {
+      const singleFormat = { ...dto, formatKeys: ['35mm'] };
+      mockCollection.save.mockImplementation((stock: any) => Promise.resolve({ _key: stock._key }));
+
+      const results = await service.createMultipleFormats(singleFormat);
+
+      expect(mockCollection.save).toHaveBeenCalledTimes(1);
+      expect(results).toHaveLength(1);
     });
   });
 

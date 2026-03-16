@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { CreateStockDto } from './dto/create-stock.dto';
+import { CreateStockMultipleFormatsDto } from './dto/create-stock-multiple-formats.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
 import { Stock } from './entities/stock.entity';
 
@@ -10,7 +11,7 @@ export class StockService {
 
   async create(createStockDto: CreateStockDto): Promise<Stock> {
     const collection = this.databaseService.getCollection('stocks');
-    
+
     const stock = {
       ...createStockDto,
       createdAt: new Date(),
@@ -19,6 +20,31 @@ export class StockService {
 
     const result = await collection.save(stock);
     return { ...stock, _key: result._key };
+  }
+
+  async createMultipleFormats(dto: CreateStockMultipleFormatsDto): Promise<Stock[]> {
+    const collection = this.databaseService.getCollection('stocks');
+    const now = new Date();
+
+    const results: Stock[] = [];
+    for (const formatKey of dto.formatKeys) {
+      const key = `${dto.manufacturer.toLowerCase().replace(/\s+/g, '-')}-${dto.brand.toLowerCase().replace(/\s+/g, '-')}-${dto.speed}-${formatKey}`;
+      const stock = {
+        _key: key,
+        formatKey,
+        process: dto.process,
+        manufacturer: dto.manufacturer,
+        brand: dto.brand,
+        speed: dto.speed,
+        ...(dto.baseStockKey && { baseStockKey: dto.baseStockKey }),
+        ...(dto.boxImageUrl && { boxImageUrl: dto.boxImageUrl }),
+        createdAt: now,
+        updatedAt: now,
+      };
+      const result = await collection.save(stock);
+      results.push({ ...stock, _key: result._key });
+    }
+    return results;
   }
 
   async findAll(): Promise<Stock[]> {

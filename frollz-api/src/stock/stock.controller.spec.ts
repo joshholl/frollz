@@ -25,6 +25,7 @@ describe('StockController', () => {
           provide: StockService,
           useValue: {
             create: jest.fn(),
+            createMultipleFormats: jest.fn(),
             findAll: jest.fn(),
             findOne: jest.fn(),
             update: jest.fn(),
@@ -42,6 +43,37 @@ describe('StockController', () => {
   });
 
   afterEach(() => jest.clearAllMocks());
+
+  describe('createMultipleFormats', () => {
+    const dto = {
+      formatKeys: ['35mm', '120'],
+      process: 'C-41' as any,
+      manufacturer: 'Kodak',
+      brand: 'Portra 400',
+      speed: 400,
+    };
+
+    it('should return the created stocks from the service', async () => {
+      const createdStocks = [
+        { ...mockStock, _key: 'kodak-portra-400-400-35mm' },
+        { ...mockStock, _key: 'kodak-portra-400-400-120', formatKey: '120' },
+      ];
+      service.createMultipleFormats.mockResolvedValue(createdStocks);
+
+      const result = await controller.createMultipleFormats(dto);
+
+      expect(service.createMultipleFormats).toHaveBeenCalledWith(dto);
+      expect(result).toEqual(createdStocks);
+    });
+
+    it('should pass the dto directly to the service', async () => {
+      service.createMultipleFormats.mockResolvedValue([]);
+
+      await controller.createMultipleFormats(dto);
+
+      expect(service.createMultipleFormats).toHaveBeenCalledWith(dto);
+    });
+  });
 
   describe('getBrands', () => {
     it('should return brands from the service', async () => {

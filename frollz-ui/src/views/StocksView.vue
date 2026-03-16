@@ -76,19 +76,6 @@
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Format <span class="text-red-500">*</span></label>
-              <select
-                v-model="form.formatKey"
-                required
-                class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="" disabled>Select a format</option>
-                <option v-for="fmt in formats" :key="fmt._key" :value="fmt._key">
-                  {{ fmt.format }} ({{ fmt.formFactor }})
-                </option>
-              </select>
-            </div>
-            <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Process <span class="text-red-500">*</span></label>
               <select
                 v-model="form.process"
@@ -98,6 +85,26 @@
                 <option value="" disabled>Select a process</option>
                 <option v-for="p in processOptions" :key="p" :value="p">{{ p }}</option>
               </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Formats <span class="text-red-500">*</span></label>
+              <div class="flex flex-wrap gap-2 p-2 border border-gray-300 rounded-md min-h-[2.5rem]">
+                <span v-if="!form.process" class="text-sm text-gray-400 italic">Select a process first</span>
+                <label
+                  v-else
+                  v-for="fmt in filteredFormats"
+                  :key="fmt._key"
+                  class="flex items-center gap-1 text-sm cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    :value="fmt._key"
+                    v-model="form.formatKeys"
+                    class="rounded"
+                  />
+                  {{ fmt.format }}
+                </label>
+              </div>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Speed (ISO) <span class="text-red-500">*</span></label>
@@ -161,7 +168,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { stockApi, filmFormatApi, tagApi, stockTagApi } from '@/services/api-client'
 import type { Stock, FilmFormat, Tag } from '@/types'
 import { Process } from '@/types'
@@ -183,13 +190,25 @@ const processOptions = Object.values(Process)
 const emptyForm = () => ({
   brand: '',
   manufacturer: '',
-  formatKey: '',
+  formatKeys: [] as string[],
   process: '' as Process,
   speed: undefined as number | undefined,
   boxImageUrl: '',
 })
 
 const form = ref(emptyForm())
+
+const filteredFormats = computed(() => {
+  if (!form.value.process) return []
+  if (form.value.process === Process.INSTANT) {
+    return formats.value.filter(f => f.formFactor === 'Instant')
+  }
+  return formats.value.filter(f => f.formFactor !== 'Instant')
+})
+
+watch(() => form.value.process, () => {
+  form.value.formatKeys = []
+})
 
 const sortedStocks = computed(() => {
   return stocks.value.slice().sort((a, b) => {
@@ -218,25 +237,31 @@ const closeModal = () => {
 }
 
 const handleSubmit = async () => {
+  if (form.value.formatKeys.length === 0) {
+    error.value = 'Please select at least one format'
+    return
+  }
   submitting.value = true
   error.value = ''
   try {
-    const payload: Omit<Stock, '_key' | 'createdAt' | 'updatedAt'> = {
+    const payload = {
       brand: form.value.brand,
       manufacturer: form.value.manufacturer,
-      formatKey: form.value.formatKey,
+      formatKeys: form.value.formatKeys,
       process: form.value.process,
       speed: form.value.speed!,
+      ...(form.value.boxImageUrl ? { boxImageUrl: form.value.boxImageUrl } : {}),
     }
-    if (form.value.boxImageUrl) payload.boxImageUrl = form.value.boxImageUrl
 
-    const response = await stockApi.create(payload)
-    const newStockKey = response.data._key!
+    const response = await stockApi.createMultipleFormats(payload)
+    const createdStocks = response.data
 
-    // Associate selected tags
+    // Associate selected tags with all created stocks
     await Promise.all(
-      selectedTagKeys.value.map(tagKey =>
-        stockTagApi.create({ stockKey: newStockKey, tagKey })
+      createdStocks.flatMap(stock =>
+        selectedTagKeys.value.map(tagKey =>
+          stockTagApi.create({ stockKey: stock._key!, tagKey })
+        )
       )
     )
 

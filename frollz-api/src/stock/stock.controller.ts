@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, NotFoundException, Q
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { StockService } from './stock.service';
 import { CreateStockDto } from './dto/create-stock.dto';
+import { CreateStockMultipleFormatsDto } from './dto/create-stock-multiple-formats.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
 import { Stock } from './entities/stock.entity';
 
@@ -15,6 +16,13 @@ export class StockController {
   @ApiResponse({ status: 201, description: 'Stock created successfully', type: Stock })
   create(@Body() createStockDto: CreateStockDto): Promise<Stock> {
     return this.stockService.create(createStockDto);
+  }
+
+  @Post('bulk')
+  @ApiOperation({ summary: 'Create stocks for multiple formats at once' })
+  @ApiResponse({ status: 201, description: 'Stocks created successfully', type: [Stock] })
+  createMultipleFormats(@Body() dto: CreateStockMultipleFormatsDto): Promise<Stock[]> {
+    return this.stockService.createMultipleFormats(dto);
   }
 
   @Get()
