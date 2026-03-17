@@ -61,7 +61,7 @@ export class RollService {
     let rollId = createRollDto.rollId;
     if (!rollId) {
       const stocks = await this.databaseService.query(
-        `SELECT brand FROM stocks WHERE id = $1`,
+        `SELECT brand FROM stocks WHERE id = ?`,
         [createRollDto.stockKey],
       );
       const stockName =
@@ -76,7 +76,7 @@ export class RollService {
 
     await this.databaseService.execute(
       `INSERT INTO rolls (id, roll_id, stock_key, state, images_url, date_obtained, obtainment_method, obtained_from, expiration_date, times_exposed_to_xrays, loaded_into, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         rollId,
@@ -128,7 +128,7 @@ export class RollService {
 
   async findOne(key: string): Promise<Roll | null> {
     const rows = await this.databaseService.query(
-      `SELECT * FROM rolls WHERE id = $1`,
+      `SELECT * FROM rolls WHERE id = ?`,
       [key],
     );
     return rows.length > 0 ? mapRoll(rows[0]) : null;
@@ -153,23 +153,22 @@ export class RollService {
 
     const updates: string[] = [];
     const values: unknown[] = [];
-    let idx = 1;
 
     for (const [prop, col] of Object.entries(fieldMap)) {
       if ((updateRollDto as Record<string, unknown>)[prop] !== undefined) {
-        updates.push(`${col} = $${idx++}`);
+        updates.push(`${col} = ?`);
         values.push((updateRollDto as Record<string, unknown>)[prop]);
       }
     }
 
     if (updates.length === 0) return this.findOne(key);
 
-    updates.push(`updated_at = $${idx++}`);
+    updates.push(`updated_at = ?`);
     values.push(new Date());
     values.push(key);
 
     await this.databaseService.execute(
-      `UPDATE rolls SET ${updates.join(", ")} WHERE id = $${idx}`,
+      `UPDATE rolls SET ${updates.join(", ")} WHERE id = ?`,
       values,
     );
 
@@ -177,9 +176,7 @@ export class RollService {
   }
 
   async remove(key: string): Promise<boolean> {
-    await this.databaseService.execute(`DELETE FROM rolls WHERE id = $1`, [
-      key,
-    ]);
+    await this.databaseService.execute(`DELETE FROM rolls WHERE id = ?`, [key]);
     return true;
   }
 

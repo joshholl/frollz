@@ -25,7 +25,7 @@ export class FilmFormatService {
 
     await this.databaseService.execute(
       `INSERT INTO film_formats (id, form_factor, format, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5)`,
+       VALUES (?, ?, ?, ?, ?)`,
       [
         id,
         createFilmFormatDto.formFactor,
@@ -53,7 +53,7 @@ export class FilmFormatService {
 
   async findOne(key: string): Promise<FilmFormat | null> {
     const rows = await this.databaseService.query(
-      `SELECT * FROM film_formats WHERE id = $1`,
+      `SELECT * FROM film_formats WHERE id = ?`,
       [key],
     );
     return rows.length > 0 ? mapFilmFormat(rows[0]) : null;
@@ -65,25 +65,24 @@ export class FilmFormatService {
   ): Promise<FilmFormat | null> {
     const updates: string[] = [];
     const values: unknown[] = [];
-    let idx = 1;
 
     if (updateFilmFormatDto.formFactor !== undefined) {
-      updates.push(`form_factor = $${idx++}`);
+      updates.push(`form_factor = ?`);
       values.push(updateFilmFormatDto.formFactor);
     }
     if (updateFilmFormatDto.format !== undefined) {
-      updates.push(`format = $${idx++}`);
+      updates.push(`format = ?`);
       values.push(updateFilmFormatDto.format);
     }
 
     if (updates.length === 0) return this.findOne(key);
 
-    updates.push(`updated_at = $${idx++}`);
+    updates.push(`updated_at = ?`);
     values.push(new Date());
     values.push(key);
 
     await this.databaseService.execute(
-      `UPDATE film_formats SET ${updates.join(", ")} WHERE id = $${idx}`,
+      `UPDATE film_formats SET ${updates.join(", ")} WHERE id = ?`,
       values,
     );
 
@@ -92,7 +91,7 @@ export class FilmFormatService {
 
   async remove(key: string): Promise<boolean> {
     await this.databaseService.execute(
-      `DELETE FROM film_formats WHERE id = $1`,
+      `DELETE FROM film_formats WHERE id = ?`,
       [key],
     );
     return true;

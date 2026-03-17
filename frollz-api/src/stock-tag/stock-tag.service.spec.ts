@@ -78,7 +78,7 @@ describe("StockTagService", () => {
       await service.findByStock("kodak-portra-400-35mm");
 
       expect(db.query).toHaveBeenCalledWith(
-        expect.stringContaining("stock_key = $1"),
+        expect.stringContaining("stock_key = ?"),
         ["kodak-portra-400-35mm"],
       );
     });
@@ -100,7 +100,7 @@ describe("StockTagService", () => {
       await service.findByTag("color");
 
       expect(db.query).toHaveBeenCalledWith(
-        expect.stringContaining("tag_key = $1"),
+        expect.stringContaining("tag_key = ?"),
         ["color"],
       );
     });
