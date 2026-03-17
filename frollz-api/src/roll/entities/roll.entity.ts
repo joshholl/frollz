@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum RollState {
+  ADDED = 'Added',
   FROZEN = 'Frozen',
   REFRIGERATED = 'Refrigerated',
   SHELFED = 'Shelved',

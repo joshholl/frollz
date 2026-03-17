@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RollService } from './roll.service';
 import { CreateRollDto } from './dto/create-roll.dto';
 import { UpdateRollDto } from './dto/update-roll.dto';
+import { TransitionRollDto } from './dto/transition-roll.dto';
 import { Roll } from './entities/roll.entity';
 
 @ApiTags('rolls')
@@ -65,5 +66,26 @@ export class RollController {
       throw new NotFoundException('Roll not found');
     }
     return { message: 'Roll deleted successfully' };
+  }
+
+  @Post(':key/transition')
+  @ApiOperation({ summary: 'Transition a roll to a new storage state' })
+  @ApiResponse({ status: 200, description: 'Roll transitioned successfully', type: Roll })
+  @ApiResponse({ status: 400, description: 'Invalid state transition' })
+  @ApiResponse({ status: 404, description: 'Roll not found' })
+  async transition(
+    @Param('key') key: string,
+    @Body() transitionRollDto: TransitionRollDto,
+  ): Promise<Roll> {
+    try {
+      const roll = await this.rollService.transition(key, transitionRollDto);
+      if (!roll) {
+        throw new NotFoundException('Roll not found');
+      }
+      return roll;
+    } catch (e) {
+      if (e instanceof NotFoundException || e instanceof BadRequestException) throw e;
+      throw new NotFoundException('Roll not found');
+    }
   }
 }

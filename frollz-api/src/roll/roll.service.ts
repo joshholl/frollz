@@ -1,12 +1,23 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { CreateRollDto } from './dto/create-roll.dto';
 import { UpdateRollDto } from './dto/update-roll.dto';
-import { Roll } from './entities/roll.entity';
+import { TransitionRollDto } from './dto/transition-roll.dto';
+import { Roll, RollState } from './entities/roll.entity';
+import { RollStateService } from '../roll-state/roll-state.service';
+
+const STORAGE_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
+  [RollState.ADDED]: [RollState.FROZEN, RollState.REFRIGERATED, RollState.SHELFED],
+  [RollState.FROZEN]: [RollState.REFRIGERATED, RollState.SHELFED, RollState.ADDED],
+  [RollState.REFRIGERATED]: [RollState.SHELFED, RollState.ADDED],
+};
 
 @Injectable()
 export class RollService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly rollStateService: RollStateService,
+  ) {}
 
   async create(createRollDto: CreateRollDto): Promise<Roll> {
     const collection = this.databaseService.getCollection('rolls');
@@ -86,12 +97,33 @@ export class RollService {
 
   async remove(key: string): Promise<boolean> {
     const collection = this.databaseService.getCollection('rolls');
-    
+
     try {
       await collection.remove(key);
       return true;
     } catch (error) {
       return false;
     }
+  }
+
+  async transition(key: string, dto: TransitionRollDto): Promise<Roll | null> {
+    const roll = await this.findOne(key);
+    if (!roll) return null;
+
+    const allowed = STORAGE_TRANSITIONS[roll.state];
+    if (!allowed || !allowed.includes(dto.targetState)) {
+      throw new BadRequestException(
+        `Cannot transition from ${roll.state} to ${dto.targetState}`,
+      );
+    }
+
+    await this.rollStateService.create({
+      rollKey: key,
+      state: dto.targetState,
+      date: new Date(),
+      notes: dto.notes,
+    });
+
+    return this.update(key, { state: dto.targetState });
   }
 }
