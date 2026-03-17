@@ -1,17 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { CreateRollStateDto } from './dto/create-roll-state.dto';
-import { RollStateHistory } from './entities/roll-state.entity';
+import { Injectable } from "@nestjs/common";
+import { DatabaseService } from "../database/database.service";
+import { CreateRollStateDto } from "./dto/create-roll-state.dto";
+import { RollStateHistory } from "./entities/roll-state.entity";
 
 @Injectable()
 export class RollStateService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async create(dto: CreateRollStateDto): Promise<RollStateHistory> {
-    const collection = this.databaseService.getCollection('roll_states');
+    const collection = this.databaseService.getCollection("roll_states");
     const now = new Date();
 
-    const record: Omit<RollStateHistory, '_key'> = {
+    const record: Omit<RollStateHistory, "_key"> = {
       stateId: crypto.randomUUID(),
       rollId: dto.rollKey,
       state: dto.state,

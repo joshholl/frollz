@@ -60,7 +60,7 @@ describe('StocksView', () => {
 
   describe('component mounting', () => {
     it('should mount successfully and load data', async () => {
-      const wrapper = mount(StocksView)
+      mount(StocksView)
       await flushPromises()
 
       expect(stockApi.getAll).toHaveBeenCalled()
@@ -413,8 +413,6 @@ describe('StocksView', () => {
       vm.addFilter('manufacturer', 'Manufacturer', 'Kodak')
       await wrapper.vm.$nextTick()
 
-      const chipText = wrapper.find('[data-testid="filter-chip"]')
-        ?? wrapper.findAll('span').find(s => s.text().includes('Manufacturer: Kodak'))
       expect(wrapper.text()).toContain('Manufacturer: Kodak')
     })
 

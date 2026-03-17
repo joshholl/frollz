@@ -81,20 +81,14 @@
               >{{ roll.timesExposedToXrays }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-right">
                 <div class="flex items-center justify-end gap-2">
-                  <!-- Storage transition buttons -->
+                  <!-- State transition buttons -->
                   <button
-                    v-for="targetState in getStorageTransitions(roll.state)"
+                    v-for="targetState in getValidTransitions(roll.state)"
                     :key="targetState"
                     @click="openTransitionModal(roll, targetState)"
                     class="px-3 py-1 text-xs font-medium border rounded hover:opacity-80"
                     :class="getTransitionButtonColor(targetState)"
                   >{{ targetState }}</button>
-                  <!-- Load button -->
-                  <button
-                    v-if="canLoad(roll.state)"
-                    @click="openLoadModal(roll)"
-                    class="px-3 py-1 text-xs font-medium text-yellow-700 border border-yellow-400 rounded hover:bg-yellow-50"
-                  >Load</button>
                   <!-- History button -->
                   <button
                     @click="openHistoryModal(roll)"
@@ -140,40 +134,6 @@
               :disabled="transitionSubmitting"
               class="px-4 py-2 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700 disabled:opacity-50"
             >{{ transitionSubmitting ? 'Saving...' : 'Save' }}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Load Roll Modal -->
-    <div v-if="loadTarget" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">Load Roll</h2>
-        <form @submit.prevent="handleLoad">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              What will this roll be loaded into? <span class="text-red-500">*</span>
-            </label>
-            <input
-              v-model="loadedInto"
-              type="text"
-              required
-              placeholder="e.g. Nikon F3"
-              class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-          <div v-if="loadError" class="mt-3 text-sm text-red-600">{{ loadError }}</div>
-          <div class="flex justify-end gap-3 mt-6">
-            <button
-              type="button"
-              @click="closeLoadModal"
-              class="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
-            >Cancel</button>
-            <button
-              type="submit"
-              :disabled="loadSubmitting"
-              class="px-4 py-2 bg-yellow-600 text-white rounded-md text-sm hover:bg-yellow-700 disabled:opacity-50"
-            >{{ loadSubmitting ? 'Loading...' : 'Load' }}</button>
           </div>
         </form>
       </div>
@@ -415,15 +375,17 @@ const formatDateTime = (date: Date | string) => {
   return new Date(date as string).toLocaleString()
 }
 
-// Storage state machine transitions
-const STORAGE_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
+// Unified state machine transitions (storage + usage)
+const VALID_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
   [RollState.ADDED]: [RollState.FROZEN, RollState.REFRIGERATED, RollState.SHELFED],
   [RollState.FROZEN]: [RollState.REFRIGERATED, RollState.SHELFED, RollState.ADDED],
   [RollState.REFRIGERATED]: [RollState.SHELFED, RollState.ADDED],
+  [RollState.SHELFED]: [RollState.LOADED],
+  [RollState.LOADED]: [RollState.FINISHED, RollState.SHELFED],
 }
 
-const getStorageTransitions = (state: RollState): RollState[] => {
-  return STORAGE_TRANSITIONS[state] ?? []
+const getValidTransitions = (state: RollState): RollState[] => {
+  return VALID_TRANSITIONS[state] ?? []
 }
 
 const TRANSITION_BUTTON_COLORS: Partial<Record<RollState, string>> = {
@@ -431,6 +393,8 @@ const TRANSITION_BUTTON_COLORS: Partial<Record<RollState, string>> = {
   [RollState.FROZEN]: 'text-blue-700 border-blue-400 hover:bg-blue-50',
   [RollState.REFRIGERATED]: 'text-cyan-700 border-cyan-400 hover:bg-cyan-50',
   [RollState.SHELFED]: 'text-gray-600 border-gray-400 hover:bg-gray-50',
+  [RollState.LOADED]: 'text-yellow-700 border-yellow-400 hover:bg-yellow-50',
+  [RollState.FINISHED]: 'text-green-700 border-green-400 hover:bg-green-50',
 }
 
 const getTransitionButtonColor = (state: RollState): string => {
@@ -470,43 +434,6 @@ const handleTransition = async () => {
     transitionError.value = 'Failed to transition roll. Please try again.'
   } finally {
     transitionSubmitting.value = false
-  }
-}
-
-const LOADABLE_STATES = new Set([RollState.FROZEN, RollState.REFRIGERATED, RollState.SHELFED])
-
-const canLoad = (state: RollState) => LOADABLE_STATES.has(state)
-
-const loadTarget = ref<Roll | null>(null)
-const loadedInto = ref('')
-const loadSubmitting = ref(false)
-const loadError = ref('')
-
-const openLoadModal = (roll: Roll) => {
-  loadTarget.value = roll
-  loadedInto.value = ''
-  loadError.value = ''
-}
-
-const closeLoadModal = () => {
-  loadTarget.value = null
-}
-
-const handleLoad = async () => {
-  if (!loadTarget.value) return
-  loadSubmitting.value = true
-  loadError.value = ''
-  try {
-    await rollApi.update(loadTarget.value._key!, {
-      state: RollState.LOADED,
-      loadedInto: loadedInto.value,
-    })
-    closeLoadModal()
-    await loadRolls()
-  } catch {
-    loadError.value = 'Failed to load roll. Please try again.'
-  } finally {
-    loadSubmitting.value = false
   }
 }
 

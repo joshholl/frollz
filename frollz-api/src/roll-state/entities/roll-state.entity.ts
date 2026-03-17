@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { RollState } from '../../roll/entities/roll.entity';
+import { ApiProperty } from "@nestjs/swagger";
+import { RollState } from "../../roll/entities/roll.entity";
 
 export class RollStateHistory {
   @ApiProperty()

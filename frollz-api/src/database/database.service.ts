@@ -1,12 +1,12 @@
-import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
-import { Database } from 'arangojs';
-import { SchemaOptions } from 'arangojs/collection';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Injectable, Inject, OnModuleInit } from "@nestjs/common";
+import { Database } from "arangojs";
+import { SchemaOptions } from "arangojs/collection";
+import * as fs from "fs";
+import * as path from "path";
 
 @Injectable()
 export class DatabaseService implements OnModuleInit {
-  constructor(@Inject('ARANGO_DB') private readonly db: Database) {}
+  constructor(@Inject("ARANGO_DB") private readonly db: Database) {}
 
   async onModuleInit() {
     await this.initializeCollections();
@@ -17,22 +17,27 @@ export class DatabaseService implements OnModuleInit {
 
   private loadSchema(collectionName: string): SchemaOptions | undefined {
     // Strip _default suffix so both film_formats and film_formats_default share the same schema
-    const baseName = collectionName.replace(/_default$/, '');
-    const schemaPath = path.join(process.cwd(), 'db-init', 'schemas', `${baseName}.schema.json`);
+    const baseName = collectionName.replace(/_default$/, "");
+    const schemaPath = path.join(
+      process.cwd(),
+      "db-init",
+      "schemas",
+      `${baseName}.schema.json`,
+    );
     if (fs.existsSync(schemaPath)) {
-      return JSON.parse(fs.readFileSync(schemaPath, 'utf8')) as SchemaOptions;
+      return JSON.parse(fs.readFileSync(schemaPath, "utf8")) as SchemaOptions;
     }
     return undefined;
   }
 
   private async initializeCollections() {
     const collections = [
-      'film_formats',
-      'stocks',
-      'rolls',
-      'roll_states',
-      'tags',
-      'stock_tags',
+      "film_formats",
+      "stocks",
+      "rolls",
+      "roll_states",
+      "tags",
+      "stock_tags",
     ];
 
     for (const collectionName of collections) {
@@ -43,10 +48,14 @@ export class DatabaseService implements OnModuleInit {
 
         if (!exists) {
           await collection.create(schema ? { schema } : undefined);
-          console.log(`Created collection: ${collectionName}${schema ? ' (with schema)' : ''}`);
+          console.log(
+            `Created collection: ${collectionName}${schema ? " (with schema)" : ""}`,
+          );
         } else if (schema) {
           await collection.properties({ schema });
-          console.log(`Applied schema to existing collection: ${collectionName}`);
+          console.log(
+            `Applied schema to existing collection: ${collectionName}`,
+          );
         }
       } catch (error) {
         console.error(`Error creating collection ${collectionName}:`, error);
@@ -56,10 +65,10 @@ export class DatabaseService implements OnModuleInit {
 
   private async initializeDefaultCollections() {
     const defaultCollections = [
-      'film_formats_default',
-      'stocks_default',
-      'tags_default',
-      'stock_tags_default',
+      "film_formats_default",
+      "stocks_default",
+      "tags_default",
+      "stock_tags_default",
     ];
 
     for (const collectionName of defaultCollections) {
@@ -70,51 +79,64 @@ export class DatabaseService implements OnModuleInit {
 
         if (!exists) {
           await collection.create(schema ? { schema } : undefined);
-          console.log(`Created default collection: ${collectionName}${schema ? ' (with schema)' : ''}`);
+          console.log(
+            `Created default collection: ${collectionName}${schema ? " (with schema)" : ""}`,
+          );
         } else if (schema) {
           await collection.properties({ schema });
-          console.log(`Applied schema to existing default collection: ${collectionName}`);
+          console.log(
+            `Applied schema to existing default collection: ${collectionName}`,
+          );
         }
       } catch (error) {
-        console.error(`Error creating default collection ${collectionName}:`, error);
+        console.error(
+          `Error creating default collection ${collectionName}:`,
+          error,
+        );
       }
     }
   }
 
   // Maps the base filename (after stripping the numeric prefix) to its target _default collection.
   private readonly seedCollectionMap: Record<string, string> = {
-    'film-formats': 'film_formats_default',
-    'stocks': 'stocks_default',
-    'tags': 'tags_default',
-    'stock-tags': 'stock_tags_default',
+    "film-formats": "film_formats_default",
+    stocks: "stocks_default",
+    tags: "tags_default",
+    "stock-tags": "stock_tags_default",
   };
 
   // For each collection, declares which fields are foreign-key references and which
   // collection they must resolve against before insertion.
-  private readonly seedReferenceMap: Record<string, { field: string; collection: string }[]> = {
+  private readonly seedReferenceMap: Record<
+    string,
+    { field: string; collection: string }[]
+  > = {
     stocks_default: [
-      { field: 'formatKey', collection: 'film_formats_default' },
-      { field: 'baseStockKey', collection: 'stocks_default' },
+      { field: "formatKey", collection: "film_formats_default" },
+      { field: "baseStockKey", collection: "stocks_default" },
     ],
     stock_tags_default: [
-      { field: 'tagKey', collection: 'tags_default' },
-      { field: 'stockKey', collection: 'stocks_default' },
+      { field: "tagKey", collection: "tags_default" },
+      { field: "stockKey", collection: "stocks_default" },
     ],
   };
 
   private async loadSeedData() {
-    const defaultDir = path.join(process.cwd(), 'db-init', 'default');
+    const defaultDir = path.join(process.cwd(), "db-init", "default");
 
-    const files = fs.readdirSync(defaultDir)
+    const files = fs
+      .readdirSync(defaultDir)
       .filter((f: string) => /^\d{4}-.+\.json$/.test(f))
       .sort(); // lexicographic sort respects the 4-digit prefix ordering
 
     for (const filename of files) {
-      const baseName = filename.replace(/^\d{4}-/, '').replace(/\.json$/, '');
+      const baseName = filename.replace(/^\d{4}-/, "").replace(/\.json$/, "");
       const collectionName = this.seedCollectionMap[baseName];
 
       if (!collectionName) {
-        console.warn(`No collection mapping for seed file: ${filename} — skipping`);
+        console.warn(
+          `No collection mapping for seed file: ${filename} — skipping`,
+        );
         continue;
       }
 
@@ -125,7 +147,9 @@ export class DatabaseService implements OnModuleInit {
 
         const filePath = path.join(defaultDir, filename);
         const now = new Date().toISOString();
-        const raw: Record<string, unknown>[] = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        const raw: Record<string, unknown>[] = JSON.parse(
+          fs.readFileSync(filePath, "utf8"),
+        );
 
         // Validate all foreign-key references before inserting anything
         const refs = this.seedReferenceMap[collectionName] ?? [];
@@ -144,13 +168,15 @@ export class DatabaseService implements OnModuleInit {
           }
         }
 
-        const data = raw.map(doc => ({
+        const data = raw.map((doc) => ({
           ...doc,
           createdAt: doc.createdAt ?? now,
         }));
 
         await collection.saveAll(data);
-        console.log(`Loaded ${data.length} records into ${collectionName} from ${filename}`);
+        console.log(
+          `Loaded ${data.length} records into ${collectionName} from ${filename}`,
+        );
       } catch (error) {
         console.error(`Error loading seed data from ${filename}:`, error);
         throw error; // re-throw so the app fails fast on bad seed data
@@ -160,30 +186,36 @@ export class DatabaseService implements OnModuleInit {
 
   private async populateMainCollections() {
     const collectionMappings = [
-      { main: 'film_formats', default: 'film_formats_default' },
-      { main: 'stocks', default: 'stocks_default' },
-      { main: 'tags', default: 'tags_default' },
-      { main: 'stock_tags', default: 'stock_tags_default' },
+      { main: "film_formats", default: "film_formats_default" },
+      { main: "stocks", default: "stocks_default" },
+      { main: "tags", default: "tags_default" },
+      { main: "stock_tags", default: "stock_tags_default" },
     ];
 
     for (const mapping of collectionMappings) {
       try {
         const mainCollection = this.db.collection(mapping.main);
-        const defaultCollection = this.db.collection(mapping.default);
-        
+
         const mainCount = await mainCollection.count();
-        
+
         if (mainCount.count === 0) {
-          const cursor = await this.db.query(`FOR doc IN ${mapping.default} RETURN doc`);
+          const cursor = await this.db.query(
+            `FOR doc IN ${mapping.default} RETURN doc`,
+          );
           const documents = await cursor.all();
-          
+
           if (documents.length > 0) {
             await mainCollection.saveAll(documents);
-            console.log(`Populated ${mapping.main} with ${documents.length} records from ${mapping.default}`);
+            console.log(
+              `Populated ${mapping.main} with ${documents.length} records from ${mapping.default}`,
+            );
           }
         }
       } catch (error) {
-        console.error(`Error populating main collection ${mapping.main}:`, error);
+        console.error(
+          `Error populating main collection ${mapping.main}:`,
+          error,
+        );
       }
     }
   }

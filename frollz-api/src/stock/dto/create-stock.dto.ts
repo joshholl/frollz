@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsString, IsNumber, IsOptional, IsUrl } from 'class-validator';
-import { Process } from '../entities/stock.entity';
+import { ApiProperty } from "@nestjs/swagger";
+import { IsEnum, IsString, IsNumber, IsOptional, IsUrl } from "class-validator";
+import { Process } from "../entities/stock.entity";
 
 export class CreateStockDto {
   @ApiProperty()

@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { StockTagService } from './stock-tag.service';
-import { StockTagController } from './stock-tag.controller';
+import { Module } from "@nestjs/common";
+import { StockTagService } from "./stock-tag.service";
+import { StockTagController } from "./stock-tag.controller";
 
 @Module({
   controllers: [StockTagController],
