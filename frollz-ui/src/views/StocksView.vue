@@ -8,17 +8,22 @@
     </div>
 
     <!-- Active Filters -->
-    <div v-if="activeFilters.length > 0" class="flex flex-wrap items-center gap-2 mb-4">
+    <div class="flex flex-wrap items-center gap-2 mb-4 min-h-[2rem]">
       <span class="text-sm text-gray-500 font-medium">Filters:</span>
-      <span
-        v-for="(filter, index) in activeFilters"
-        :key="index"
-        class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-primary-100 text-primary-800 font-medium"
-      >
-        {{ filter.label }}: {{ filter.value }}
-        <button @click="removeFilter(index)" class="ml-1 text-primary-600 hover:text-primary-900 font-bold leading-none">&times;</button>
+      <span v-if="activeFilters.length === 0" class="text-sm text-gray-400 italic">
+        Click any value in the table to filter by that field
       </span>
-      <button @click="clearFilters" class="text-sm text-gray-500 hover:text-gray-700 underline">Clear all</button>
+      <template v-else>
+        <span
+          v-for="(filter, index) in activeFilters"
+          :key="index"
+          class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-primary-100 text-primary-800 font-medium"
+        >
+          {{ filter.label }}: {{ filter.value }}
+          <button @click="removeFilter(index)" class="ml-1 text-primary-600 hover:text-primary-900 font-bold leading-none">&times;</button>
+        </span>
+        <button @click="clearFilters" class="text-sm text-gray-500 hover:text-gray-700 underline">Clear all</button>
+      </template>
     </div>
 
     <div class="bg-white rounded-lg shadow-md">

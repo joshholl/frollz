@@ -418,17 +418,24 @@ describe('StocksView', () => {
       expect(wrapper.text()).toContain('Manufacturer: Kodak')
     })
 
-    it('should show clear all button when filters are active and hide it when none', async () => {
+    it('should show placeholder text when no filters are active', async () => {
+      const wrapper = mount(StocksView)
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Click any value in the table to filter by that field')
+      expect(wrapper.text()).not.toContain('Clear all')
+    })
+
+    it('should show clear all button and hide placeholder when filters are active', async () => {
       const wrapper = mount(StocksView)
       await flushPromises()
       const vm = wrapper.vm as any
-
-      expect(wrapper.text()).not.toContain('Clear all')
 
       vm.addFilter('manufacturer', 'Manufacturer', 'Kodak')
       await wrapper.vm.$nextTick()
 
       expect(wrapper.text()).toContain('Clear all')
+      expect(wrapper.text()).not.toContain('Click any value in the table to filter by that field')
     })
   })
 
