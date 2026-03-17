@@ -1,5 +1,11 @@
 import { api } from './api'
 import type { FilmFormat, Stock, Roll, Tag, StockTag } from '@/types'
+import { Process } from '@/types'
+
+type CreateStockMultipleFormatsPayload = Pick<Stock, 'brand' | 'manufacturer' | 'speed' | 'baseStockKey' | 'boxImageUrl'> & {
+  formatKeys: string[]
+  process: Process
+}
 
 // Film Format API
 export const filmFormatApi = {
@@ -18,6 +24,8 @@ export const stockApi = {
   getById: (key: string) => api.get<Stock>(`/stocks/${key}`),
   create: (data: Omit<Stock, '_key' | 'createdAt' | 'updatedAt'>) =>
     api.post<Stock>('/stocks', data),
+  createMultipleFormats: (data: CreateStockMultipleFormatsPayload) =>
+    api.post<Stock[]>('/stocks/bulk', data),
   update: (key: string, data: Partial<Stock>) =>
     api.patch<Stock>(`/stocks/${key}`, data),
   delete: (key: string) => api.delete(`/stocks/${key}`),

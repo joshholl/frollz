@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { StockController } from './stock.controller';
 import { StockService } from './stock.service';
+import { Process } from './entities/stock.entity';
 
 describe('StockController', () => {
   let controller: StockController;
@@ -25,6 +26,7 @@ describe('StockController', () => {
           provide: StockService,
           useValue: {
             create: jest.fn(),
+            createMultipleFormats: jest.fn(),
             findAll: jest.fn(),
             findOne: jest.fn(),
             update: jest.fn(),
@@ -42,6 +44,29 @@ describe('StockController', () => {
   });
 
   afterEach(() => jest.clearAllMocks());
+
+  describe('createMultipleFormats', () => {
+    const dto = {
+      formatKeys: ['35mm', '120'],
+      process: Process.C_41,
+      manufacturer: 'Kodak',
+      brand: 'Portra 400',
+      speed: 400,
+    };
+
+    it('should delegate to the service and return its result', async () => {
+      const createdStocks = [
+        { ...mockStock, _key: 'kodak-portra-400-400-35mm' },
+        { ...mockStock, _key: 'kodak-portra-400-400-120', formatKey: '120' },
+      ];
+      service.createMultipleFormats.mockResolvedValue(createdStocks);
+
+      const result = await controller.createMultipleFormats(dto);
+
+      expect(service.createMultipleFormats).toHaveBeenCalledWith(dto);
+      expect(result).toEqual(createdStocks);
+    });
+  });
 
   describe('getBrands', () => {
     it('should return brands from the service', async () => {
