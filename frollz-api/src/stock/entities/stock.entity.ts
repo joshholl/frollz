@@ -1,10 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from "@nestjs/swagger";
 
 export enum Process {
-  ECN_2 = 'ECN-2',
-  E_6 = 'E-6',
-  C_41 = 'C-41',
-  BLACK_WHITE = 'Black & White',
+  ECN_2 = "ECN-2",
+  E_6 = "E-6",
+  C_41 = "C-41",
+  BLACK_WHITE = "Black & White",
 }
 
 export class Stock {

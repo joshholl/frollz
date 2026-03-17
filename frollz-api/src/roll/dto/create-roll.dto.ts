@@ -1,7 +1,14 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsString, IsDate, IsNumber, IsOptional, IsUrl } from 'class-validator';
-import { Type } from 'class-transformer';
-import { RollState, ObtainmentMethod } from '../entities/roll.entity';
+import { ApiProperty } from "@nestjs/swagger";
+import {
+  IsEnum,
+  IsString,
+  IsDate,
+  IsNumber,
+  IsOptional,
+  IsUrl,
+} from "class-validator";
+import { Type } from "class-transformer";
+import { RollState, ObtainmentMethod } from "../entities/roll.entity";
 
 export class CreateRollDto {
   @ApiProperty({ required: false })
@@ -22,7 +29,7 @@ export class CreateRollDto {
   @IsUrl()
   imagesUrl?: string;
 
-  @ApiProperty({ required: false, default: 'current date' })
+  @ApiProperty({ required: false, default: "current date" })
   @IsOptional()
   @IsDate()
   @Type(() => Date)

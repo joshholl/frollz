@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { RollState } from '../entities/roll.entity';
+import { ApiProperty } from "@nestjs/swagger";
+import { IsEnum, IsOptional, IsString } from "class-validator";
+import { RollState } from "../entities/roll.entity";
 
 export class TransitionRollDto {
   @ApiProperty({ enum: RollState })

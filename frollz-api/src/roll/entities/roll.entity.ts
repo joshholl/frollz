@@ -1,18 +1,18 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from "@nestjs/swagger";
 
 export enum RollState {
-  ADDED = 'Added',
-  FROZEN = 'Frozen',
-  REFRIGERATED = 'Refrigerated',
-  SHELFED = 'Shelved',
-  LOADED = 'Loaded',
-  FINISHED = 'Finished',
-  DEVELOPED = 'Developed',
+  ADDED = "Added",
+  FROZEN = "Frozen",
+  REFRIGERATED = "Refrigerated",
+  SHELFED = "Shelved",
+  LOADED = "Loaded",
+  FINISHED = "Finished",
+  DEVELOPED = "Developed",
 }
 
 export enum ObtainmentMethod {
-  GIFT = 'Gift',
-  PURCHASE = 'Purchase',
+  GIFT = "Gift",
+  PURCHASE = "Purchase",
 }
 
 export class Roll {

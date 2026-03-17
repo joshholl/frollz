@@ -1,16 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { CreateStockDto } from './dto/create-stock.dto';
-import { CreateStockMultipleFormatsDto } from './dto/create-stock-multiple-formats.dto';
-import { UpdateStockDto } from './dto/update-stock.dto';
-import { Stock } from './entities/stock.entity';
+import { Injectable } from "@nestjs/common";
+import { DatabaseService } from "../database/database.service";
+import { CreateStockDto } from "./dto/create-stock.dto";
+import { CreateStockMultipleFormatsDto } from "./dto/create-stock-multiple-formats.dto";
+import { UpdateStockDto } from "./dto/update-stock.dto";
+import { Stock } from "./entities/stock.entity";
 
 @Injectable()
 export class StockService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async create(createStockDto: CreateStockDto): Promise<Stock> {
-    const collection = this.databaseService.getCollection('stocks');
+    const collection = this.databaseService.getCollection("stocks");
 
     const stock = {
       ...createStockDto,
@@ -22,11 +22,13 @@ export class StockService {
     return { ...stock, _key: result._key };
   }
 
-  async createMultipleFormats(dto: CreateStockMultipleFormatsDto): Promise<Stock[]> {
-    const collection = this.databaseService.getCollection('stocks');
+  async createMultipleFormats(
+    dto: CreateStockMultipleFormatsDto,
+  ): Promise<Stock[]> {
+    const collection = this.databaseService.getCollection("stocks");
     const now = new Date();
 
-    const toSlug = (s: string) => s.toLowerCase().replace(/\s+/g, '-');
+    const toSlug = (s: string) => s.toLowerCase().replace(/\s+/g, "-");
 
     return Promise.all(
       dto.formatKeys.map(async (formatKey) => {
@@ -60,20 +62,26 @@ export class StockService {
   }
 
   async findOne(key: string): Promise<Stock | null> {
-    const cursor = await this.databaseService.query(`
+    const cursor = await this.databaseService.query(
+      `
       FOR stock IN stocks
       FILTER stock._key == @key
       LET fmt = FIRST(FOR f IN film_formats FILTER f._key == stock.formatKey RETURN f)
       RETURN MERGE(stock, { format: fmt ? fmt.format : stock.format })
-    `, { key });
+    `,
+      { key },
+    );
 
     const results = await cursor.all();
     return results.length > 0 ? results[0] : null;
   }
 
-  async update(key: string, updateStockDto: UpdateStockDto): Promise<Stock | null> {
-    const collection = this.databaseService.getCollection('stocks');
-    
+  async update(
+    key: string,
+    updateStockDto: UpdateStockDto,
+  ): Promise<Stock | null> {
+    const collection = this.databaseService.getCollection("stocks");
+
     const updateData = {
       ...updateStockDto,
       updatedAt: new Date(),
@@ -82,18 +90,18 @@ export class StockService {
     try {
       await collection.update(key, updateData);
       return await this.findOne(key);
-    } catch (error) {
+    } catch {
       return null;
     }
   }
 
   async remove(key: string): Promise<boolean> {
-    const collection = this.databaseService.getCollection('stocks');
+    const collection = this.databaseService.getCollection("stocks");
 
     try {
       await collection.remove(key);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

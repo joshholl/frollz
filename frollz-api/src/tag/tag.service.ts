@@ -1,15 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { CreateTagDto } from './dto/create-tag.dto';
-import { UpdateTagDto } from './dto/update-tag.dto';
-import { Tag } from './entities/tag.entity';
+import { Injectable } from "@nestjs/common";
+import { DatabaseService } from "../database/database.service";
+import { CreateTagDto } from "./dto/create-tag.dto";
+import { UpdateTagDto } from "./dto/update-tag.dto";
+import { Tag } from "./entities/tag.entity";
 
 @Injectable()
 export class TagService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async create(createTagDto: CreateTagDto): Promise<Tag> {
-    const collection = this.databaseService.getCollection('tags');
+    const collection = this.databaseService.getCollection("tags");
 
     const tag = {
       ...createTagDto,
@@ -30,34 +30,37 @@ export class TagService {
   }
 
   async findOne(key: string): Promise<Tag | null> {
-    const cursor = await this.databaseService.query(`
+    const cursor = await this.databaseService.query(
+      `
       FOR tag IN tags
       FILTER tag._key == @key
       RETURN tag
-    `, { key });
+    `,
+      { key },
+    );
 
     const results = await cursor.all();
     return results.length > 0 ? results[0] : null;
   }
 
   async update(key: string, updateTagDto: UpdateTagDto): Promise<Tag | null> {
-    const collection = this.databaseService.getCollection('tags');
+    const collection = this.databaseService.getCollection("tags");
 
     try {
       await collection.update(key, updateTagDto);
       return await this.findOne(key);
-    } catch (error) {
+    } catch {
       return null;
     }
   }
 
   async remove(key: string): Promise<boolean> {
-    const collection = this.databaseService.getCollection('tags');
+    const collection = this.databaseService.getCollection("tags");
 
     try {
       await collection.remove(key);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

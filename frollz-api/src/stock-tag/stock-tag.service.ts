@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { CreateStockTagDto } from './dto/create-stock-tag.dto';
-import { StockTag } from './entities/stock-tag.entity';
+import { Injectable } from "@nestjs/common";
+import { DatabaseService } from "../database/database.service";
+import { CreateStockTagDto } from "./dto/create-stock-tag.dto";
+import { StockTag } from "./entities/stock-tag.entity";
 
 @Injectable()
 export class StockTagService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async create(createStockTagDto: CreateStockTagDto): Promise<StockTag> {
-    const collection = this.databaseService.getCollection('stock_tags');
+    const collection = this.databaseService.getCollection("stock_tags");
 
     const stockTag = {
       ...createStockTagDto,
@@ -28,41 +28,50 @@ export class StockTagService {
   }
 
   async findByStock(stockKey: string): Promise<StockTag[]> {
-    const cursor = await this.databaseService.query(`
+    const cursor = await this.databaseService.query(
+      `
       FOR st IN stock_tags
       FILTER st.stockKey == @stockKey
       RETURN st
-    `, { stockKey });
+    `,
+      { stockKey },
+    );
     return await cursor.all();
   }
 
   async findByTag(tagKey: string): Promise<StockTag[]> {
-    const cursor = await this.databaseService.query(`
+    const cursor = await this.databaseService.query(
+      `
       FOR st IN stock_tags
       FILTER st.tagKey == @tagKey
       RETURN st
-    `, { tagKey });
+    `,
+      { tagKey },
+    );
     return await cursor.all();
   }
 
   async findOne(key: string): Promise<StockTag | null> {
-    const cursor = await this.databaseService.query(`
+    const cursor = await this.databaseService.query(
+      `
       FOR st IN stock_tags
       FILTER st._key == @key
       RETURN st
-    `, { key });
+    `,
+      { key },
+    );
 
     const results = await cursor.all();
     return results.length > 0 ? results[0] : null;
   }
 
   async remove(key: string): Promise<boolean> {
-    const collection = this.databaseService.getCollection('stock_tags');
+    const collection = this.databaseService.getCollection("stock_tags");
 
     try {
       await collection.remove(key);
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

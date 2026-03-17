@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import RollsView from '@/views/RollsView.vue'
-import { rollApi, stockApi } from '@/services/api-client'
+import { rollApi, rollStateApi, stockApi } from '@/services/api-client'
 import { RollState, ObtainmentMethod } from '@/types'
 
 vi.mock('@/services/api-client', () => ({
@@ -12,6 +12,10 @@ vi.mock('@/services/api-client', () => ({
     getNextId: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    transition: vi.fn(),
+  },
+  rollStateApi: {
+    getHistory: vi.fn(),
   },
   stockApi: {
     getAll: vi.fn(),
@@ -188,29 +192,39 @@ describe('RollsView', () => {
     })
   })
 
-  describe('canLoad', () => {
-    it.each([RollState.FROZEN, RollState.REFRIGERATED, RollState.SHELFED])(
-      'should show Load button for %s state',
+  describe('getValidTransitions', () => {
+    it('should show Loaded transition button for a Shelved roll', async () => {
+      vi.mocked(rollApi.getAll).mockResolvedValue({ data: [makeRoll('r1', RollState.SHELFED)] } as any)
+
+      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      expect(vm.getValidTransitions(RollState.SHELFED)).toContain(RollState.LOADED)
+      expect(wrapper.findAll('button').some(b => b.text() === RollState.LOADED)).toBe(true)
+    })
+
+    it('should show Finished and Shelved buttons for a Loaded roll', async () => {
+      vi.mocked(rollApi.getAll).mockResolvedValue({ data: [makeRoll('r1', RollState.LOADED)] } as any)
+
+      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const buttonTexts = wrapper.findAll('button').map(b => b.text())
+      expect(buttonTexts).toContain(RollState.FINISHED)
+      expect(buttonTexts).toContain(RollState.SHELFED)
+    })
+
+    it.each([RollState.FINISHED, RollState.DEVELOPED])(
+      'should show no transition buttons for terminal state %s',
       async (state) => {
         vi.mocked(rollApi.getAll).mockResolvedValue({ data: [makeRoll('r1', state)] } as any)
 
         const wrapper = mount(RollsView, { global: { plugins: [router] } })
         await flushPromises()
 
-        expect(wrapper.text()).toContain('Load')
-      }
-    )
-
-    it.each([RollState.LOADED, RollState.FINISHED, RollState.DEVELOPED])(
-      'should not show Load button for %s state',
-      async (state) => {
-        vi.mocked(rollApi.getAll).mockResolvedValue({ data: [makeRoll('r1', state)] } as any)
-
-        const wrapper = mount(RollsView, { global: { plugins: [router] } })
-        await flushPromises()
-
-        const loadButtons = wrapper.findAll('button').filter(b => b.text() === 'Load')
-        expect(loadButtons).toHaveLength(0)
+        const vm = wrapper.vm as any
+        expect(vm.getValidTransitions(state)).toHaveLength(0)
       }
     )
   })
@@ -336,8 +350,8 @@ describe('RollsView', () => {
     })
   })
 
-  describe('load modal', () => {
-    it('should open load modal when Load button is clicked', async () => {
+  describe('transition modal', () => {
+    it('should open transition modal when a transition button is clicked', async () => {
       vi.mocked(rollApi.getAll).mockResolvedValue({
         data: [makeRoll('r1', RollState.SHELFED)],
       } as any)
@@ -346,59 +360,71 @@ describe('RollsView', () => {
       await flushPromises()
 
       const vm = wrapper.vm as any
-      vm.openLoadModal(makeRoll('r1', RollState.SHELFED))
+      vm.openTransitionModal(makeRoll('r1', RollState.SHELFED), RollState.LOADED)
       await wrapper.vm.$nextTick()
 
-      expect(vm.loadTarget).not.toBeNull()
-      expect(wrapper.text()).toContain('What will this roll be loaded into?')
+      expect(vm.transitionTarget).not.toBeNull()
+      expect(wrapper.text()).toContain('Transition Roll')
     })
 
-    it('should close load modal on cancel', async () => {
+    it('should close transition modal on cancel', async () => {
       const wrapper = mount(RollsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
-      vm.openLoadModal(makeRoll('r1', RollState.SHELFED))
-      vm.closeLoadModal()
+      vm.openTransitionModal(makeRoll('r1', RollState.SHELFED), RollState.LOADED)
+      vm.closeTransitionModal()
       await wrapper.vm.$nextTick()
 
-      expect(vm.loadTarget).toBeNull()
+      expect(vm.transitionTarget).toBeNull()
     })
 
-    it('should call rollApi.update with Loaded state and loadedInto on submit', async () => {
-      vi.mocked(rollApi.update).mockResolvedValue({ data: {} } as any)
+    it('should call rollApi.transition with the target state on submit', async () => {
+      vi.mocked(rollApi.transition).mockResolvedValue({ data: {} } as any)
 
       const wrapper = mount(RollsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
-      vm.openLoadModal(makeRoll('r1', RollState.SHELFED))
-      vm.loadedInto = 'Nikon F3'
+      vm.openTransitionModal(makeRoll('r1', RollState.SHELFED), RollState.LOADED)
+      vm.transitionNotes = 'Loading into Nikon F3'
 
-      await vm.handleLoad()
+      await vm.handleTransition()
       await flushPromises()
 
-      expect(rollApi.update).toHaveBeenCalledWith('r1', {
-        state: RollState.LOADED,
-        loadedInto: 'Nikon F3',
-      })
+      expect(rollApi.transition).toHaveBeenCalledWith('r1', RollState.LOADED, 'Loading into Nikon F3')
     })
 
-    it('should close modal and reload rolls after successful load', async () => {
-      vi.mocked(rollApi.update).mockResolvedValue({ data: {} } as any)
+    it('should close modal and reload rolls after successful transition', async () => {
+      vi.mocked(rollApi.transition).mockResolvedValue({ data: {} } as any)
 
       const wrapper = mount(RollsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
-      vm.openLoadModal(makeRoll('r1', RollState.SHELFED))
-      vm.loadedInto = 'Nikon F3'
+      vm.openTransitionModal(makeRoll('r1', RollState.SHELFED), RollState.LOADED)
 
-      await vm.handleLoad()
+      await vm.handleTransition()
       await flushPromises()
 
-      expect(vm.loadTarget).toBeNull()
+      expect(vm.transitionTarget).toBeNull()
       expect(rollApi.getAll).toHaveBeenCalledTimes(2)
+    })
+
+    it('should pass undefined notes when notes field is empty', async () => {
+      vi.mocked(rollApi.transition).mockResolvedValue({ data: {} } as any)
+
+      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      vm.openTransitionModal(makeRoll('r1', RollState.LOADED), RollState.FINISHED)
+      vm.transitionNotes = ''
+
+      await vm.handleTransition()
+      await flushPromises()
+
+      expect(rollApi.transition).toHaveBeenCalledWith('r1', RollState.FINISHED, undefined)
     })
   })
 })

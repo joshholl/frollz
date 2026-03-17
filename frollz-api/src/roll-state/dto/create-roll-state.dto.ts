@@ -1,7 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsString, IsOptional, IsDate } from 'class-validator';
-import { Type } from 'class-transformer';
-import { RollState } from '../../roll/entities/roll.entity';
+import { ApiProperty } from "@nestjs/swagger";
+import { IsEnum, IsString, IsOptional, IsDate } from "class-validator";
+import { Type } from "class-transformer";
+import { RollState } from "../../roll/entities/roll.entity";
 
 export class CreateRollStateDto {
   @ApiProperty()

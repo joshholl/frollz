@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum } from 'class-validator';
-import { FormFactor, Format } from '../entities/film-format.entity';
+import { ApiProperty } from "@nestjs/swagger";
+import { IsEnum } from "class-validator";
+import { FormFactor, Format } from "../entities/film-format.entity";
 
 export class CreateFilmFormatDto {
   @ApiProperty({ enum: FormFactor })
