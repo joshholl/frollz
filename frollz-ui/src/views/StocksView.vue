@@ -12,11 +12,26 @@
         <table class="min-w-full">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manufacturer</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Format</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Process</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Speed</th>
+              <th
+                @click="setSort('brand')"
+                :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none', sortField === 'brand' ? 'bg-gray-200' : '']"
+              >Brand {{ sortField === 'brand' ? (sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
+              <th
+                @click="setSort('manufacturer')"
+                :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none', sortField === 'manufacturer' ? 'bg-gray-200' : '']"
+              >Manufacturer {{ sortField === 'manufacturer' ? (sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
+              <th
+                @click="setSort('format')"
+                :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none', sortField === 'format' ? 'bg-gray-200' : '']"
+              >Format {{ sortField === 'format' ? (sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
+              <th
+                @click="setSort('process')"
+                :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none', sortField === 'process' ? 'bg-gray-200' : '']"
+              >Process {{ sortField === 'process' ? (sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
+              <th
+                @click="setSort('speed')"
+                :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none', sortField === 'speed' ? 'bg-gray-200' : '']"
+              >Speed {{ sortField === 'speed' ? (sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
               <th class="px-6 py-3"></th>
             </tr>
@@ -196,6 +211,19 @@ const submitting = ref(false)
 const error = ref('')
 const selectedTagKeys = ref<string[]>([])
 
+type SortField = 'brand' | 'manufacturer' | 'format' | 'process' | 'speed'
+const sortField = ref<SortField>('brand')
+const sortDirection = ref<'asc' | 'desc'>('asc')
+
+const setSort = (field: SortField) => {
+  if (sortField.value === field) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortField.value = field
+    sortDirection.value = 'asc'
+  }
+}
+
 const processOptions = Object.values(Process)
 
 const emptyForm = () => ({
@@ -223,11 +251,15 @@ watch(() => form.value.process, () => {
 
 const sortedStocks = computed(() => {
   return stocks.value.slice().sort((a, b) => {
-    const brandA = a.brand.toLowerCase()
-    const brandB = b.brand.toLowerCase()
-    if (brandA < brandB) return -1
-    if (brandA > brandB) return 1
-    return 0
+    let result: number
+    if (sortField.value === 'speed') {
+      result = (a.speed ?? 0) - (b.speed ?? 0)
+    } else {
+      const aVal = (a[sortField.value] ?? '').toString().toLowerCase()
+      const bVal = (b[sortField.value] ?? '').toString().toLowerCase()
+      result = aVal.localeCompare(bVal)
+    }
+    return sortDirection.value === 'asc' ? result : -result
   })
 })
 
