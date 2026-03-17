@@ -7,7 +7,9 @@
     2. If the issue type has bug label, the branch should start with "fix/"
 2. Issue branches should always be based off of "development"
 3. Before creating an issue branch, ensure that the lastest code has been pulled
-4. When finished with an issue, add all code and create a pull request
+4. When finished with an issue build the components and restart the containers.
+5. If the build and restart succeed, created and push a commit with all changed files.
+6. Wait until I approve changes before submitting a pull request
 
 ## General rules
 
