@@ -175,6 +175,117 @@ describe('StocksView', () => {
     })
   })
 
+  describe('sorting', () => {
+    const multiStocks = [
+      { _key: 'stock-a', brand: 'Zebra Film', manufacturer: 'Alpha Corp', format: '35mm', process: Process.C_41, speed: 200 },
+      { _key: 'stock-b', brand: 'Alpha Film', manufacturer: 'Zebra Corp', format: '120', process: Process.E_6, speed: 400 },
+      { _key: 'stock-c', brand: 'Mango Film', manufacturer: 'Mango Corp', format: 'I-Type', process: Process.INSTANT, speed: 100 },
+    ]
+
+    beforeEach(() => {
+      vi.mocked(stockApi.getAll).mockResolvedValue({ data: multiStocks } as any)
+    })
+
+    it('should default sort by brand ascending', async () => {
+      const wrapper = mount(StocksView)
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      expect(vm.sortField).toBe('brand')
+      expect(vm.sortDirection).toBe('asc')
+      const brands = vm.sortedStocks.map((s: any) => s.brand)
+      expect(brands).toEqual(['Alpha Film', 'Mango Film', 'Zebra Film'])
+    })
+
+    it('should sort by a different field when setSort is called', async () => {
+      const wrapper = mount(StocksView)
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      vm.setSort('manufacturer')
+      await wrapper.vm.$nextTick()
+
+      expect(vm.sortField).toBe('manufacturer')
+      expect(vm.sortDirection).toBe('asc')
+      const manufacturers = vm.sortedStocks.map((s: any) => s.manufacturer)
+      expect(manufacturers).toEqual(['Alpha Corp', 'Mango Corp', 'Zebra Corp'])
+    })
+
+    it('should toggle sort direction when the same field is clicked again', async () => {
+      const wrapper = mount(StocksView)
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      vm.setSort('brand') // already brand/asc, should flip to desc
+      await wrapper.vm.$nextTick()
+
+      expect(vm.sortDirection).toBe('desc')
+      const brands = vm.sortedStocks.map((s: any) => s.brand)
+      expect(brands).toEqual(['Zebra Film', 'Mango Film', 'Alpha Film'])
+    })
+
+    it('should reset to ascending when switching to a new field', async () => {
+      const wrapper = mount(StocksView)
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      vm.setSort('brand') // flip to desc
+      vm.setSort('speed') // new field → should be asc
+      await wrapper.vm.$nextTick()
+
+      expect(vm.sortField).toBe('speed')
+      expect(vm.sortDirection).toBe('asc')
+      const speeds = vm.sortedStocks.map((s: any) => s.speed)
+      expect(speeds).toEqual([100, 200, 400])
+    })
+
+    it('should sort numerically by speed', async () => {
+      const wrapper = mount(StocksView)
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      vm.setSort('speed')
+      await wrapper.vm.$nextTick()
+
+      const speeds = vm.sortedStocks.map((s: any) => s.speed)
+      expect(speeds).toEqual([100, 200, 400])
+
+      vm.setSort('speed') // desc
+      await wrapper.vm.$nextTick()
+      expect(vm.sortedStocks.map((s: any) => s.speed)).toEqual([400, 200, 100])
+    })
+
+    it('should apply darker background class to active sort column header', async () => {
+      const wrapper = mount(StocksView)
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      vm.setSort('manufacturer')
+      await wrapper.vm.$nextTick()
+
+      const headers = wrapper.findAll('th')
+      const manufacturerHeader = headers[1]
+      expect(manufacturerHeader.classes()).toContain('bg-gray-200')
+      expect(headers[0].classes()).not.toContain('bg-gray-200')
+    })
+
+    it('should show sort direction indicator on active column header', async () => {
+      const wrapper = mount(StocksView)
+      await flushPromises()
+
+      // Default: brand asc
+      const headers = wrapper.findAll('th')
+      expect(headers[0].text()).toContain('↑')
+      expect(headers[1].text()).not.toMatch(/[↑↓]/)
+
+      const vm = wrapper.vm as any
+      vm.setSort('brand') // flip to desc
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.findAll('th')[0].text()).toContain('↓')
+    })
+  })
+
   describe('multiple format creation', () => {
     it('should call API with multiple format keys', async () => {
       const mockCreatedStocks = [
