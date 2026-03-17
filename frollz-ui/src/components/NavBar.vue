@@ -54,6 +54,8 @@ import { RouterLink } from 'vue-router'
 </script>
 
 <style scoped>
+@reference "../style.css";
+
 .nav-link {
   @apply px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-primary-600 hover:bg-gray-100 transition-colors duration-200;
 }
