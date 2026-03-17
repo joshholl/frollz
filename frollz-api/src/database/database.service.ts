@@ -174,12 +174,8 @@ export class DatabaseService implements OnModuleInit {
         const mainCount = await mainCollection.count();
         
         if (mainCount.count === 0) {
-          const defaultData = await defaultCollection.all();
-          const documents = [];
-          
-          for await (const doc of defaultData) {
-            documents.push(doc);
-          }
+          const cursor = await this.db.query(`FOR doc IN ${mapping.default} RETURN doc`);
+          const documents = await cursor.all();
           
           if (documents.length > 0) {
             await mainCollection.saveAll(documents);

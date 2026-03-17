@@ -1,5 +1,5 @@
 import { api } from './api'
-import type { FilmFormat, Stock, Roll, Tag, StockTag } from '@/types'
+import type { FilmFormat, Stock, Roll, RollStateHistory, Tag, StockTag } from '@/types'
 import { Process } from '@/types'
 
 type CreateStockMultipleFormatsPayload = Pick<Stock, 'brand' | 'manufacturer' | 'speed' | 'baseStockKey' | 'boxImageUrl'> & {
@@ -65,4 +65,12 @@ export const rollApi = {
   update: (key: string, data: Partial<Roll>) =>
     api.patch<Roll>(`/rolls/${key}`, data),
   delete: (key: string) => api.delete(`/rolls/${key}`),
+  transition: (key: string, targetState: string, notes?: string) =>
+    api.post<Roll>(`/rolls/${key}/transition`, { targetState, notes }),
+}
+
+// Roll State History API
+export const rollStateApi = {
+  getHistory: (rollKey: string) =>
+    api.get<RollStateHistory[]>('/roll-states', { params: { rollKey } }),
 }

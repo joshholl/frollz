@@ -1,4 +1,10 @@
 import { Module } from '@nestjs/common';
-// Basic module structure - can be expanded later
-@Module({})
+import { RollStateService } from './roll-state.service';
+import { RollStateController } from './roll-state.controller';
+
+@Module({
+  controllers: [RollStateController],
+  providers: [RollStateService],
+  exports: [RollStateService],
+})
 export class RollStateModule {}
