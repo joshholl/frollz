@@ -22,7 +22,7 @@ export class StockTagService {
     const now = new Date();
 
     await this.databaseService.execute(
-      `INSERT INTO stock_tags (id, stock_key, tag_key, created_at) VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO stock_tags (id, stock_key, tag_key, created_at) VALUES (?, ?, ?, ?)`,
       [id, createStockTagDto.stockKey, createStockTagDto.tagKey, now],
     );
 
@@ -41,7 +41,7 @@ export class StockTagService {
 
   async findByStock(stockKey: string): Promise<StockTag[]> {
     const rows = await this.databaseService.query(
-      `SELECT * FROM stock_tags WHERE stock_key = $1`,
+      `SELECT * FROM stock_tags WHERE stock_key = ?`,
       [stockKey],
     );
     return rows.map(mapStockTag);
@@ -49,7 +49,7 @@ export class StockTagService {
 
   async findByTag(tagKey: string): Promise<StockTag[]> {
     const rows = await this.databaseService.query(
-      `SELECT * FROM stock_tags WHERE tag_key = $1`,
+      `SELECT * FROM stock_tags WHERE tag_key = ?`,
       [tagKey],
     );
     return rows.map(mapStockTag);
@@ -57,14 +57,14 @@ export class StockTagService {
 
   async findOne(key: string): Promise<StockTag | null> {
     const rows = await this.databaseService.query(
-      `SELECT * FROM stock_tags WHERE id = $1`,
+      `SELECT * FROM stock_tags WHERE id = ?`,
       [key],
     );
     return rows.length > 0 ? mapStockTag(rows[0]) : null;
   }
 
   async remove(key: string): Promise<boolean> {
-    await this.databaseService.execute(`DELETE FROM stock_tags WHERE id = $1`, [
+    await this.databaseService.execute(`DELETE FROM stock_tags WHERE id = ?`, [
       key,
     ]);
     return true;

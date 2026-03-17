@@ -3,27 +3,34 @@ import * as fs from "fs";
 import * as path from "path";
 import { DatabaseService } from "./database.service";
 
-// Helper to build a mock pg Pool
-const makePool = (overrides: Partial<{ query: jest.Mock }> = {}) => ({
-  query: jest.fn().mockResolvedValue({ rows: [{ count: "0" }], rowCount: 0 }),
+// Helper to build a mock knex instance
+const makeKnex = (overrides: Partial<{ raw: jest.Mock }> = {}) => ({
+  raw: jest.fn().mockResolvedValue({ rows: [{ count: "0" }] }),
+  migrate: { latest: jest.fn().mockResolvedValue(undefined) },
   ...overrides,
 });
 
-// Helper to build a DatabaseService with a given pool mock
+// Helper to build a DatabaseService with a given knex mock
 async function buildService(
-  poolOverrides: Partial<{ query: jest.Mock }> = {},
-): Promise<{ service: DatabaseService; pool: ReturnType<typeof makePool> }> {
-  const pool = makePool(poolOverrides);
+  knexOverrides: Partial<{ raw: jest.Mock }> = {},
+): Promise<{
+  service: DatabaseService;
+  knex: ReturnType<typeof makeKnex>;
+}> {
+  const knex = makeKnex(knexOverrides);
   const module: TestingModule = await Test.createTestingModule({
-    providers: [DatabaseService, { provide: "POSTGRES_POOL", useValue: pool }],
+    providers: [
+      DatabaseService,
+      { provide: "KNEX_CONNECTION", useValue: knex },
+    ],
   }).compile();
   const service = module.get<DatabaseService>(DatabaseService);
-  return { service, pool };
+  return { service, knex };
 }
 
 describe("DatabaseService — loadSeedData", () => {
   let service: DatabaseService;
-  let pool: ReturnType<typeof makePool>;
+  let knex: ReturnType<typeof makeKnex>;
   let readdirSyncSpy: jest.SpyInstance;
   let readFileSyncSpy: jest.SpyInstance;
 
@@ -33,7 +40,7 @@ describe("DatabaseService — loadSeedData", () => {
     readdirSyncSpy = jest.spyOn(fs, "readdirSync").mockReturnValue([] as any);
     readFileSyncSpy = jest.spyOn(fs, "readFileSync").mockReturnValue("[]");
 
-    ({ service, pool } = await buildService());
+    ({ service, knex } = await buildService());
   });
 
   afterEach(() => jest.restoreAllMocks());
@@ -46,7 +53,7 @@ describe("DatabaseService — loadSeedData", () => {
       ] as any);
 
       const insertedTables: string[] = [];
-      pool.query.mockImplementation((sql: string) => {
+      knex.raw.mockImplementation((sql: string) => {
         const countMatch = sql.match(/SELECT COUNT\(\*\) FROM (\w+)/);
         if (countMatch) {
           insertedTables.push(countMatch[1]);
@@ -72,7 +79,7 @@ describe("DatabaseService — loadSeedData", () => {
       ] as any);
 
       const queriedTables: string[] = [];
-      pool.query.mockImplementation((sql: string) => {
+      knex.raw.mockImplementation((sql: string) => {
         const match = sql.match(/SELECT COUNT\(\*\) FROM (\w+)/);
         if (match) queriedTables.push(match[1]);
         return Promise.resolve({ rows: [{ count: "0" }] });
@@ -101,7 +108,7 @@ describe("DatabaseService — loadSeedData", () => {
       readdirSyncSpy.mockReturnValue(["0003-tags.json"] as any);
 
       const insertCalls: string[] = [];
-      pool.query.mockImplementation((sql: string) => {
+      knex.raw.mockImplementation((sql: string) => {
         if (/SELECT COUNT/.test(sql))
           return Promise.resolve({ rows: [{ count: "5" }] });
         if (/INSERT/.test(sql)) insertCalls.push(sql);
@@ -120,7 +127,7 @@ describe("DatabaseService — loadSeedData", () => {
       );
 
       const insertCalls: string[] = [];
-      pool.query.mockImplementation((sql: string) => {
+      knex.raw.mockImplementation((sql: string) => {
         if (/SELECT COUNT/.test(sql))
           return Promise.resolve({ rows: [{ count: "0" }] });
         if (/INSERT/.test(sql)) insertCalls.push(sql);
@@ -141,7 +148,7 @@ describe("DatabaseService — loadSeedData", () => {
       );
 
       const insertParams: unknown[][] = [];
-      pool.query.mockImplementation((sql: string, params?: unknown[]) => {
+      knex.raw.mockImplementation((sql: string, params?: unknown[]) => {
         if (/SELECT COUNT/.test(sql))
           return Promise.resolve({ rows: [{ count: "0" }] });
         if (/INSERT/.test(sql) && params) insertParams.push(params);
@@ -150,7 +157,6 @@ describe("DatabaseService — loadSeedData", () => {
 
       await (service as any).loadSeedData();
 
-      // createdAt is in the values (it is a Date/string passed as a param)
       expect(insertParams.length).toBeGreaterThan(0);
     });
 
@@ -169,7 +175,7 @@ describe("DatabaseService — loadSeedData", () => {
       );
 
       const insertParams: unknown[][] = [];
-      pool.query.mockImplementation((sql: string, params?: unknown[]) => {
+      knex.raw.mockImplementation((sql: string, params?: unknown[]) => {
         if (/SELECT COUNT/.test(sql))
           return Promise.resolve({ rows: [{ count: "0" }] });
         if (/INSERT/.test(sql) && params) insertParams.push(params);
@@ -178,7 +184,6 @@ describe("DatabaseService — loadSeedData", () => {
 
       await (service as any).loadSeedData();
 
-      // The existing createdAt value should appear in the INSERT params
       const allParams = insertParams.flat();
       expect(allParams).toContain(existingDate);
     });
@@ -211,9 +216,9 @@ describe("DatabaseService — DISABLE_DEFAULT_DATA_IMPORT", () => {
         .spyOn(console, "log")
         .mockImplementation(() => {});
 
-      const { pool } = await buildService();
+      const { knex } = await buildService();
       const insertCalls: string[] = [];
-      pool.query.mockImplementation((sql: string) => {
+      knex.raw.mockImplementation((sql: string) => {
         if (/INSERT/.test(sql)) insertCalls.push(sql);
         return Promise.resolve({ rows: [] });
       });
@@ -221,7 +226,7 @@ describe("DatabaseService — DISABLE_DEFAULT_DATA_IMPORT", () => {
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           DatabaseService,
-          { provide: "POSTGRES_POOL", useValue: pool },
+          { provide: "KNEX_CONNECTION", useValue: knex },
         ],
       }).compile();
       const service = module.get<DatabaseService>(DatabaseService);
@@ -240,7 +245,6 @@ describe("DatabaseService — DISABLE_DEFAULT_DATA_IMPORT", () => {
       process.env.DISABLE_DEFAULT_DATA_IMPORT = value;
       const { service } = await buildService();
 
-      // Does not throw — seed loading proceeds
       await expect((service as any).isDefaultDataImportDisabled()).toBe(false);
     },
   );
@@ -255,31 +259,30 @@ describe("DatabaseService — DISABLE_DEFAULT_DATA_IMPORT", () => {
 describe("DatabaseService — query / execute", () => {
   afterEach(() => jest.restoreAllMocks());
 
-  it("query should delegate to the pool and return rows", async () => {
+  it("query should delegate to knex.raw and return rows", async () => {
     const rows = [{ id: "abc", value: "test" }];
-    const { service, pool } = await buildService({
-      query: jest.fn().mockResolvedValue({ rows }),
+    const { service, knex } = await buildService({
+      raw: jest.fn().mockResolvedValue({ rows }),
     });
 
-    const result = await service.query("SELECT * FROM tags WHERE id = $1", [
+    const result = await service.query("SELECT * FROM tags WHERE id = ?", [
       "abc",
     ]);
 
-    expect(pool.query).toHaveBeenCalledWith(
-      "SELECT * FROM tags WHERE id = $1",
-      ["abc"],
-    );
+    expect(knex.raw).toHaveBeenCalledWith("SELECT * FROM tags WHERE id = ?", [
+      "abc",
+    ]);
     expect(result).toEqual(rows);
   });
 
-  it("execute should delegate to the pool without returning rows", async () => {
-    const { service, pool } = await buildService({
-      query: jest.fn().mockResolvedValue({ rows: [] }),
+  it("execute should delegate to knex.raw without returning rows", async () => {
+    const { service, knex } = await buildService({
+      raw: jest.fn().mockResolvedValue({ rows: [] }),
     });
 
-    await service.execute("DELETE FROM tags WHERE id = $1", ["abc"]);
+    await service.execute("DELETE FROM tags WHERE id = ?", ["abc"]);
 
-    expect(pool.query).toHaveBeenCalledWith("DELETE FROM tags WHERE id = $1", [
+    expect(knex.raw).toHaveBeenCalledWith("DELETE FROM tags WHERE id = ?", [
       "abc",
     ]);
   });

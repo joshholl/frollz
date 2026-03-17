@@ -1,109 +1,8 @@
 import { Injectable, Inject, OnModuleInit } from "@nestjs/common";
-import { Pool } from "pg";
+import { Knex } from "knex";
 import * as fs from "fs";
 import * as path from "path";
 import { randomUUID } from "crypto";
-
-const DDL = `
-  CREATE TABLE IF NOT EXISTS film_formats (
-    id TEXT PRIMARY KEY,
-    form_factor TEXT NOT NULL,
-    format TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ
-  );
-
-  CREATE TABLE IF NOT EXISTS film_formats_default (
-    id TEXT PRIMARY KEY,
-    form_factor TEXT NOT NULL,
-    format TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ
-  );
-
-  CREATE TABLE IF NOT EXISTS tags (
-    id TEXT PRIMARY KEY,
-    value TEXT NOT NULL,
-    color TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  );
-
-  CREATE TABLE IF NOT EXISTS tags_default (
-    id TEXT PRIMARY KEY,
-    value TEXT NOT NULL,
-    color TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  );
-
-  CREATE TABLE IF NOT EXISTS stocks (
-    id TEXT PRIMARY KEY,
-    format_key TEXT REFERENCES film_formats(id),
-    process TEXT NOT NULL,
-    manufacturer TEXT NOT NULL,
-    brand TEXT NOT NULL,
-    base_stock_key TEXT REFERENCES stocks(id),
-    speed INTEGER NOT NULL,
-    box_image_url TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ
-  );
-
-  CREATE TABLE IF NOT EXISTS stocks_default (
-    id TEXT PRIMARY KEY,
-    format_key TEXT REFERENCES film_formats_default(id),
-    process TEXT NOT NULL,
-    manufacturer TEXT NOT NULL,
-    brand TEXT NOT NULL,
-    base_stock_key TEXT REFERENCES stocks_default(id),
-    speed INTEGER NOT NULL,
-    box_image_url TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ
-  );
-
-  CREATE TABLE IF NOT EXISTS stock_tags (
-    id TEXT PRIMARY KEY,
-    stock_key TEXT NOT NULL REFERENCES stocks(id),
-    tag_key TEXT NOT NULL REFERENCES tags(id),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(stock_key, tag_key)
-  );
-
-  CREATE TABLE IF NOT EXISTS stock_tags_default (
-    id TEXT PRIMARY KEY,
-    stock_key TEXT NOT NULL REFERENCES stocks_default(id),
-    tag_key TEXT NOT NULL REFERENCES tags_default(id),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(stock_key, tag_key)
-  );
-
-  CREATE TABLE IF NOT EXISTS rolls (
-    id TEXT PRIMARY KEY,
-    roll_id TEXT NOT NULL,
-    stock_key TEXT NOT NULL REFERENCES stocks(id),
-    state TEXT NOT NULL,
-    images_url TEXT,
-    date_obtained TIMESTAMPTZ NOT NULL,
-    obtainment_method TEXT NOT NULL,
-    obtained_from TEXT NOT NULL,
-    expiration_date TIMESTAMPTZ,
-    times_exposed_to_xrays INTEGER NOT NULL DEFAULT 0,
-    loaded_into TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ
-  );
-
-  CREATE TABLE IF NOT EXISTS roll_states (
-    id TEXT PRIMARY KEY,
-    state_id TEXT NOT NULL UNIQUE,
-    roll_id TEXT NOT NULL REFERENCES rolls(id),
-    state TEXT NOT NULL,
-    date TIMESTAMPTZ NOT NULL,
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ
-  );
-`;
 
 // Maps seed JSON filename base → { table, columns mapping }
 const SEED_TABLE_MAP: Record<string, { table: string; defaultTable: string }> =
@@ -177,10 +76,11 @@ const COLUMN_MAP: Record<string, Record<string, string>> = {
 
 @Injectable()
 export class DatabaseService implements OnModuleInit {
-  constructor(@Inject("POSTGRES_POOL") private readonly pool: Pool) {}
+  constructor(@Inject("KNEX_CONNECTION") private readonly knex: Knex) {}
 
   async onModuleInit() {
-    await this.initializeTables();
+    await this.knex.migrate.latest();
+    console.log("Database migrations applied");
 
     if (this.isDefaultDataImportDisabled()) {
       console.log(
@@ -199,18 +99,13 @@ export class DatabaseService implements OnModuleInit {
     return normalized === "true" || normalized === "1";
   }
 
-  private async initializeTables() {
-    await this.pool.query(DDL);
-    console.log("Database tables initialized");
-  }
-
   async query<T = any>(sql: string, params?: any[]): Promise<T[]> {
-    const result = await this.pool.query(sql, params);
+    const result = await this.knex.raw(sql, params ?? []);
     return result.rows as T[];
   }
 
   async execute(sql: string, params?: any[]): Promise<void> {
-    await this.pool.query(sql, params);
+    await this.knex.raw(sql, params ?? []);
   }
 
   private seedRowToColumns(
@@ -251,7 +146,7 @@ export class DatabaseService implements OnModuleInit {
       const tableName = mapping.defaultTable;
 
       try {
-        const countResult = await this.pool.query(
+        const countResult = await this.knex.raw(
           `SELECT COUNT(*) FROM ${tableName}`,
         );
         if (parseInt(countResult.rows[0].count, 10) > 0) continue;
@@ -265,8 +160,8 @@ export class DatabaseService implements OnModuleInit {
         for (const record of raw) {
           if (!record.createdAt) record.createdAt = now;
           const { columns, values } = this.seedRowToColumns(record, tableName);
-          const placeholders = values.map((_, i) => `$${i + 1}`).join(", ");
-          await this.pool.query(
+          const placeholders = values.map(() => "?").join(", ");
+          await this.knex.raw(
             `INSERT INTO ${tableName} (${columns.join(", ")}) VALUES (${placeholders}) ON CONFLICT (id) DO NOTHING`,
             values,
           );
@@ -292,16 +187,14 @@ export class DatabaseService implements OnModuleInit {
 
     for (const { main, default: def } of mappings) {
       try {
-        const countResult = await this.pool.query(
-          `SELECT COUNT(*) FROM ${main}`,
-        );
+        const countResult = await this.knex.raw(`SELECT COUNT(*) FROM ${main}`);
         if (parseInt(countResult.rows[0].count, 10) > 0) continue;
 
-        await this.pool.query(
+        await this.knex.raw(
           `INSERT INTO ${main} SELECT * FROM ${def} ON CONFLICT (id) DO NOTHING`,
         );
 
-        const inserted = await this.pool.query(`SELECT COUNT(*) FROM ${main}`);
+        const inserted = await this.knex.raw(`SELECT COUNT(*) FROM ${main}`);
         console.log(
           `Populated ${main} with ${inserted.rows[0].count} records from ${def}`,
         );

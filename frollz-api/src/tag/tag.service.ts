@@ -23,7 +23,7 @@ export class TagService {
     const now = new Date();
 
     await this.databaseService.execute(
-      `INSERT INTO tags (id, value, color, created_at) VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO tags (id, value, color, created_at) VALUES (?, ?, ?, ?)`,
       [id, createTagDto.value, createTagDto.color, now],
     );
 
@@ -44,7 +44,7 @@ export class TagService {
 
   async findOne(key: string): Promise<Tag | null> {
     const rows = await this.databaseService.query(
-      `SELECT * FROM tags WHERE id = $1`,
+      `SELECT * FROM tags WHERE id = ?`,
       [key],
     );
     return rows.length > 0 ? mapTag(rows[0]) : null;
@@ -53,14 +53,13 @@ export class TagService {
   async update(key: string, updateTagDto: UpdateTagDto): Promise<Tag | null> {
     const updates: string[] = [];
     const values: unknown[] = [];
-    let idx = 1;
 
     if (updateTagDto.value !== undefined) {
-      updates.push(`value = $${idx++}`);
+      updates.push(`value = ?`);
       values.push(updateTagDto.value);
     }
     if (updateTagDto.color !== undefined) {
-      updates.push(`color = $${idx++}`);
+      updates.push(`color = ?`);
       values.push(updateTagDto.color);
     }
 
@@ -68,7 +67,7 @@ export class TagService {
 
     values.push(key);
     await this.databaseService.execute(
-      `UPDATE tags SET ${updates.join(", ")} WHERE id = $${idx}`,
+      `UPDATE tags SET ${updates.join(", ")} WHERE id = ?`,
       values,
     );
 
@@ -76,7 +75,7 @@ export class TagService {
   }
 
   async remove(key: string): Promise<boolean> {
-    await this.databaseService.execute(`DELETE FROM tags WHERE id = $1`, [key]);
+    await this.databaseService.execute(`DELETE FROM tags WHERE id = ?`, [key]);
     return true;
   }
 }

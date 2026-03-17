@@ -31,7 +31,7 @@ export class StockService {
 
     await this.databaseService.execute(
       `INSERT INTO stocks (id, format_key, process, manufacturer, brand, base_stock_key, speed, box_image_url, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         createStockDto.formatKey,
@@ -61,7 +61,7 @@ export class StockService {
 
         await this.databaseService.execute(
           `INSERT INTO stocks (id, format_key, process, manufacturer, brand, base_stock_key, speed, box_image_url, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT (id) DO NOTHING`,
           [
             id,
@@ -110,7 +110,7 @@ export class StockService {
       `SELECT s.*, f.format AS format_label
        FROM stocks s
        LEFT JOIN film_formats f ON f.id = s.format_key
-       WHERE s.id = $1`,
+       WHERE s.id = ?`,
       [key],
     );
     if (rows.length === 0) return null;
@@ -136,23 +136,22 @@ export class StockService {
 
     const updates: string[] = [];
     const values: unknown[] = [];
-    let idx = 1;
 
     for (const [prop, col] of Object.entries(fieldMap)) {
       if ((updateStockDto as Record<string, unknown>)[prop] !== undefined) {
-        updates.push(`${col} = $${idx++}`);
+        updates.push(`${col} = ?`);
         values.push((updateStockDto as Record<string, unknown>)[prop]);
       }
     }
 
     if (updates.length === 0) return this.findOne(key);
 
-    updates.push(`updated_at = $${idx++}`);
+    updates.push(`updated_at = ?`);
     values.push(new Date());
     values.push(key);
 
     await this.databaseService.execute(
-      `UPDATE stocks SET ${updates.join(", ")} WHERE id = $${idx}`,
+      `UPDATE stocks SET ${updates.join(", ")} WHERE id = ?`,
       values,
     );
 
@@ -160,7 +159,7 @@ export class StockService {
   }
 
   async remove(key: string): Promise<boolean> {
-    await this.databaseService.execute(`DELETE FROM stocks WHERE id = $1`, [
+    await this.databaseService.execute(`DELETE FROM stocks WHERE id = ?`, [
       key,
     ]);
     return true;
@@ -168,7 +167,7 @@ export class StockService {
 
   async getBrands(query: string): Promise<string[]> {
     const rows = await this.databaseService.query(
-      `SELECT DISTINCT brand FROM stocks WHERE LOWER(brand) LIKE $1 ORDER BY brand`,
+      `SELECT DISTINCT brand FROM stocks WHERE LOWER(brand) LIKE ? ORDER BY brand`,
       [`%${query.toLowerCase()}%`],
     );
     return rows.map((r) => r.brand as string);
@@ -176,7 +175,7 @@ export class StockService {
 
   async getManufacturers(query: string): Promise<string[]> {
     const rows = await this.databaseService.query(
-      `SELECT DISTINCT manufacturer FROM stocks WHERE LOWER(manufacturer) LIKE $1 ORDER BY manufacturer`,
+      `SELECT DISTINCT manufacturer FROM stocks WHERE LOWER(manufacturer) LIKE ? ORDER BY manufacturer`,
       [`%${query.toLowerCase()}%`],
     );
     return rows.map((r) => r.manufacturer as string);
@@ -184,7 +183,7 @@ export class StockService {
 
   async getSpeeds(query: string): Promise<number[]> {
     const rows = await this.databaseService.query(
-      `SELECT DISTINCT speed FROM stocks WHERE speed::text LIKE $1 ORDER BY speed`,
+      `SELECT DISTINCT speed FROM stocks WHERE speed::text LIKE ? ORDER BY speed`,
       [`%${query}%`],
     );
     return rows.map((r) => Number(r.speed));

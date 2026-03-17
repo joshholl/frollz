@@ -29,7 +29,7 @@ export class RollStateService {
 
     await this.databaseService.execute(
       `INSERT INTO roll_states (id, state_id, roll_id, state, date, notes, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, stateId, dto.rollKey, dto.state, date, dto.notes ?? null, now, now],
     );
 
@@ -47,7 +47,7 @@ export class RollStateService {
 
   async findByRollKey(rollKey: string): Promise<RollStateHistory[]> {
     const rows = await this.databaseService.query(
-      `SELECT * FROM roll_states WHERE roll_id = $1 ORDER BY date ASC`,
+      `SELECT * FROM roll_states WHERE roll_id = ? ORDER BY date ASC`,
       [rollKey],
     );
     return rows.map(mapRollState);

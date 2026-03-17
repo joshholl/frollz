@@ -104,7 +104,7 @@ describe("TagService", () => {
       await service.findOne("color");
 
       expect(db.query).toHaveBeenCalledWith(
-        expect.stringContaining("WHERE id = $1"),
+        expect.stringContaining("WHERE id = ?"),
         ["color"],
       );
     });
