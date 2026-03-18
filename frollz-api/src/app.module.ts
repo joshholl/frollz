@@ -9,6 +9,7 @@ import { RollModule } from "./roll/roll.module";
 import { RollStateModule } from "./roll-state/roll-state.module";
 import { TagModule } from "./tag/tag.module";
 import { StockTagModule } from "./stock-tag/stock-tag.module";
+import { RollTagModule } from "./roll-tag/roll-tag.module";
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { StockTagModule } from "./stock-tag/stock-tag.module";
     RollStateModule,
     TagModule,
     StockTagModule,
+    RollTagModule,
   ],
   providers: [
     {

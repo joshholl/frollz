@@ -7,25 +7,46 @@ import { TransitionRollDto } from "./dto/transition-roll.dto";
 import { Roll, RollState } from "./entities/roll.entity";
 import { RollStateService } from "../roll-state/roll-state.service";
 
-const VALID_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
+const FORWARD_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
   [RollState.ADDED]: [
     RollState.FROZEN,
     RollState.REFRIGERATED,
-    RollState.SHELFED,
+    RollState.SHELVED,
   ],
-  [RollState.FROZEN]: [
+  [RollState.FROZEN]: [RollState.REFRIGERATED, RollState.SHELVED],
+  [RollState.REFRIGERATED]: [RollState.SHELVED],
+  [RollState.SHELVED]: [RollState.LOADED],
+  [RollState.LOADED]: [RollState.FINISHED],
+  [RollState.FINISHED]: [RollState.SENT_FOR_DEVELOPMENT],
+  [RollState.SENT_FOR_DEVELOPMENT]: [RollState.DEVELOPED],
+  [RollState.DEVELOPED]: [RollState.RECEIVED],
+};
+
+const BACKWARD_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
+  [RollState.FROZEN]: [RollState.ADDED],
+  [RollState.REFRIGERATED]: [RollState.FROZEN, RollState.ADDED],
+  [RollState.SHELVED]: [RollState.REFRIGERATED, RollState.FROZEN],
+  [RollState.LOADED]: [
+    RollState.SHELVED,
     RollState.REFRIGERATED,
-    RollState.SHELFED,
-    RollState.ADDED,
+    RollState.FROZEN,
   ],
-  [RollState.REFRIGERATED]: [RollState.SHELFED, RollState.ADDED],
-  [RollState.SHELFED]: [RollState.LOADED],
-  [RollState.LOADED]: [RollState.FINISHED, RollState.SHELFED],
-  [RollState.FINISHED]: [RollState.SENT_FOR_DEVELOPMENT, RollState.LOADED],
-  [RollState.SENT_FOR_DEVELOPMENT]: [RollState.DEVELOPED, RollState.FINISHED],
-  [RollState.DEVELOPED]: [RollState.RECEIVED, RollState.SENT_FOR_DEVELOPMENT],
+  [RollState.FINISHED]: [RollState.LOADED],
+  [RollState.SENT_FOR_DEVELOPMENT]: [RollState.FINISHED],
+  [RollState.DEVELOPED]: [RollState.SENT_FOR_DEVELOPMENT],
   [RollState.RECEIVED]: [RollState.DEVELOPED],
 };
+
+const VALID_TRANSITIONS: Partial<Record<RollState, RollState[]>> =
+  Object.fromEntries(
+    Object.values(RollState).map((state) => [
+      state,
+      [
+        ...(FORWARD_TRANSITIONS[state as RollState] ?? []),
+        ...(BACKWARD_TRANSITIONS[state as RollState] ?? []),
+      ],
+    ]),
+  ) as Partial<Record<RollState, RollState[]>>;
 
 function mapRoll(row: Record<string, unknown>): Roll {
   return {
@@ -74,6 +95,8 @@ export class RollService {
 
     const now = new Date();
 
+    const initialState = createRollDto.state ?? RollState.ADDED;
+
     await this.databaseService.execute(
       `INSERT INTO rolls (id, roll_id, stock_key, state, images_url, date_obtained, obtainment_method, obtained_from, expiration_date, times_exposed_to_xrays, loaded_into, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -81,7 +104,7 @@ export class RollService {
         id,
         rollId,
         createRollDto.stockKey,
-        createRollDto.state ?? RollState.ADDED,
+        initialState,
         createRollDto.imagesUrl ?? null,
         dateObtained,
         createRollDto.obtainmentMethod,
@@ -94,11 +117,17 @@ export class RollService {
       ],
     );
 
+    await this.rollStateService.create({
+      rollKey: id,
+      state: initialState,
+      date: now,
+    });
+
     return {
       _key: id,
       rollId,
       stockKey: createRollDto.stockKey,
-      state: createRollDto.state ?? RollState.ADDED,
+      state: initialState,
       imagesUrl: createRollDto.imagesUrl,
       dateObtained: new Date(dateObtained),
       obtainmentMethod: createRollDto.obtainmentMethod,

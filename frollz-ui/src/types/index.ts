@@ -72,12 +72,19 @@ export interface StockTag {
   createdAt?: Date
 }
 
+export interface RollTag {
+  _key?: string
+  tagKey: string
+  rollKey: string
+  createdAt?: Date
+}
+
 // Roll Types
 export enum RollState {
   ADDED = 'Added',
   FROZEN = 'Frozen',
   REFRIGERATED = 'Refrigerated',
-  SHELFED = 'Shelved',
+  SHELVED = 'Shelved',
   LOADED = 'Loaded',
   FINISHED = 'Finished',
   SENT_FOR_DEVELOPMENT = 'Sent For Development',

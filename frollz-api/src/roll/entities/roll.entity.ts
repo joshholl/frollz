@@ -4,7 +4,7 @@ export enum RollState {
   ADDED = "Added",
   FROZEN = "Frozen",
   REFRIGERATED = "Refrigerated",
-  SHELFED = "Shelved",
+  SHELVED = "Shelved",
   LOADED = "Loaded",
   FINISHED = "Finished",
   SENT_FOR_DEVELOPMENT = "Sent For Development",
