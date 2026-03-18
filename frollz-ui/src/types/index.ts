@@ -99,6 +99,7 @@ export interface FilmState {
   date: Date
   notes?: string
   isErrorCorrection?: boolean
+  metadata?: Record<string, unknown>
   createdAt?: Date
   updatedAt?: Date
 }
