@@ -290,7 +290,9 @@ describe("RollService", () => {
     });
 
     it("should return null fields when join yields no stock", async () => {
-      db.query.mockResolvedValueOnce([{ ...rollRow, stock_name: null, stock_speed: null, format_name: null }]);
+      db.query.mockResolvedValueOnce([
+        { ...rollRow, stock_name: null, stock_speed: null, format_name: null },
+      ]);
       const rolls = await service.findAll();
       expect(rolls[0].stockName).toBeUndefined();
       expect(rolls[0].stockSpeed).toBeUndefined();
