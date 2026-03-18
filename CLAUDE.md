@@ -106,13 +106,34 @@ Five routes map to domain views: `/` (dashboard), `/stocks`, `/rolls`, `/formats
 
 ## Workflow
 
+### Local Setup (required once per clone)
+
+```bash
+git config core.hooksPath .githooks
+```
+
+This activates the pre-commit hook at `.githooks/pre-commit`, which runs UI lint, UI type-check, UI tests, API lint, API tests, and Semgrep SAST before every commit. This mirrors CI exactly — if the hook passes, CI will pass.
+
 ### GitHub Issues
 
-1. Base all branches off `development` (not `main`). Pull latest before branching.
-2. Branch naming: `feature/<name>` for enhancements, `fix/<name>` for bugs.
-3. After changes: build components and restart containers. If successful, commit and push all changed files.
-4. **Wait for approval before submitting a PR** — do not auto-merge or auto-create PRs.
-5. Prefer `gh` CLI for git operations.
+**Before starting any work on a new issue, always run these steps in order — no exceptions:**
+
+```bash
+git checkout development
+git fetch origin
+git pull origin development
+git checkout -b feature/{issue-number}-{issue-title-slug}
+```
+
+Branch naming rules:
+- Format: `feature/{issue-number}-{issue-title-slug}` (e.g. `feature/55-roll-state-transitions`)
+- Slugify the issue title: lowercase, spaces → hyphens, remove special characters
+- Use `fix/` prefix only for pure bug fixes unrelated to a feature issue
+
+Additional rules:
+1. After changes: build components and restart containers. If successful, commit and push all changed files.
+2. **Wait for approval before submitting a PR** — do not auto-merge or auto-create PRs.
+3. Prefer `gh` CLI for git operations.
 
 ### Review Checklist (after every code change)
 
