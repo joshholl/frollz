@@ -1,3 +1,4 @@
+import { ConflictException } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import { TagService } from "./tag.service";
 import { DatabaseService } from "../database/database.service";
@@ -233,7 +234,10 @@ describe("TagService", () => {
 
   describe("remove", () => {
     it("should return true when the record is deleted", async () => {
-      db.query.mockResolvedValueOnce([{ id: "color" }]);
+      db.query
+        .mockResolvedValueOnce([]) // no stock_tag dependents
+        .mockResolvedValueOnce([]) // no roll_tag dependents
+        .mockResolvedValueOnce([{ id: "color" }]); // DELETE RETURNING
       const result = await service.remove("color");
 
       expect(db.query).toHaveBeenCalledWith(
@@ -244,10 +248,27 @@ describe("TagService", () => {
     });
 
     it("should return false when the record does not exist", async () => {
-      db.query.mockResolvedValueOnce([]);
+      db.query
+        .mockResolvedValueOnce([]) // no stock_tag dependents
+        .mockResolvedValueOnce([]) // no roll_tag dependents
+        .mockResolvedValueOnce([]); // DELETE RETURNING — nothing deleted
       const result = await service.remove("nonexistent");
 
       expect(result).toBe(false);
+    });
+
+    it("should throw ConflictException when stock_tags reference the tag", async () => {
+      db.query.mockResolvedValueOnce([{ id: "st-1" }]); // stock_tag dependent found
+
+      await expect(service.remove("color")).rejects.toThrow(ConflictException);
+    });
+
+    it("should throw ConflictException when roll_tags reference the tag", async () => {
+      db.query
+        .mockResolvedValueOnce([]) // no stock_tag dependents
+        .mockResolvedValueOnce([{ id: "rt-1" }]); // roll_tag dependent found
+
+      await expect(service.remove("color")).rejects.toThrow(ConflictException);
     });
   });
 });

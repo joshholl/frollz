@@ -1,3 +1,4 @@
+import { ConflictException } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 import { StockService } from "./stock.service";
 import { DatabaseService } from "../database/database.service";
@@ -187,7 +188,10 @@ describe("StockService", () => {
 
   describe("remove", () => {
     it("should return true when the record is deleted", async () => {
-      db.query.mockResolvedValueOnce([{ id: "kodak-gold-200" }]);
+      db.query
+        .mockResolvedValueOnce([]) // no roll dependents
+        .mockResolvedValueOnce([]) // no stock_tag dependents
+        .mockResolvedValueOnce([{ id: "kodak-gold-200" }]); // DELETE RETURNING
       const result = await service.remove("kodak-gold-200");
 
       expect(db.query).toHaveBeenCalledWith(
@@ -198,10 +202,31 @@ describe("StockService", () => {
     });
 
     it("should return false when the record does not exist", async () => {
-      db.query.mockResolvedValueOnce([]);
+      db.query
+        .mockResolvedValueOnce([]) // no roll dependents
+        .mockResolvedValueOnce([]) // no stock_tag dependents
+        .mockResolvedValueOnce([]); // DELETE RETURNING — nothing deleted
       const result = await service.remove("nonexistent");
 
       expect(result).toBe(false);
+    });
+
+    it("should throw ConflictException when rolls reference the stock", async () => {
+      db.query.mockResolvedValueOnce([{ id: "roll-1" }]); // roll dependent found
+
+      await expect(service.remove("kodak-gold-200")).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it("should throw ConflictException when stock_tags reference the stock", async () => {
+      db.query
+        .mockResolvedValueOnce([]) // no roll dependents
+        .mockResolvedValueOnce([{ id: "st-1" }]); // stock_tag dependent found
+
+      await expect(service.remove("kodak-gold-200")).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 });
