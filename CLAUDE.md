@@ -4,29 +4,35 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Project
 
-Frollz is a self-hosted film photography tracker — NestJS API + Vue 3 SPA monorepo, deployed as a single container backed by PostgreSQL 18. In development, the API uses SQLite automatically (`NODE_ENV=development`).
+Frollz is a full-stack film photography tracking application — a self-hosted monorepo that ships as a single combined container (NestJS API + Vue SPA) backed by PostgreSQL 18.
 
-## Critical: Docker command
+- **Production**: one `frollz` container (port 3000) + `postgres`. NestJS serves `/api/*` and the built Vue SPA. Place a reverse proxy (NPM, Traefik, Caddy) in front for HTTPS.
+- **Development**: separate `frollz-api` (port 3000, watch mode) + `frollz-ui` (port 5173, Vite HMR) + `postgres`. The Vite dev server proxies `/api` to the API container — no nginx needed.
 
 Always use `docker compose` (plugin), never `docker-compose` (legacy). `docker-compose` will fail.
 
-## Key commands
+### Docker
 
+**Development** (hot reloading, separate containers):
 ```bash
-# API (frollz-api/)
-npm run start:dev        # dev server — SQLite, no setup needed
-npm test                 # unit tests
-npm run test:integration # integration tests
-npm run lint             # ESLint + auto-fix
-
-# UI (frollz-ui/)
-npm run dev              # Vite dev server, port 5173, proxies /api → localhost:3000
-npm run test             # Vitest
-npm run type-check       # Vue TSC
-npm run lint             # ESLint + auto-fix
+docker-compose -f docker-compose.dev.yml up -d    # Start API + UI + PostgreSQL
+docker-compose -f docker-compose.dev.yml down      # Stop all services
+docker-compose -f docker-compose.dev.yml logs -f   # Tail logs
 ```
 
-## Codebase exploration — MCP first
+**Production** (combined container, what self-hosters run):
+```bash
+docker-compose up -d          # Start frollz + PostgreSQL
+docker-compose down           # Stop all services
+docker-compose logs -f        # Tail logs
+```
+
+To build the production image locally:
+```bash
+docker build -t frollz:local .
+```
+
+After code changes in dev: rebuild and restart the relevant container(s).
 
 Use `codebase-memory-mcp` tools for all structural questions. Do NOT reach for Grep/Glob/Bash find.
 
@@ -80,15 +86,17 @@ The graph is always current — no need to run `index_repository` manually.
 
 Each domain (film-format, stock, roll, tag, roll-state, stock-tag) is a self-contained NestJS feature module with the structure: `controller / service / module / dto / entities`.
 
-`DatabaseService` is the single point of PostgreSQL access — all modules depend on it. It wraps `pg`, exposes a `query<T>(sql, params)` method and `execute(sql, params)` method used by all feature services. Tables are created via `CREATE TABLE IF NOT EXISTS` DDL on startup.
+`DatabaseService` is the single point of PostgreSQL access — all modules depend on it. It wraps Knex, exposes a `query<T>(sql, params)` method and `execute(sql, params)` method used by all feature services. Schema is managed via Knex migrations in `frollz-api/migrations/`; `DatabaseService.onModuleInit` runs `knex.migrate.latest()` on startup.
 
 Default seed data is embedded in Knex migrations and loaded into `*_default` shadow tables on first run. Two tiers: **system data** (e.g. auto-managed tags: `expired`, `pushed`, `pulled`, `cross-processed`) is always copied to main tables on startup; **convenience data** (film formats, stocks, tags, stock-tags) is only copied when `DISABLE_DEFAULT_DATA_IMPORT` is not set.
+
+In the combined production container, `ServeStaticModule` (registered conditionally based on whether `/app/public` exists) serves the Vue SPA for all non-`/api` routes. Security headers are applied by `helmet` in `main.ts`.
 
 A `ValidationPipe` with `transform: true`, `whitelist: true`, `forbidNonWhitelisted: true` is applied globally. Swagger docs auto-generated at `/api/docs`.
 
 ### Frontend (Vue 3 + Vite + Pinia + Tailwind)
 
-All HTTP calls go through `src/services/api-client.ts` (Axios-based). Views never call fetch directly.
+All HTTP calls go through `src/services/api-client.ts` (Axios-based). Views never call fetch directly. `VITE_API_URL` defaults to `/api` (relative), which works in both production (same-origin) and development (Vite dev server proxies `/api` to the API container).
 
 Five routes map to domain views: `/` (dashboard), `/stocks`, `/rolls`, `/formats`, `/tags`. Shared components in `src/components/` include `TypeaheadInput.vue`, `SpeedTypeaheadInput.vue`, and `NavBar.vue`.
 

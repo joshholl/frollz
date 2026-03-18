@@ -13,7 +13,11 @@ Frollz is a film photography tracking application. It allows photographers to ma
 ## ARCHITECTURE
 Monorepo deployed as a single container in production. The combined image contains the NestJS API and the built Vue SPA; NestJS serves both. PostgreSQL runs as a separate container. No nginx is involved — users are expected to place a reverse proxy (Nginx Proxy Manager, Traefik, Caddy, etc.) in front for HTTPS termination.
 
-- **frollz-api**: NestJS REST API. Each domain (`roll`, `roll-state`, `stock`, `stock-tag`, `tag`, `film-format`) is a self-contained NestJS feature module with `controller / service / module / dto / entities` structure. A shared `DatabaseService` wraps all PostgreSQL access via Knex — `query<T>(sql, params): Promise<T[]>` and `execute(sql, params): Promise<void>` are the public API used by all feature services. Schema and default seed data are managed via Knex migrations in `frollz-api/migrations/`; seed migrations populate `*_default` shadow tables, which are then copied to main tables on startup.
+**Production** (`docker-compose.yml`): two services — `frollz` (combined container) + `postgres`.
+
+**Development** (`docker-compose.dev.yml`): three services — `frollz-api` (NestJS watch mode), `frollz-ui` (Vite dev server with HMR), `postgres`. The Vite dev server proxies `/api` requests to the API container via `server.proxy` in `vite.config.ts`, eliminating the need for a separate routing layer.
+
+- **frollz-api**: NestJS REST API. Each domain (`roll`, `roll-state`, `stock`, `stock-tag`, `tag`, `film-format`) is a self-contained NestJS feature module with `controller / service / module / dto / entities` structure. A shared `DatabaseService` wraps all PostgreSQL access via Knex — `query<T>(sql, params): Promise<T[]>` and `execute(sql, params): Promise<void>` are the public API used by all feature services. Schema and default seed data are managed via Knex migrations in `frollz-api/migrations/`; seed migrations populate `*_default` shadow tables, which are then copied to main tables on startup. In the combined production container, `ServeStaticModule` serves the Vue SPA from `/app/public` for all non-`/api` routes.
 - **frollz-ui**: Vue 3 SPA. Views are per-domain. A centralized `api-client.ts` service handles all HTTP communication with the API. Shared UI utilities include typeahead suggestion builders for brands and speeds.
 
 ## PATTERNS

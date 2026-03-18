@@ -14,12 +14,13 @@ services:
     container_name: frollz-api
     environment:
       - NODE_ENV=development
-      - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_NAME=${DATABASE_NAME}
-      - DATABASE_USER=${DATABASE_USER}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - PORT=3000
+      - DISABLE_DEFAULT_DATA_IMPORT=false
     ports:
       - "3000:3000"
     depends_on:
@@ -55,58 +56,24 @@ services:
     command: npm run dev
     restart: unless-stopped
 
-  lhci-server:
-    image: patrickhulce/lhci-server
-    container_name: frollz-lhci
-    ports:
-      - "${LHCI_PORT:-9001}:9001"
-    environment:
-      - LHCI_STORAGE__SQL_DIALECT=sqlite
-      - LHCI_STORAGE__SQL_DATABASE_PATH=/data/lhci.db
-    volumes:
-      - lhci_data:/data
-    networks:
-      - frollz-network
-    restart: unless-stopped
-
   postgres:
     image: postgres:18-alpine
     container_name: frollz-postgres
     environment:
-      - POSTGRES_DB=${DATABASE_NAME}
-      - POSTGRES_USER=${DATABASE_USER}
-      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DATABASE}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - frollz-network
     restart: unless-stopped
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    user: root
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${DATABASE_USER}@localhost.com
-      PGADMIN_DEFAULT_PASSWORD: ${DATABASE_PASSWORD}
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
-      PGADMIN_DISABLE_POSTFIX: "True"
-      PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
-      PGADMIN_CONFIG_SERVER_MODE: "False"
-    ports:
-      - "8080:80" # Access pgAdmin in your browser at http://localhost:8080
-    networks:
-      - frollz-network
-    depends_on:
-      - postgres # Ensure PostgreSQL starts before pgAdmin
-    entrypoint: >
-      /bin/sh -c "echo \"$PGADMIN_PGPASS\" >> /root/.ogpass; chmod 600 /pgpass; echo '$PGADMIN_SERVER_JSON' >> /pgadmin4/servers.json; /entrypoint.sh"
-
 volumes:
   postgres_data:
-  lhci_data:
 
 networks:
   frollz-network:
