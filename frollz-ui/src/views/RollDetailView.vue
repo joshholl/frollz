@@ -79,7 +79,11 @@
             <!-- Storage state metadata form -->
             <div v-if="pendingMetadataTransition" class="border border-blue-300 dark:border-blue-600 rounded-md p-3 bg-blue-50 dark:bg-blue-900/20">
               <p class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-3">{{ pendingMetadataTransition }} details</p>
-              <label v-if="pendingMetadataTransition !== RollState.FINISHED" class="block text-xs text-gray-600 dark:text-gray-400">
+              <label v-if="STATES_WITH_DATE_CAPTURE.has(pendingMetadataTransition!)" class="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                Date <span class="text-red-500">*</span>
+                <input v-model="metadataDate" type="date" class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+              </label>
+              <label v-if="pendingMetadataTransition === RollState.FROZEN || pendingMetadataTransition === RollState.REFRIGERATED || pendingMetadataTransition === RollState.SHELVED" class="block text-xs text-gray-600 dark:text-gray-400">
                 Storage temperature ({{ temperatureUnit }}) — optional
                 <input
                   v-model="metadataTemperature"
@@ -135,8 +139,8 @@
                     class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </label>
-                <p v-if="metadataFormError" class="text-xs text-red-600 dark:text-red-400">{{ metadataFormError }}</p>
               </div>
+              <p v-if="metadataFormError" class="text-xs text-red-600 dark:text-red-400 mt-1">{{ metadataFormError }}</p>
               <div v-if="pendingMetadataTransition === RollState.RECEIVED" class="space-y-3">
                 <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
                   <input v-model="metadataScansReceived" type="checkbox" class="rounded" />
@@ -304,6 +308,7 @@ const metadataDeliveryMethod = ref('')
 const metadataProcessRequested = ref('')
 const metadataPushPullStops = ref('')
 const metadataFormError = ref('')
+const metadataDate = ref('')
 
 const metadataScansReceived = ref(false)
 const metadataScansUrl = ref('')
@@ -316,7 +321,8 @@ const PROCESSES_REQUESTED = ['C-41', 'E-6', 'Black & White', 'Instant'] as const
 
 const todayISO = () => new Date().toISOString().slice(0, 10)
 
-const STATES_REQUIRING_METADATA = new Set([RollState.FROZEN, RollState.REFRIGERATED, RollState.SHELVED, RollState.FINISHED, RollState.SENT_FOR_DEVELOPMENT, RollState.RECEIVED])
+const STATES_REQUIRING_METADATA = new Set([RollState.FROZEN, RollState.REFRIGERATED, RollState.SHELVED, RollState.LOADED, RollState.FINISHED, RollState.SENT_FOR_DEVELOPMENT, RollState.DEVELOPED, RollState.RECEIVED])
+const STATES_WITH_DATE_CAPTURE = new Set([RollState.REFRIGERATED, RollState.SHELVED, RollState.LOADED, RollState.DEVELOPED])
 const isImperial = navigator.language === 'en-US'
 const temperatureUnit = isImperial ? '°F' : '°C'
 const TEMPERATURE_DEFAULTS: Partial<Record<RollState, number>> = {
@@ -426,6 +432,7 @@ const handleTransition = (targetState: RollState) => {
     metadataProcessRequested.value = ''
     metadataPushPullStops.value = ''
     metadataFormError.value = ''
+    metadataDate.value = todayISO()
     metadataScansReceived.value = false
     metadataScansUrl.value = ''
     metadataScansDate.value = todayISO()
@@ -446,9 +453,15 @@ const submitMetadataTransition = () => {
     if (!metadataProcessRequested.value) { metadataFormError.value = 'Process is required.'; return }
   }
 
+  if (STATES_WITH_DATE_CAPTURE.has(target) && !metadataDate.value) {
+    metadataFormError.value = 'Date is required.'
+    return
+  }
+
   const temp = metadataTemperature.value !== '' ? parseFloat(metadataTemperature.value) : undefined
   const shotISO = metadataShotISO.value !== '' ? parseFloat(metadataShotISO.value) : undefined
   const pushPullStops = metadataPushPullStops.value !== '' ? parseInt(metadataPushPullStops.value, 10) : undefined
+  const date = STATES_WITH_DATE_CAPTURE.has(target) ? metadataDate.value : undefined
   pendingMetadataTransition.value = null
 
   const metadata: Record<string, unknown> = {}
@@ -467,7 +480,7 @@ const submitMetadataTransition = () => {
     metadata.negativesReceived = true
     metadata.negativesDate = metadataNegatviesDate.value || todayISO()
   }
-  void executeTransition(target, undefined, Object.keys(metadata).length > 0 ? metadata : undefined)
+  void executeTransition(target, undefined, Object.keys(metadata).length > 0 ? metadata : undefined, date)
 }
 
 const confirmTransition = (isErrorCorrection: boolean) => {
@@ -477,12 +490,12 @@ const confirmTransition = (isErrorCorrection: boolean) => {
   void executeTransition(target, isErrorCorrection)
 }
 
-const executeTransition = async (targetState: RollState, isErrorCorrection?: boolean, metadata?: Record<string, unknown>) => {
+const executeTransition = async (targetState: RollState, isErrorCorrection?: boolean, metadata?: Record<string, unknown>, date?: string) => {
   if (!roll.value) return
   transitionSubmitting.value = true
   transitionError.value = ''
   try {
-    await rollApi.transition(roll.value._key!, targetState, transitionNotes.value || undefined, isErrorCorrection, metadata)
+    await rollApi.transition(roll.value._key!, targetState, date, transitionNotes.value || undefined, isErrorCorrection, metadata)
     transitionNotes.value = ''
     await loadData()
   } catch {
