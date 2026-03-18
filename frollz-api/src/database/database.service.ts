@@ -16,32 +16,16 @@ const SEED_TABLE_MAP: Record<string, { table: string; defaultTable: string }> =
     "stock-tags": { table: "stock_tags", defaultTable: "stock_tags_default" },
   };
 
-// Maps camelCase JSON field names to snake_case postgres column names per table
-const COLUMN_MAP: Record<string, Record<string, string>> = {
+// Maps camelCase JSON field names to snake_case postgres column names per table.
+// Each entry is shared between the main table and its _default shadow table.
+const BASE_COLUMN_MAP: Record<string, Record<string, string>> = {
   film_formats: {
     formFactor: "form_factor",
     format: "format",
     createdAt: "created_at",
     updatedAt: "updated_at",
   },
-  film_formats_default: {
-    formFactor: "form_factor",
-    format: "format",
-    createdAt: "created_at",
-    updatedAt: "updated_at",
-  },
   stocks: {
-    formatKey: "format_key",
-    process: "process",
-    manufacturer: "manufacturer",
-    brand: "brand",
-    baseStockKey: "base_stock_key",
-    speed: "speed",
-    boxImageUrl: "box_image_url",
-    createdAt: "created_at",
-    updatedAt: "updated_at",
-  },
-  stocks_default: {
     formatKey: "format_key",
     process: "process",
     manufacturer: "manufacturer",
@@ -60,25 +44,19 @@ const COLUMN_MAP: Record<string, Record<string, string>> = {
     createdAt: "created_at",
     updatedAt: "updated_at",
   },
-  tags_default: {
-    value: "value",
-    color: "color",
-    isRollScoped: "is_roll_scoped",
-    isStockScoped: "is_stock_scoped",
-    createdAt: "created_at",
-    updatedAt: "updated_at",
-  },
   stock_tags: {
     stockKey: "stock_key",
     tagKey: "tag_key",
     createdAt: "created_at",
   },
-  stock_tags_default: {
-    stockKey: "stock_key",
-    tagKey: "tag_key",
-    createdAt: "created_at",
-  },
 };
+
+const COLUMN_MAP: Record<string, Record<string, string>> = Object.fromEntries(
+  Object.entries(BASE_COLUMN_MAP).flatMap(([table, cols]) => [
+    [table, cols],
+    [`${table}_default`, cols],
+  ]),
+);
 
 @Injectable()
 export class DatabaseService implements OnModuleInit {
