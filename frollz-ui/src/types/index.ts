@@ -118,52 +118,21 @@ export interface Film {
   parent?: Film
 }
 
-// Transition profile
-export interface TransitionProfile {
-  id: number
-  name: string
-}
-
-// Transition graph
-export interface TransitionMetadataField {
-  field: string
-  fieldType: string
-  allowMultiple: boolean
-  defaultValue: string | null
-  isRequired: boolean
-}
-
-export interface TransitionEdge {
-  id: number
-  fromState: string
-  toState: string
-  metadata: TransitionMetadataField[]
-}
-
-export interface TransitionGraph {
-  states: string[]
-  transitions: TransitionEdge[]
-}
-
-// Helpers — derive current state name from Film.states
-export function currentStateName(film: Film): string {
-  if (!film.states?.length) return ''
-  const sorted = [...film.states].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  )
-  return sorted[0]?.state?.name ?? ''
-}
-
-// Helpers — collect all scan URLs stored in film state metadata
-export function getScanUrls(film: Film): string[] {
-  const urls: string[] = []
-  for (const state of film.states ?? []) {
-    for (const m of state.metadata ?? []) {
-      if (m.transitionStateMetadata?.field?.name === 'scansUrl' && Array.isArray(m.value)) {
-        urls.push(...m.value)
-      }
-    }
-  }
-  // deduplicate while preserving order
-  return [...new Set(urls)]
+export interface Roll {
+  _key?: string
+  rollId: string
+  stockKey: string
+  state: RollState
+  imagesUrl?: string
+  dateObtained: Date
+  obtainmentMethod: ObtainmentMethod
+  obtainedFrom: string
+  expirationDate?: Date
+  timesExposedToXrays: number
+  loadedInto?: string
+  stockName?: string
+  stockSpeed?: number
+  formatName?: string
+  createdAt?: Date
+  updatedAt?: Date
 }
