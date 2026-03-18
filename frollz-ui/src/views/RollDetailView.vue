@@ -27,6 +27,14 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Details</h2>
           <dl class="space-y-3">
+            <div v-if="roll.stockName" class="flex justify-between text-sm">
+              <dt class="text-gray-500 dark:text-gray-400">Stock</dt>
+              <dd class="text-gray-900 dark:text-gray-100">{{ roll.stockName }}<span v-if="roll.stockSpeed" class="text-gray-500 dark:text-gray-400"> ISO {{ roll.stockSpeed }}</span></dd>
+            </div>
+            <div v-if="roll.formatName" class="flex justify-between text-sm">
+              <dt class="text-gray-500 dark:text-gray-400">Format</dt>
+              <dd class="text-gray-900 dark:text-gray-100">{{ roll.formatName }}</dd>
+            </div>
             <div class="flex justify-between text-sm">
               <dt class="text-gray-500 dark:text-gray-400">Date Obtained</dt>
               <dd class="text-gray-900 dark:text-gray-100">{{ formatDate(roll.dateObtained) }}</dd>
@@ -452,7 +460,7 @@ const handleTransition = (targetState: RollState) => {
   if (STATES_REQUIRING_METADATA.has(targetState)) {
     pendingMetadataTransition.value = targetState
     metadataTemperature.value = String(TEMPERATURE_DEFAULTS[targetState] ?? '')
-    metadataShotISO.value = ''
+    metadataShotISO.value = targetState === RollState.FINISHED && roll.value?.stockSpeed ? String(roll.value.stockSpeed) : ''
     metadataLabName.value = ''
     metadataDeliveryMethod.value = ''
     metadataProcessRequested.value = ''
