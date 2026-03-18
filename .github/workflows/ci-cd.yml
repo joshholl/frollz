@@ -4,11 +4,12 @@ on:
   push:
     branches:
       - main
+  pull_request:
 
 jobs:
   ci-api:
     name: API — Lint & Test
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frollz-api
@@ -33,7 +34,7 @@ jobs:
 
   ci-ui:
     name: UI — Lint, Type-check & Test
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frollz-ui
@@ -61,8 +62,9 @@ jobs:
 
   build-and-push:
     name: Build & Push Images
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: [ci-api, ci-ui]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: read
       packages: write
