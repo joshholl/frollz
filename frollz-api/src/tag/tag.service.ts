@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { ConflictException, Injectable } from "@nestjs/common";
 import { randomUUID } from "crypto";
 import { DatabaseService } from "../database/database.service";
 import { CreateTagDto } from "./dto/create-tag.dto";
@@ -100,6 +100,26 @@ export class TagService {
   }
 
   async remove(key: string): Promise<boolean> {
+    const stockTagDependents = await this.databaseService.query<{ id: string }>(
+      `SELECT id FROM stock_tags WHERE tag_key = ? LIMIT 1`,
+      [key],
+    );
+    if (stockTagDependents.length > 0) {
+      throw new ConflictException(
+        "Cannot delete tag: it is referenced by one or more stock tags",
+      );
+    }
+
+    const rollTagDependents = await this.databaseService.query<{ id: string }>(
+      `SELECT id FROM roll_tags WHERE tag_key = ? LIMIT 1`,
+      [key],
+    );
+    if (rollTagDependents.length > 0) {
+      throw new ConflictException(
+        "Cannot delete tag: it is referenced by one or more roll tags",
+      );
+    }
+
     const rows = await this.databaseService.query<{ id: string }>(
       `DELETE FROM tags WHERE id = ? RETURNING id`,
       [key],
