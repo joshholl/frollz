@@ -97,9 +97,10 @@ export interface FilmState {
   filmId: number
   stateId: number
   date: Date
-  note: string | null
-  state?: { id: number; name: string }
-  metadata: FilmStateMetadata[]
+  notes?: string
+  isErrorCorrection?: boolean
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 // Film (replaces Roll)
