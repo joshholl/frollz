@@ -120,6 +120,29 @@
       </div>
     </div>
 
+    <!-- Stock Scope Removal Warning Modal -->
+    <div v-if="scopeChangeWarning" class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Remove Stock Scope</h2>
+        <p class="text-sm text-gray-700 dark:text-gray-300 mb-6">
+          This tag is currently assigned to
+          <span class="font-semibold">{{ scopeChangeWarning.count }}</span>
+          stock{{ scopeChangeWarning.count === 1 ? '' : 's' }}.
+          Removing the stock scope will remove this tag from all of them.
+        </p>
+        <div class="flex justify-end gap-3">
+          <button
+            @click="cancelScopeChange"
+            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+          >Cancel</button>
+          <button
+            @click="confirmScopeChange"
+            class="px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700"
+          >Confirm</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Delete Confirmation Modal -->
     <div v-if="deleteTarget" class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
@@ -165,6 +188,8 @@ const editForm = ref({ value: '', color: '#000000', isRollScoped: true, isStockS
 const deleteTarget = ref<Tag | null>(null)
 const deleteStockTagCount = ref(0)
 
+const scopeChangeWarning = ref<{ tagKey: string; count: number } | null>(null)
+
 const totalPages = computed(() => Math.max(1, Math.ceil(tags.value.length / PAGE_SIZE)))
 
 const paginatedTags = computed(() => {
@@ -198,6 +223,16 @@ const cancelEdit = () => {
 }
 
 const saveEdit = async (key: string) => {
+  const original = tags.value.find(t => t._key === key)
+  if (original?.isStockScoped && !editForm.value.isStockScoped) {
+    try {
+      const response = await stockTagApi.getAll({ tagKey: key })
+      scopeChangeWarning.value = { tagKey: key, count: response.data.length }
+    } catch (err) {
+      console.error('Error fetching stock-tag count:', err)
+    }
+    return
+  }
   try {
     await tagApi.update(key, {
       value: editForm.value.value,
@@ -210,6 +245,31 @@ const saveEdit = async (key: string) => {
   } catch (err) {
     console.error('Error saving tag:', err)
   }
+}
+
+const confirmScopeChange = async () => {
+  if (!scopeChangeWarning.value) return
+  const key = scopeChangeWarning.value.tagKey
+  try {
+    await tagApi.update(key, {
+      value: editForm.value.value,
+      color: editForm.value.color,
+      isRollScoped: editForm.value.isRollScoped,
+      isStockScoped: editForm.value.isStockScoped,
+    })
+    const response = await stockTagApi.getAll({ tagKey: key })
+    await Promise.all(response.data.map(st => stockTagApi.delete(st._key!)))
+    scopeChangeWarning.value = null
+    editingKey.value = null
+    await loadTags()
+  } catch (err) {
+    console.error('Error saving tag with scope change:', err)
+  }
+}
+
+const cancelScopeChange = () => {
+  editForm.value.isStockScoped = true
+  scopeChangeWarning.value = null
 }
 
 const confirmDelete = async (tag: Tag) => {
