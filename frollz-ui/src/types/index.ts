@@ -34,10 +34,13 @@ export interface Emulsion {
 
 // Tag
 export interface Tag {
-  id: number
-  name: string
-  colorCode: string
-  description: string | null
+  _key?: string
+  value: string
+  color: string
+  isRollScoped?: boolean
+  isStockScoped?: boolean
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 // EmulsionTag (replaces StockTag)
