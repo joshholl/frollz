@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { ConflictException, Injectable } from "@nestjs/common";
 
 const toSlug = (s: string) => s.toLowerCase().replace(/\s+/g, "-");
 import { DatabaseService } from "../database/database.service";
@@ -159,6 +159,26 @@ export class StockService {
   }
 
   async remove(key: string): Promise<boolean> {
+    const rollDependents = await this.databaseService.query<{ id: string }>(
+      `SELECT id FROM rolls WHERE stock_key = ? LIMIT 1`,
+      [key],
+    );
+    if (rollDependents.length > 0) {
+      throw new ConflictException(
+        "Cannot delete stock: it is referenced by one or more rolls",
+      );
+    }
+
+    const stockTagDependents = await this.databaseService.query<{ id: string }>(
+      `SELECT id FROM stock_tags WHERE stock_key = ? LIMIT 1`,
+      [key],
+    );
+    if (stockTagDependents.length > 0) {
+      throw new ConflictException(
+        "Cannot delete stock: it is referenced by one or more stock tags",
+      );
+    }
+
     const rows = await this.databaseService.query<{ id: string }>(
       `DELETE FROM stocks WHERE id = ? RETURNING id`,
       [key],
