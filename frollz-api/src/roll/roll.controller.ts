@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   NotFoundException,
-  BadRequestException,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
 import { RollService } from "./roll.service";
@@ -110,16 +109,10 @@ export class RollController {
     @Param("key") key: string,
     @Body() transitionRollDto: TransitionRollDto,
   ): Promise<Roll> {
-    try {
-      const roll = await this.rollService.transition(key, transitionRollDto);
-      if (!roll) {
-        throw new NotFoundException("Roll not found");
-      }
-      return roll;
-    } catch (e) {
-      if (e instanceof NotFoundException || e instanceof BadRequestException)
-        throw e;
+    const roll = await this.rollService.transition(key, transitionRollDto);
+    if (!roll) {
       throw new NotFoundException("Roll not found");
     }
+    return roll;
   }
 }
