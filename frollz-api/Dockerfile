@@ -20,9 +20,12 @@ RUN npm install
 
 # Copy source code
 COPY . .
+RUN chown -R node:node /app
 
 # Expose port
 EXPOSE 3000
+
+USER node
 
 # Start the application in development mode
 CMD ["npm", "run", "start:dev"]
@@ -40,9 +43,12 @@ COPY . .
 
 # Build the application
 RUN npm run build
+RUN chown -R node:node /app
 
 # Expose port
 EXPOSE 3000
+
+USER node
 
 # Start the application
 CMD ["npm", "run", "start:prod"]

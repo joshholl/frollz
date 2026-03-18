@@ -4,7 +4,7 @@ export enum RollState {
   ADDED = "Added",
   FROZEN = "Frozen",
   REFRIGERATED = "Refrigerated",
-  SHELFED = "Shelved",
+  SHELVED = "Shelved",
   LOADED = "Loaded",
   FINISHED = "Finished",
   SENT_FOR_DEVELOPMENT = "Sent For Development",
@@ -50,6 +50,15 @@ export class Roll {
 
   @ApiProperty({ required: false })
   loadedInto?: string;
+
+  @ApiProperty({ required: false })
+  stockName?: string;
+
+  @ApiProperty({ required: false })
+  stockSpeed?: number;
+
+  @ApiProperty({ required: false })
+  formatName?: string;
 
   @ApiProperty({ required: false })
   createdAt?: Date;

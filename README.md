@@ -32,10 +32,46 @@ A full-stack application for tracking film photography rolls, built with modern 
 
 #### Rolls
 - Unique roll identification
-- State tracking: Frozen → Refrigerated → Shelfed → Loaded → Finished → Developed
+- Full lifecycle state machine with forward and backward transitions
 - Acquisition tracking (date, method, source)
 - X-ray exposure tracking
 - Image album integration
+- Tag system for roll-level categorization
+- Per-roll transition history with direction annotation
+
+## Roll Lifecycle
+
+Film rolls progress through a defined lifecycle. Photographers can move rolls forward as they advance through the process, or backward to correct mistakes (marked as corrections in history).
+
+### State Transition Table
+
+| From State | Forward Transitions | Backward Transitions |
+|---|---|---|
+| **Added** | Frozen, Refrigerated, Shelved | — |
+| **Frozen** | Refrigerated, Shelved | Added |
+| **Refrigerated** | Shelved | Frozen, Added |
+| **Shelved** | Loaded | Refrigerated, Frozen |
+| **Loaded** | Finished | Shelved, Refrigerated, Frozen |
+| **Finished** | Sent For Development | Loaded |
+| **Sent For Development** | Developed | Finished |
+| **Developed** | Received | Sent For Development |
+| **Received** | — | Developed |
+
+### State Descriptions
+
+- **Added** — Roll has been acquired and logged in the system.
+- **Frozen** — Roll is being stored in a freezer for long-term preservation.
+- **Refrigerated** — Roll is in refrigerated storage (warmer than frozen; typical pre-shoot conditioning).
+- **Shelved** — Roll is at room temperature and ready to be loaded into a camera.
+- **Loaded** — Roll is currently in a camera being exposed.
+- **Finished** — Roll has been fully exposed and removed from the camera.
+- **Sent For Development** — Roll has been sent to a lab for chemical development.
+- **Developed** — Lab has developed the roll.
+- **Received** — Photographer has received negatives (and optionally scans) back from the lab.
+
+### Backward Transitions
+
+Backward transitions are allowed to correct mistakes (e.g., realizing a roll wasn't fully shot before marking it Finished). These are visually distinguished in the UI with an ↩ indicator and logged as corrections in the roll's history.
 
 ## Quick Start
 
@@ -101,6 +137,12 @@ npm run dev
 - `GET /api/rolls/:key` - Get specific roll
 - `PATCH /api/rolls/:key` - Update roll
 - `DELETE /api/rolls/:key` - Delete roll
+- `POST /api/rolls/:key/transition` - Transition roll to a new state
+
+### Roll Tags
+- `GET /api/roll-tags` - List roll tags (filterable by `?rollKey=` or `?tagKey=`)
+- `POST /api/roll-tags` - Assign a tag to a roll
+- `DELETE /api/roll-tags/:key` - Remove a tag from a roll
 
 ## Database
 
@@ -110,6 +152,9 @@ The application uses PostgreSQL 18 as its primary database. Tables are automatic
 - `stocks` - Film stock catalog
 - `rolls` - Individual roll tracking
 - `roll_states` - Roll state change history
+- `tags` - Reusable tags (roll-scoped and/or stock-scoped)
+- `stock_tags` - Stock ↔ tag assignments
+- `roll_tags` - Roll ↔ tag assignments
 
 ## Environment Variables
 

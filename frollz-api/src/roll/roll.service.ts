@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
+import { Injectable, BadRequestException, OnModuleInit } from "@nestjs/common";
 import { randomUUID } from "crypto";
 import { DatabaseService } from "../database/database.service";
 import { CreateRollDto } from "./dto/create-roll.dto";
@@ -6,26 +6,55 @@ import { UpdateRollDto } from "./dto/update-roll.dto";
 import { TransitionRollDto } from "./dto/transition-roll.dto";
 import { Roll, RollState } from "./entities/roll.entity";
 import { RollStateService } from "../roll-state/roll-state.service";
+import { RollTagService } from "../roll-tag/roll-tag.service";
 
-const VALID_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
+const FORWARD_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
   [RollState.ADDED]: [
     RollState.FROZEN,
     RollState.REFRIGERATED,
-    RollState.SHELFED,
+    RollState.SHELVED,
   ],
-  [RollState.FROZEN]: [
+  [RollState.FROZEN]: [RollState.REFRIGERATED, RollState.SHELVED],
+  [RollState.REFRIGERATED]: [RollState.SHELVED],
+  [RollState.SHELVED]: [RollState.LOADED],
+  [RollState.LOADED]: [RollState.FINISHED],
+  [RollState.FINISHED]: [RollState.SENT_FOR_DEVELOPMENT],
+  [RollState.SENT_FOR_DEVELOPMENT]: [RollState.DEVELOPED],
+  [RollState.DEVELOPED]: [RollState.RECEIVED],
+};
+
+const BACKWARD_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
+  [RollState.FROZEN]: [RollState.ADDED],
+  [RollState.REFRIGERATED]: [RollState.FROZEN, RollState.ADDED],
+  [RollState.SHELVED]: [RollState.REFRIGERATED, RollState.FROZEN],
+  [RollState.LOADED]: [
+    RollState.SHELVED,
     RollState.REFRIGERATED,
-    RollState.SHELFED,
-    RollState.ADDED,
+    RollState.FROZEN,
   ],
-  [RollState.REFRIGERATED]: [RollState.SHELFED, RollState.ADDED],
-  [RollState.SHELFED]: [RollState.LOADED],
-  [RollState.LOADED]: [RollState.FINISHED, RollState.SHELFED],
-  [RollState.FINISHED]: [RollState.SENT_FOR_DEVELOPMENT, RollState.LOADED],
-  [RollState.SENT_FOR_DEVELOPMENT]: [RollState.DEVELOPED, RollState.FINISHED],
-  [RollState.DEVELOPED]: [RollState.RECEIVED, RollState.SENT_FOR_DEVELOPMENT],
+  [RollState.FINISHED]: [RollState.LOADED],
+  [RollState.SENT_FOR_DEVELOPMENT]: [RollState.FINISHED],
+  [RollState.DEVELOPED]: [RollState.SENT_FOR_DEVELOPMENT],
   [RollState.RECEIVED]: [RollState.DEVELOPED],
 };
+
+const VALID_TRANSITIONS: Partial<Record<RollState, RollState[]>> =
+  Object.fromEntries(
+    Object.values(RollState).map((state) => [
+      state,
+      [
+        ...(FORWARD_TRANSITIONS[state as RollState] ?? []),
+        ...(BACKWARD_TRANSITIONS[state as RollState] ?? []),
+      ],
+    ]),
+  ) as Partial<Record<RollState, RollState[]>>;
+
+const ROLLS_WITH_STOCK_QUERY = `
+  SELECT r.*, s.brand AS stock_name, s.speed AS stock_speed, f.format AS format_name
+  FROM rolls r
+  LEFT JOIN stocks s ON r.stock_key = s.id
+  LEFT JOIN film_formats f ON s.format_key = f.id
+`;
 
 function mapRoll(row: Record<string, unknown>): Roll {
   return {
@@ -42,17 +71,88 @@ function mapRoll(row: Record<string, unknown>): Roll {
       : undefined,
     timesExposedToXrays: Number(row.times_exposed_to_xrays ?? 0),
     loadedInto: row.loaded_into as string | undefined,
+    stockName: (row.stock_name as string | null) ?? undefined,
+    stockSpeed: row.stock_speed != null ? Number(row.stock_speed) : undefined,
+    formatName: (row.format_name as string | null) ?? undefined,
     createdAt: row.created_at ? new Date(row.created_at as string) : undefined,
     updatedAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
   };
 }
 
 @Injectable()
-export class RollService {
+export class RollService implements OnModuleInit {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly rollStateService: RollStateService,
+    private readonly rollTagService: RollTagService,
   ) {}
+
+  async onModuleInit() {
+    const rows = await this.databaseService.query<{
+      id: string;
+      expiration_date: string;
+      date_obtained: string;
+    }>(
+      `SELECT id, expiration_date, date_obtained FROM rolls WHERE expiration_date IS NOT NULL`,
+    );
+    for (const row of rows) {
+      await this.syncExpiredTag(
+        row.id,
+        new Date(row.expiration_date),
+        new Date(row.date_obtained),
+      );
+    }
+  }
+
+  private async syncCrossProcessedTag(
+    rollKey: string,
+    stockKey: string,
+    processRequested?: string,
+  ): Promise<void> {
+    if (!processRequested) return;
+    const stocks = await this.databaseService.query<{ process: string }>(
+      `SELECT process FROM stocks WHERE id = ?`,
+      [stockKey],
+    );
+    if (stocks.length === 0) return;
+    const isCrossProcessed = processRequested !== stocks[0].process;
+    await this.rollTagService.syncAutoTag(
+      rollKey,
+      "cross-processed",
+      isCrossProcessed,
+    );
+  }
+
+  private async syncPushPullTags(
+    rollKey: string,
+    stockKey: string,
+    shotISO?: number,
+  ): Promise<void> {
+    const stocks = await this.databaseService.query<{ speed: number }>(
+      `SELECT speed FROM stocks WHERE id = ?`,
+      [stockKey],
+    );
+    const stockSpeed = stocks.length > 0 ? Number(stocks[0].speed) : undefined;
+
+    const pushed = !!(shotISO && stockSpeed && shotISO > stockSpeed);
+    const pulled = !!(shotISO && stockSpeed && shotISO < stockSpeed);
+
+    await this.rollTagService.syncAutoTag(rollKey, "pushed", pushed);
+    await this.rollTagService.syncAutoTag(rollKey, "pulled", pulled);
+  }
+
+  private async syncExpiredTag(
+    rollKey: string,
+    expirationDate?: Date | null,
+    dateObtained?: Date | null,
+  ): Promise<void> {
+    const shouldTag = !!(
+      expirationDate &&
+      dateObtained &&
+      new Date(expirationDate) < new Date(dateObtained)
+    );
+    await this.rollTagService.syncAutoTag(rollKey, "expired", shouldTag);
+  }
 
   async create(createRollDto: CreateRollDto): Promise<Roll> {
     const id = randomUUID();
@@ -74,6 +174,8 @@ export class RollService {
 
     const now = new Date();
 
+    const initialState = createRollDto.state ?? RollState.ADDED;
+
     await this.databaseService.execute(
       `INSERT INTO rolls (id, roll_id, stock_key, state, images_url, date_obtained, obtainment_method, obtained_from, expiration_date, times_exposed_to_xrays, loaded_into, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -81,7 +183,7 @@ export class RollService {
         id,
         rollId,
         createRollDto.stockKey,
-        createRollDto.state ?? RollState.ADDED,
+        initialState,
         createRollDto.imagesUrl ?? null,
         dateObtained,
         createRollDto.obtainmentMethod,
@@ -94,11 +196,23 @@ export class RollService {
       ],
     );
 
+    await this.rollStateService.create({
+      rollKey: id,
+      state: initialState,
+      date: now,
+    });
+
+    await this.syncExpiredTag(
+      id,
+      createRollDto.expirationDate,
+      new Date(dateObtained),
+    );
+
     return {
       _key: id,
       rollId,
       stockKey: createRollDto.stockKey,
-      state: createRollDto.state ?? RollState.ADDED,
+      state: initialState,
       imagesUrl: createRollDto.imagesUrl,
       dateObtained: new Date(dateObtained),
       obtainmentMethod: createRollDto.obtainmentMethod,
@@ -122,13 +236,13 @@ export class RollService {
   }
 
   async findAll(): Promise<Roll[]> {
-    const rows = await this.databaseService.query(`SELECT * FROM rolls`);
+    const rows = await this.databaseService.query(ROLLS_WITH_STOCK_QUERY);
     return rows.map(mapRoll);
   }
 
   async findOne(key: string): Promise<Roll | null> {
     const rows = await this.databaseService.query(
-      `SELECT * FROM rolls WHERE id = ?`,
+      `${ROLLS_WITH_STOCK_QUERY} WHERE r.id = ?`,
       [key],
     );
     return rows.length > 0 ? mapRoll(rows[0]) : null;
@@ -172,7 +286,15 @@ export class RollService {
       values,
     );
 
-    return this.findOne(key);
+    const updated = await this.findOne(key);
+    if (updated) {
+      await this.syncExpiredTag(
+        key,
+        updated.expirationDate,
+        updated.dateObtained,
+      );
+    }
+    return updated;
   }
 
   async remove(key: string): Promise<boolean> {
@@ -194,9 +316,23 @@ export class RollService {
     await this.rollStateService.create({
       rollKey: key,
       state: dto.targetState,
-      date: new Date(),
+      date: dto.date ? new Date(dto.date) : new Date(),
       notes: dto.notes,
+      isErrorCorrection: dto.isErrorCorrection,
+      metadata: dto.metadata,
     });
+
+    if (dto.targetState === RollState.FINISHED) {
+      const shotISO = dto.metadata?.shotISO as number | undefined;
+      await this.syncPushPullTags(key, roll.stockKey, shotISO);
+    }
+
+    if (dto.targetState === RollState.SENT_FOR_DEVELOPMENT) {
+      const processRequested = dto.metadata?.processRequested as
+        | string
+        | undefined;
+      await this.syncCrossProcessedTag(key, roll.stockKey, processRequested);
+    }
 
     return this.update(key, { state: dto.targetState });
   }

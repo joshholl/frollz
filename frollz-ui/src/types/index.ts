@@ -59,7 +59,10 @@ export interface Tag {
   _key?: string
   value: string
   color: string
+  isRollScoped?: boolean
+  isStockScoped?: boolean
   createdAt?: Date
+  updatedAt?: Date
 }
 
 export interface StockTag {
@@ -69,12 +72,19 @@ export interface StockTag {
   createdAt?: Date
 }
 
+export interface RollTag {
+  _key?: string
+  tagKey: string
+  rollKey: string
+  createdAt?: Date
+}
+
 // Roll Types
 export enum RollState {
   ADDED = 'Added',
   FROZEN = 'Frozen',
   REFRIGERATED = 'Refrigerated',
-  SHELFED = 'Shelved',
+  SHELVED = 'Shelved',
   LOADED = 'Loaded',
   FINISHED = 'Finished',
   SENT_FOR_DEVELOPMENT = 'Sent For Development',
@@ -89,6 +99,8 @@ export interface RollStateHistory {
   state: RollState
   date: Date
   notes?: string
+  isErrorCorrection?: boolean
+  metadata?: Record<string, unknown>
   createdAt?: Date
   updatedAt?: Date
 }
@@ -110,6 +122,9 @@ export interface Roll {
   expirationDate?: Date
   timesExposedToXrays: number
   loadedInto?: string
+  stockName?: string
+  stockSpeed?: number
+  formatName?: string
   createdAt?: Date
   updatedAt?: Date
 }

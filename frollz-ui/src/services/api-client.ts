@@ -1,5 +1,5 @@
 import { api } from './api'
-import type { FilmFormat, Stock, Roll, RollStateHistory, Tag, StockTag } from '@/types'
+import type { FilmFormat, Stock, Roll, RollStateHistory, Tag, StockTag, RollTag } from '@/types'
 import { Process } from '@/types'
 
 type CreateStockMultipleFormatsPayload = Pick<Stock, 'brand' | 'manufacturer' | 'speed' | 'baseStockKey' | 'boxImageUrl'> & {
@@ -55,6 +55,16 @@ export const stockTagApi = {
   delete: (key: string) => api.delete(`/stock-tags/${key}`),
 }
 
+// RollTag API
+export const rollTagApi = {
+  getAll: (params?: { rollKey?: string; tagKey?: string }) =>
+    api.get<RollTag[]>('/roll-tags', { params }),
+  getById: (key: string) => api.get<RollTag>(`/roll-tags/${key}`),
+  create: (data: Omit<RollTag, '_key' | 'createdAt'>) =>
+    api.post<RollTag>('/roll-tags', data),
+  delete: (key: string) => api.delete(`/roll-tags/${key}`),
+}
+
 // Roll API
 export const rollApi = {
   getAll: () => api.get<Roll[]>('/rolls'),
@@ -65,8 +75,8 @@ export const rollApi = {
   update: (key: string, data: Partial<Roll>) =>
     api.patch<Roll>(`/rolls/${key}`, data),
   delete: (key: string) => api.delete(`/rolls/${key}`),
-  transition: (key: string, targetState: string, notes?: string) =>
-    api.post<Roll>(`/rolls/${key}/transition`, { targetState, notes }),
+  transition: (key: string, targetState: string, date?: string, notes?: string, isErrorCorrection?: boolean, metadata?: Record<string, unknown>) =>
+    api.post<Roll>(`/rolls/${key}/transition`, { targetState, date, notes, isErrorCorrection, metadata }),
 }
 
 // Roll State History API

@@ -1,5 +1,13 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEnum, IsOptional, IsString } from "class-validator";
+import {
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from "class-validator";
 import { RollState } from "../entities/roll.entity";
 
 export class TransitionRollDto {
@@ -9,6 +17,22 @@ export class TransitionRollDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
+  @IsDateString()
+  date?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
+  @MaxLength(1000)
   notes?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  isErrorCorrection?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, unknown>;
 }

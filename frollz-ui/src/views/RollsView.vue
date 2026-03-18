@@ -36,6 +36,14 @@
                 :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer select-none', sortField === 'rollId' ? 'bg-gray-200 dark:bg-gray-600' : '']"
               >Roll ID {{ sortField === 'rollId' ? (sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
               <th
+                @click="setSort('stockName')"
+                :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer select-none', sortField === 'stockName' ? 'bg-gray-200 dark:bg-gray-600' : '']"
+              >Stock {{ sortField === 'stockName' ? (sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
+              <th
+                @click="setSort('formatName')"
+                :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer select-none', sortField === 'formatName' ? 'bg-gray-200 dark:bg-gray-600' : '']"
+              >Format {{ sortField === 'formatName' ? (sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
+              <th
                 @click="setSort('state')"
                 :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer select-none', sortField === 'state' ? 'bg-gray-200 dark:bg-gray-600' : '']"
               >State {{ sortField === 'state' ? (sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
@@ -57,9 +65,17 @@
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr v-for="roll in filteredRolls" :key="roll._key">
               <td
-                class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400"
-                @click="addFilter('rollId', 'Roll ID', roll.rollId)"
+                class="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-600 dark:text-primary-400 cursor-pointer hover:underline"
+                @click="$router.push({ name: 'roll-detail', params: { key: roll._key } })"
               >{{ roll.rollId }}</td>
+              <td
+                class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400"
+                @click="roll.stockName && addFilter('stockName', 'Stock', roll.stockName)"
+              >{{ roll.stockName ?? '—' }}</td>
+              <td
+                class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400"
+                @click="roll.formatName && addFilter('formatName', 'Format', roll.formatName)"
+              >{{ roll.formatName ?? '—' }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
                   class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full cursor-pointer hover:opacity-80"
@@ -80,88 +96,14 @@
                 @click="addFilter('timesExposedToXrays', 'X-Ray Exposures', String(roll.timesExposedToXrays))"
               >{{ roll.timesExposedToXrays }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-right">
-                <div class="flex items-center justify-end gap-2">
-                  <!-- State transition buttons -->
-                  <button
-                    v-for="targetState in getValidTransitions(roll.state)"
-                    :key="targetState"
-                    @click="openTransitionModal(roll, targetState)"
-                    class="px-3 py-1 text-xs font-medium border rounded hover:opacity-80"
-                    :class="getTransitionButtonColor(targetState)"
-                  >{{ targetState }}</button>
-                  <!-- History button -->
-                  <button
-                    @click="openHistoryModal(roll)"
-                    class="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-                    title="View state history"
-                  >History</button>
-                </div>
+                <button
+                  @click="$router.push({ name: 'roll-detail', params: { key: roll._key } })"
+                  class="px-3 py-1 text-xs font-medium text-primary-600 dark:text-primary-400 border border-primary-300 dark:border-primary-600 rounded hover:bg-primary-50 dark:hover:bg-primary-900/30"
+                >View</button>
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
-    </div>
-
-    <!-- Transition Modal -->
-    <div v-if="transitionTarget" class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Transition Roll</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Moving <span class="font-medium text-gray-700 dark:text-gray-300">{{ transitionTarget.roll.rollId }}</span>
-          from <span class="font-medium">{{ transitionTarget.roll.state }}</span>
-          to <span class="font-medium">{{ transitionTarget.targetState }}</span>
-        </p>
-        <form @submit.prevent="handleTransition">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (optional)</label>
-            <textarea
-              v-model="transitionNotes"
-              rows="3"
-              placeholder="Add any notes about this transition..."
-              class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-            ></textarea>
-          </div>
-          <div v-if="transitionError" class="mt-3 text-sm text-red-600 dark:text-red-400">{{ transitionError }}</div>
-          <div class="flex justify-end gap-3 mt-6">
-            <button
-              type="button"
-              @click="closeTransitionModal"
-              class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-            >Cancel</button>
-            <button
-              type="submit"
-              :disabled="transitionSubmitting"
-              class="px-4 py-2 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700 disabled:opacity-50"
-            >{{ transitionSubmitting ? 'Saving...' : 'Save' }}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- History Modal -->
-    <div v-if="historyTarget" class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg max-h-screen overflow-y-auto">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">State History</h2>
-          <button @click="closeHistoryModal" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">&times;</button>
-        </div>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ historyTarget.rollId }}</p>
-        <div v-if="historyLoading" class="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">Loading...</div>
-        <div v-else-if="historyEntries.length === 0" class="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">No history recorded yet.</div>
-        <ol v-else class="relative border-l border-gray-200 dark:border-gray-700 ml-3">
-          <li v-for="entry in historyEntries" :key="entry.stateId" class="mb-6 ml-4">
-            <div class="absolute -left-1.5 w-3 h-3 rounded-full border border-white dark:border-gray-800" :class="getStateColor(entry.state).replace('text-', 'bg-').split(' ')[0]"></div>
-            <div class="flex items-center gap-2">
-              <span
-                class="px-2 text-xs leading-5 font-semibold rounded-full"
-                :class="getStateColor(entry.state)"
-              >{{ entry.state }}</span>
-              <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDateTime(entry.date) }}</time>
-            </div>
-            <p v-if="entry.notes" class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ entry.notes }}</p>
-          </li>
-        </ol>
       </div>
     </div>
 
@@ -276,8 +218,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { rollApi, rollStateApi, stockApi } from '@/services/api-client'
-import type { Roll, RollStateHistory, Stock } from '@/types'
+import { rollApi, stockApi } from '@/services/api-client'
+import type { Roll, Stock } from '@/types'
 import { RollState, ObtainmentMethod } from '@/types'
 
 const route = useRoute()
@@ -309,7 +251,7 @@ const error = ref('')
 const rollStateOptions = Object.values(RollState)
 const obtainmentMethodOptions = Object.values(ObtainmentMethod)
 
-type SortField = 'rollId' | 'state' | 'dateObtained' | 'obtainedFrom' | 'timesExposedToXrays'
+type SortField = 'rollId' | 'stockName' | 'formatName' | 'state' | 'dateObtained' | 'obtainedFrom' | 'timesExposedToXrays'
 const sortField = ref<SortField>('rollId')
 const sortDirection = ref<'asc' | 'desc'>('asc')
 
@@ -369,100 +311,6 @@ const sortedStocks = computed(() => {
 
 const formatDate = (date: Date | string) => {
   return new Date(date as string).toLocaleDateString()
-}
-
-const formatDateTime = (date: Date | string) => {
-  return new Date(date as string).toLocaleString()
-}
-
-// Unified state machine transitions (storage + usage)
-const VALID_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
-  [RollState.ADDED]: [RollState.FROZEN, RollState.REFRIGERATED, RollState.SHELFED],
-  [RollState.FROZEN]: [RollState.REFRIGERATED, RollState.SHELFED, RollState.ADDED],
-  [RollState.REFRIGERATED]: [RollState.SHELFED, RollState.ADDED],
-  [RollState.SHELFED]: [RollState.LOADED],
-  [RollState.LOADED]: [RollState.FINISHED, RollState.SHELFED],
-  [RollState.FINISHED]: [RollState.SENT_FOR_DEVELOPMENT, RollState.LOADED],
-  [RollState.SENT_FOR_DEVELOPMENT]: [RollState.DEVELOPED, RollState.FINISHED],
-  [RollState.DEVELOPED]: [RollState.RECEIVED, RollState.SENT_FOR_DEVELOPMENT],
-  [RollState.RECEIVED]: [RollState.DEVELOPED],
-}
-
-const getValidTransitions = (state: RollState): RollState[] => {
-  return VALID_TRANSITIONS[state] ?? []
-}
-
-const TRANSITION_BUTTON_COLORS: Partial<Record<RollState, string>> = {
-  [RollState.ADDED]: 'text-gray-600 border-gray-400 hover:bg-gray-50 dark:text-gray-300 dark:border-gray-500 dark:hover:bg-gray-700',
-  [RollState.FROZEN]: 'text-blue-700 border-blue-400 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-500 dark:hover:bg-blue-900/30',
-  [RollState.REFRIGERATED]: 'text-cyan-700 border-cyan-400 hover:bg-cyan-50 dark:text-cyan-400 dark:border-cyan-500 dark:hover:bg-cyan-900/30',
-  [RollState.SHELFED]: 'text-gray-600 border-gray-400 hover:bg-gray-50 dark:text-gray-300 dark:border-gray-500 dark:hover:bg-gray-700',
-  [RollState.LOADED]: 'text-yellow-700 border-yellow-400 hover:bg-yellow-50 dark:text-yellow-400 dark:border-yellow-500 dark:hover:bg-yellow-900/30',
-  [RollState.FINISHED]: 'text-green-700 border-green-400 hover:bg-green-50 dark:text-green-400 dark:border-green-500 dark:hover:bg-green-900/30',
-  [RollState.SENT_FOR_DEVELOPMENT]: 'text-orange-700 border-orange-400 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-500 dark:hover:bg-orange-900/30',
-  [RollState.DEVELOPED]: 'text-purple-700 border-purple-400 hover:bg-purple-50 dark:text-purple-400 dark:border-purple-500 dark:hover:bg-purple-900/30',
-  [RollState.RECEIVED]: 'text-indigo-700 border-indigo-400 hover:bg-indigo-50 dark:text-indigo-400 dark:border-indigo-500 dark:hover:bg-indigo-900/30',
-}
-
-const getTransitionButtonColor = (state: RollState): string => {
-  return TRANSITION_BUTTON_COLORS[state] ?? 'text-gray-600 border-gray-300 hover:bg-gray-50 dark:text-gray-300 dark:border-gray-500 dark:hover:bg-gray-700'
-}
-
-// Transition modal
-type TransitionTarget = { roll: Roll; targetState: RollState }
-const transitionTarget = ref<TransitionTarget | null>(null)
-const transitionNotes = ref('')
-const transitionSubmitting = ref(false)
-const transitionError = ref('')
-
-const openTransitionModal = (roll: Roll, targetState: RollState) => {
-  transitionTarget.value = { roll, targetState }
-  transitionNotes.value = ''
-  transitionError.value = ''
-}
-
-const closeTransitionModal = () => {
-  transitionTarget.value = null
-}
-
-const handleTransition = async () => {
-  if (!transitionTarget.value) return
-  transitionSubmitting.value = true
-  transitionError.value = ''
-  try {
-    await rollApi.transition(
-      transitionTarget.value.roll._key!,
-      transitionTarget.value.targetState,
-      transitionNotes.value || undefined,
-    )
-    closeTransitionModal()
-    await loadRolls()
-  } catch {
-    transitionError.value = 'Failed to transition roll. Please try again.'
-  } finally {
-    transitionSubmitting.value = false
-  }
-}
-
-// History modal
-const historyTarget = ref<Roll | null>(null)
-const historyEntries = ref<RollStateHistory[]>([])
-const historyLoading = ref(false)
-
-const openHistoryModal = async (roll: Roll) => {
-  historyTarget.value = roll
-  historyEntries.value = []
-  historyLoading.value = true
-  try {
-    const response = await rollStateApi.getHistory(roll._key!)
-    historyEntries.value = response.data
-  } finally {
-    historyLoading.value = false
-  }
-}
-
-const closeHistoryModal = () => {
-  historyTarget.value = null
 }
 
 const getStateColor = (state: RollState) => {
