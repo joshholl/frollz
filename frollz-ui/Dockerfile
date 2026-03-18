@@ -7,7 +7,7 @@ COPY package.json ./
 
 RUN npm install && npm cache clean --force
 
-# development stage
+# Development stage
 FROM node:20-alpine AS development
 
 WORKDIR /app
@@ -16,8 +16,11 @@ COPY package.json ./
 RUN npm install
 
 COPY . .
+RUN chown -R node:node /app
 
 EXPOSE 5173
+
+USER node
 
 CMD ["npm", "run", "dev"]
 
@@ -43,4 +46,6 @@ COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
+# nosemgrep: dockerfile.security.missing-user.missing-user
+# nginx must start as root to bind port 80, then drops to the nginx user for workers
 CMD ["nginx", "-g", "daemon off;"]
