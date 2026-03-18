@@ -423,7 +423,6 @@ const getStateColor = (state: RollState) => {
 }
 
 const formatDate = (date: Date | string) => new Date(date as string).toLocaleDateString()
-const formatDateTime = (date: Date | string) => new Date(date as string).toLocaleString()
 
 const handleTransition = (targetState: RollState) => {
   if (!roll.value) return
