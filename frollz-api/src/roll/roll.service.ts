@@ -7,25 +7,37 @@ import { TransitionRollDto } from "./dto/transition-roll.dto";
 import { Roll, RollState } from "./entities/roll.entity";
 import { RollStateService } from "../roll-state/roll-state.service";
 
-const VALID_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
-  [RollState.ADDED]: [
-    RollState.FROZEN,
-    RollState.REFRIGERATED,
-    RollState.SHELFED,
-  ],
-  [RollState.FROZEN]: [
-    RollState.REFRIGERATED,
-    RollState.SHELFED,
-    RollState.ADDED,
-  ],
-  [RollState.REFRIGERATED]: [RollState.SHELFED, RollState.ADDED],
-  [RollState.SHELFED]: [RollState.LOADED],
-  [RollState.LOADED]: [RollState.FINISHED, RollState.SHELFED],
-  [RollState.FINISHED]: [RollState.SENT_FOR_DEVELOPMENT, RollState.LOADED],
-  [RollState.SENT_FOR_DEVELOPMENT]: [RollState.DEVELOPED, RollState.FINISHED],
-  [RollState.DEVELOPED]: [RollState.RECEIVED, RollState.SENT_FOR_DEVELOPMENT],
+const FORWARD_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
+  [RollState.ADDED]: [RollState.FROZEN, RollState.REFRIGERATED, RollState.SHELVED],
+  [RollState.FROZEN]: [RollState.REFRIGERATED, RollState.SHELVED],
+  [RollState.REFRIGERATED]: [RollState.SHELVED],
+  [RollState.SHELVED]: [RollState.LOADED],
+  [RollState.LOADED]: [RollState.FINISHED],
+  [RollState.FINISHED]: [RollState.SENT_FOR_DEVELOPMENT],
+  [RollState.SENT_FOR_DEVELOPMENT]: [RollState.DEVELOPED],
+  [RollState.DEVELOPED]: [RollState.RECEIVED],
+};
+
+const BACKWARD_TRANSITIONS: Partial<Record<RollState, RollState[]>> = {
+  [RollState.FROZEN]: [RollState.ADDED],
+  [RollState.REFRIGERATED]: [RollState.FROZEN, RollState.ADDED],
+  [RollState.SHELVED]: [RollState.REFRIGERATED, RollState.FROZEN],
+  [RollState.LOADED]: [RollState.SHELVED, RollState.REFRIGERATED, RollState.FROZEN],
+  [RollState.FINISHED]: [RollState.LOADED],
+  [RollState.SENT_FOR_DEVELOPMENT]: [RollState.FINISHED],
+  [RollState.DEVELOPED]: [RollState.SENT_FOR_DEVELOPMENT],
   [RollState.RECEIVED]: [RollState.DEVELOPED],
 };
+
+const VALID_TRANSITIONS: Partial<Record<RollState, RollState[]>> = Object.fromEntries(
+  Object.values(RollState).map((state) => [
+    state,
+    [
+      ...(FORWARD_TRANSITIONS[state as RollState] ?? []),
+      ...(BACKWARD_TRANSITIONS[state as RollState] ?? []),
+    ],
+  ]),
+) as Partial<Record<RollState, RollState[]>>;
 
 function mapRoll(row: Record<string, unknown>): Roll {
   return {

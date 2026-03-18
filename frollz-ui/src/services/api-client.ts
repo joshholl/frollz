@@ -1,5 +1,5 @@
 import { api } from './api'
-import type { FilmFormat, Stock, Roll, RollStateHistory, Tag, StockTag } from '@/types'
+import type { FilmFormat, Stock, Roll, RollStateHistory, Tag, StockTag, RollTag } from '@/types'
 import { Process } from '@/types'
 
 type CreateStockMultipleFormatsPayload = Pick<Stock, 'brand' | 'manufacturer' | 'speed' | 'baseStockKey' | 'boxImageUrl'> & {
@@ -53,6 +53,16 @@ export const stockTagApi = {
   create: (data: Omit<StockTag, '_key' | 'createdAt'>) =>
     api.post<StockTag>('/stock-tags', data),
   delete: (key: string) => api.delete(`/stock-tags/${key}`),
+}
+
+// RollTag API
+export const rollTagApi = {
+  getAll: (params?: { rollKey?: string; tagKey?: string }) =>
+    api.get<RollTag[]>('/roll-tags', { params }),
+  getById: (key: string) => api.get<RollTag>(`/roll-tags/${key}`),
+  create: (data: Omit<RollTag, '_key' | 'createdAt'>) =>
+    api.post<RollTag>('/roll-tags', data),
+  delete: (key: string) => api.delete(`/roll-tags/${key}`),
 }
 
 // Roll API

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '@/views/Dashboard.vue'
 import StocksView from '@/views/StocksView.vue'
 import RollsView from '@/views/RollsView.vue'
+import RollDetailView from '@/views/RollDetailView.vue'
 import FilmFormatsView from '@/views/FilmFormatsView.vue'
 import TagsView from '@/views/TagsView.vue'
 
@@ -22,6 +23,11 @@ const router = createRouter({
       path: '/rolls',
       name: 'rolls',
       component: RollsView
+    },
+    {
+      path: '/rolls/:key',
+      name: 'roll-detail',
+      component: RollDetailView
     },
     {
       path: '/formats',
