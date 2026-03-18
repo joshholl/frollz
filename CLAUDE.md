@@ -59,16 +59,69 @@ Use the `/feature-dev` skill to run the full workflow.
 5. Use `/clear` between unrelated tasks to keep context clean.
 6. Use subagents for codebase investigation — keeps file reads out of main context.
 
-## Skills
+The `codebase-memory-mcp` server is installed, connected, and **must be used** for all structural code exploration. The graph is automatically kept up-to-date after every file edit. Always prefer graph queries — they are faster and more accurate than file scanning.
 
-| Skill | When to use |
-|---|---|
-| `/feature-dev` | Picking up a GitHub issue — branch + explore + plan + implement |
-| `/code-review` | Pre-PR checklist — blast radius, tests, lint, ADR |
-| `/commit` | Scoped commit with message generation |
-| `/commit-push-pr` | Commit + push + open draft PR |
-| `/add-api-module` | Add a complete new NestJS domain feature (all 4 layers) |
-| `/debug` | Structured bug investigation — reproduce → isolate → fix → verify |
-| `/codebase-memory` | Structural queries, tracing, quality audits |
-| `/simplify` | Cleanup pass on changed code |
-| `/claude-md-improver` | Audit and update this file |
+**ALWAYS use MCP tools instead of Grep/Glob/Read for any structural question** (finding functions, tracing calls, understanding architecture, impact analysis, etc.). Only fall back to Read/Grep for viewing raw file content that the graph doesn't expose.
+
+Key tools:
+- `get_architecture` — start here for codebase orientation (entry points, hotspots, clusters)
+- `search_graph` — find functions, classes, or symbols by name pattern
+- `trace_call_path` — find callers/callees of a function (direction: `inbound` or `outbound`)
+- `detect_changes` — map git diffs to affected symbols and blast radius
+- `get_code_snippet` — retrieve source with metadata (signature, complexity, callers/callees)
+- `query_graph` — Cypher-like queries for complex relationship analysis
+- `search_code` — regex text search across files (replaces grep)
+
+The graph is always current — no need to run `index_repository` manually.
+
+## Architecture
+
+### Backend (NestJS + PostgreSQL)
+
+Each domain (film-format, stock, roll, tag, roll-state, stock-tag) is a self-contained NestJS feature module with the structure: `controller / service / module / dto / entities`.
+
+`DatabaseService` is the single point of PostgreSQL access — all modules depend on it. It wraps `pg`, exposes a `query<T>(sql, params)` method and `execute(sql, params)` method used by all feature services. Tables are created via `CREATE TABLE IF NOT EXISTS` DDL on startup.
+
+Seed data in `db-init/default/` is loaded into `*_default` shadow tables, then copied to main tables via `INSERT ... ON CONFLICT DO NOTHING`. Can be disabled via `DISABLE_DEFAULT_DATA_IMPORT=true`.
+
+A `ValidationPipe` with `transform: true`, `whitelist: true`, `forbidNonWhitelisted: true` is applied globally. Swagger docs auto-generated at `/api/docs`.
+
+### Frontend (Vue 3 + Vite + Pinia + Tailwind)
+
+All HTTP calls go through `src/services/api-client.ts` (Axios-based). Views never call fetch directly.
+
+Five routes map to domain views: `/` (dashboard), `/stocks`, `/rolls`, `/formats`, `/tags`. Shared components in `src/components/` include `TypeaheadInput.vue`, `SpeedTypeaheadInput.vue`, and `NavBar.vue`.
+
+### Environment Variables
+
+| Variable | Service | Default |
+|----------|---------|---------|
+| `POSTGRES_HOST` | API | `postgres` |
+| `POSTGRES_PORT` | API | `5432` |
+| `POSTGRES_DATABASE` | API | `frollz` |
+| `POSTGRES_USER` | API | `frollz` |
+| `POSTGRES_PASSWORD` | API | `frollz` |
+| `PORT` | API | `3000` |
+| `VITE_API_URL` | UI | `/api` (Docker) or `http://localhost:3000` (local) |
+
+## Workflow
+
+### GitHub Issues
+
+1. Base all branches off `development` (not `main`). Pull latest before branching.
+2. Branch naming: `feature/<name>` for enhancements, `fix/<name>` for bugs.
+3. After changes: build components and restart containers. If successful, commit and push all changed files.
+4. **Wait for approval before submitting a PR** — do not auto-merge or auto-create PRs.
+5. Prefer `gh` CLI for git operations.
+
+### Review Checklist (after every code change)
+
+- Before modifying existing functionality, run `detect_changes` to understand blast radius and identify affected callers
+- All modified code has unit tests and all tests pass
+- All code passes linting rules (`npm run lint`)
+- Code has been simplified with readability in mind
+- `docs/adr/architecture.md` is updated to reflect any architectural changes, so context can be quickly rebuilt in future sessions
+
+### Context Preservation
+
+If the session is compacted mid-task, a summary is automatically written to `/tmp/claude-frollz-state.md`. Read this file at the start of a resumed session to restore context.
