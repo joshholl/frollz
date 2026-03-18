@@ -270,7 +270,7 @@
               >{{ entry.state }}</span>
               <span v-if="entry.direction === 'backward'" class="text-xs text-orange-600 dark:text-orange-400">{{ entry.isErrorCorrection ? '↩ error correction' : '↩ backward' }}</span>
               <span v-if="entry.direction === 'initial'" class="text-xs text-gray-400 dark:text-gray-500">initial</span>
-              <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDateTime(entry.date) }}</time>
+              <time class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(entry.date) }}</time>
             </div>
             <p v-if="entry.notes" class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ entry.notes }}</p>
             <p v-if="entry.metadata?.temperature != null" class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ entry.metadata.temperature }}{{ temperatureUnit }}</p>
@@ -469,7 +469,12 @@ const submitMetadataTransition = () => {
   const temp = metadataTemperature.value !== '' ? parseFloat(metadataTemperature.value) : undefined
   const shotISO = metadataShotISO.value !== '' ? parseFloat(metadataShotISO.value) : undefined
   const pushPullStops = metadataPushPullStops.value !== '' ? parseInt(metadataPushPullStops.value, 10) : undefined
-  const date = STATES_WITH_DATE_CAPTURE.has(target) ? metadataDate.value : undefined
+  let date: string | undefined
+  if (STATES_WITH_DATE_CAPTURE.has(target) && metadataDate.value) {
+    const [year, month, day] = metadataDate.value.split('-').map(Number)
+    const now = new Date()
+    date = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds()).toISOString()
+  }
   pendingMetadataTransition.value = null
 
   const metadata: Record<string, unknown> = {}
