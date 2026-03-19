@@ -104,18 +104,10 @@ export interface RollStateHistory {
   updatedAt?: Date
 }
 
-// Film (replaces Roll)
-export interface Film {
-  id: number
-  name: string
-  emulsionId: number
-  expirationDate: Date | null
-  parentId: number | null
-  transitionProfileId: number
-  emulsion?: Emulsion
-  tags: Tag[]
-  states: FilmState[]
-  parent?: Film
+export enum ObtainmentMethod {
+  GIFT = 'Gift',
+  PURCHASE = 'Purchase',
+  SELF_ROLLED = 'Self Rolled',
 }
 
 export interface Roll {
@@ -135,6 +127,8 @@ export interface Roll {
   formatName?: string
   process?: string
   transitionProfile?: string
+  parentRollId?: string
+  childRollCount?: number
   createdAt?: Date
   updatedAt?: Date
 }
