@@ -2,25 +2,27 @@
   <div>
     <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">Dashboard</h1>
 
-    <!-- Stat cards -->
-    <section
-      aria-label="Dashboard statistics"
-      :aria-busy="loading"
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-    >
-      <template v-if="loading">
-        <div v-for="n in 4" :key="n" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md animate-pulse">
-          <div class="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3"></div>
-          <div class="h-9 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-        </div>
-      </template>
-      <template v-else>
-        <StatCard label="Total Films" :value="stats.totalFilms" colorClass="text-primary-600 dark:text-primary-400" />
-        <StatCard label="Available Emulsions" :value="stats.totalEmulsions" colorClass="text-green-600 dark:text-green-400" />
-        <StatCard label="Currently Loaded" :value="stats.loadedFilms" colorClass="text-yellow-700 dark:text-yellow-400" />
-        <StatCard label="Developed" :value="stats.developedFilms" colorClass="text-blue-600 dark:text-blue-400" />
-      </template>
-    </section>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Total Rolls</h2>
+        <p class="text-3xl font-bold text-primary-600 dark:text-primary-400">{{ stats.totalRolls }}</p>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Available Stocks</h2>
+        <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ stats.totalStocks }}</p>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Currently Loaded</h2>
+        <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.loadedRolls }}</p>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Developed</h2>
+        <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ stats.developedRolls }}</p>
+      </div>
+    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" :aria-busy="loading">
