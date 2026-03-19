@@ -60,6 +60,7 @@ Without these secrets CI still collects, asserts, and uploads to temporary publi
 ```bash
 cd frollz-ui && npm run build && cd ..
 npx @lhci/cli autorun
+# Requires serve: npm install -g serve  (or npx serve is used automatically)
 ```
 
 **Expected pre-fix score range:** 60–70 / 100 on accessibility.

@@ -2,13 +2,13 @@
 module.exports = {
   ci: {
     collect: {
-      // LHCI's built-in static server serves index.html as SPA fallback for
-      // all unmatched paths, so Vue Router history-mode routes work correctly.
-      staticDistDir: './frollz-ui/dist',
+      // `serve -s` (single-page app mode) serves index.html for all unmatched
+      // paths, so Vue Router history-mode routes return 200 instead of 404.
+      startServerCommand: 'npx serve -s ./frollz-ui/dist -l 3000',
       url: [
-        'http://localhost/',          // Dashboard
-        'http://localhost/rolls',     // Roll list
-        'http://localhost/stocks',    // Stocks
+        'http://localhost:3000/',          // Dashboard
+        'http://localhost:3000/rolls',     // Roll list
+        'http://localhost:3000/stocks',    // Stocks
       ],
       numberOfRuns: 1,
     },
