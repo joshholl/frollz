@@ -173,33 +173,41 @@
                 class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Obtainment Method <span class="text-red-500">*</span></label>
-              <select
-                v-model="form.obtainmentMethod"
-                required
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              >
-                <option v-for="m in obtainmentMethodOptions" :key="m" :value="m">{{ m }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Obtained From <span class="text-red-500">*</span></label>
-              <input
-                v-model="form.obtainedFrom"
-                type="text"
-                required
-                placeholder="e.g. B&H Photo"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expiration Date</label>
-              <input
-                v-model="form.expirationDate"
-                type="date"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
+            <!-- Obtainment method/from/expiration: auto-set for child rolls -->
+            <template v-if="!form.parentRollId">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Obtainment Method <span class="text-red-500">*</span></label>
+                <select
+                  v-model="form.obtainmentMethod"
+                  required
+                  class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option v-for="m in obtainmentMethodOptions" :key="m" :value="m">{{ m }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Obtained From <span class="text-red-500">*</span></label>
+                <input
+                  v-model="form.obtainedFrom"
+                  type="text"
+                  required
+                  placeholder="e.g. B&H Photo"
+                  class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expiration Date</label>
+                <input
+                  v-model="form.expirationDate"
+                  type="date"
+                  class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+            </template>
+            <div v-else class="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded px-3 py-2 space-y-1">
+              <p>Obtainment: <span class="font-medium text-gray-700 dark:text-gray-300">Self Rolled</span></p>
+              <p>Obtained from: <span class="font-medium text-gray-700 dark:text-gray-300">Bulk Roll (inherited)</span></p>
+              <p>Expiration date: <span class="font-medium text-gray-700 dark:text-gray-300">Inherited from bulk roll</span></p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Times Exposed to X-Rays</label>

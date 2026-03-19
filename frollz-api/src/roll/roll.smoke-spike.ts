@@ -445,6 +445,62 @@ describe("Bulk roll — transition profile assignment", () => {
   });
 });
 
+describe("Child roll — auto-set provenance from bulk parent", () => {
+  it("obtainmentMethod is set to 'Self Rolled'", () => {
+    expect((childRoll as any).obtainmentMethod).toBe("Self Rolled");
+  });
+
+  it("obtainedFrom is set to 'Bulk Roll (<parentRollId>)'", () => {
+    expect((childRoll as any).obtainedFrom).toBe(`Bulk Roll (${bulkRollKey})`);
+  });
+
+  it("inherits expirationDate from a bulk roll that has one", async () => {
+    const TODAY = new Date().toISOString();
+    const SUFFIX = Date.now();
+    const formats = await GET<Array<{ _key: string }>>("/film-formats");
+    const formatKey = formats[0]._key;
+
+    const { data: expiryStock } = await POST<{ _key: string }>("/stocks", {
+      formatKey,
+      process: "C-41",
+      manufacturer: "Smoke Test Co",
+      brand: `Smoke Expiry ${SUFFIX}`,
+      speed: 200,
+    });
+
+    const expirationDate = "2027-06-01";
+    const { data: bulkWithExpiry } = await POST<{ _key: string }>("/rolls", {
+      stockKey: expiryStock._key,
+      dateObtained: TODAY,
+      obtainmentMethod: "Purchase",
+      obtainedFrom: "Smoke Expiry Store",
+      timesExposedToXrays: 0,
+      expirationDate,
+      isBulkRoll: true,
+    });
+
+    const { data: childFromExpiry } = await POST<{ _key: string; expirationDate?: string }>(
+      "/rolls",
+      {
+        parentRollId: bulkWithExpiry._key,
+        dateObtained: TODAY,
+        timesExposedToXrays: 0,
+      },
+    );
+
+    // Cleanup
+    await DELETE(`/rolls/${childFromExpiry._key}`).catch(() => {});
+    await DELETE(`/rolls/${bulkWithExpiry._key}`).catch(() => {});
+    await DELETE(`/stocks/${expiryStock._key}`).catch(() => {});
+
+    expect(
+      childFromExpiry.expirationDate
+        ? new Date(childFromExpiry.expirationDate).toISOString().slice(0, 10)
+        : null,
+    ).toBe(expirationDate);
+  });
+});
+
 describe("Bulk transition graph (/transitions?profile=bulk)", () => {
   const edge = (from: string, to: string) =>
     bulkGraph.transitions.find((t) => t.fromState === from && t.toState === to);

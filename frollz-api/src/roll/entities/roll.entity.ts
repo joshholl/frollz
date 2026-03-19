@@ -15,6 +15,7 @@ export enum RollState {
 export enum ObtainmentMethod {
   GIFT = "Gift",
   PURCHASE = "Purchase",
+  SELF_ROLLED = "Self Rolled",
 }
 
 export class Roll {

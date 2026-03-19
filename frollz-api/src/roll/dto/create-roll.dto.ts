@@ -63,14 +63,16 @@ export class CreateRollDto {
   @Type(() => Date)
   dateObtained?: Date;
 
-  @ApiProperty({ enum: ObtainmentMethod })
+  @ApiProperty({ enum: ObtainmentMethod, required: false })
+  @IsOptional()
   @IsEnum(ObtainmentMethod)
-  obtainmentMethod: ObtainmentMethod;
+  obtainmentMethod?: ObtainmentMethod;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
   @MaxLength(255)
-  obtainedFrom: string;
+  obtainedFrom?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

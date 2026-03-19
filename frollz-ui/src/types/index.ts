@@ -129,6 +129,7 @@ export interface RollStateHistory {
 export enum ObtainmentMethod {
   GIFT = 'Gift',
   PURCHASE = 'Purchase',
+  SELF_ROLLED = 'Self Rolled',
 }
 
 export interface Roll {

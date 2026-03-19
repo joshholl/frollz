@@ -4,7 +4,7 @@ import { DatabaseService } from "../database/database.service";
 import { CreateRollDto } from "./dto/create-roll.dto";
 import { UpdateRollDto } from "./dto/update-roll.dto";
 import { TransitionRollDto } from "./dto/transition-roll.dto";
-import { Roll, RollState } from "./entities/roll.entity";
+import { Roll, RollState, ObtainmentMethod } from "./entities/roll.entity";
 import { RollStateService } from "../roll-state/roll-state.service";
 import { RollTagService } from "../roll-tag/roll-tag.service";
 import { TransitionService } from "../transition/transition.service";
@@ -154,8 +154,9 @@ export class RollService implements OnModuleInit {
         stock_key: string;
         transition_profile: string;
         stock_process: string | null;
+        expiration_date: string | null;
       }>(
-        `SELECT r.stock_key, r.transition_profile, s.process AS stock_process FROM rolls r LEFT JOIN stocks s ON r.stock_key = s.id WHERE r.id = ?`,
+        `SELECT r.stock_key, r.transition_profile, r.expiration_date, s.process AS stock_process FROM rolls r LEFT JOIN stocks s ON r.stock_key = s.id WHERE r.id = ?`,
         [createRollDto.parentRollId],
       );
       if (parentRows.length === 0) {
@@ -171,6 +172,12 @@ export class RollService implements OnModuleInit {
       stockKey = parentRows[0].stock_key;
       transitionProfile =
         parentRows[0].stock_process === "Instant" ? "instant" : "standard";
+      // Inherit provenance and expiration from the bulk canister
+      createRollDto.obtainmentMethod = ObtainmentMethod.SELF_ROLLED;
+      createRollDto.obtainedFrom = `Bulk Roll (${createRollDto.parentRollId})`;
+      if (parentRows[0].expiration_date) {
+        createRollDto.expirationDate = new Date(parentRows[0].expiration_date);
+      }
     } else {
       if (!createRollDto.stockKey) {
         throw new BadRequestException(
@@ -190,6 +197,17 @@ export class RollService implements OnModuleInit {
             ? "instant"
             : "standard";
       }
+    }
+
+    if (!createRollDto.obtainmentMethod) {
+      throw new BadRequestException(
+        "obtainmentMethod is required for non-child rolls",
+      );
+    }
+    if (!createRollDto.obtainedFrom) {
+      throw new BadRequestException(
+        "obtainedFrom is required for non-child rolls",
+      );
     }
 
     await this.databaseService.execute(
@@ -233,8 +251,8 @@ export class RollService implements OnModuleInit {
       state: initialState,
       imagesUrl: createRollDto.imagesUrl,
       dateObtained: new Date(dateObtained),
-      obtainmentMethod: createRollDto.obtainmentMethod,
-      obtainedFrom: createRollDto.obtainedFrom,
+      obtainmentMethod: createRollDto.obtainmentMethod!,
+      obtainedFrom: createRollDto.obtainedFrom!,
       expirationDate: createRollDto.expirationDate
         ? new Date(createRollDto.expirationDate)
         : undefined,
