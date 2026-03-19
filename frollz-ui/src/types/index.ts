@@ -113,7 +113,7 @@ export enum ObtainmentMethod {
 export interface Roll {
   _key?: string
   rollId: string
-  stockKey: string
+  stockKey?: string
   state: RollState
   imagesUrl?: string
   dateObtained: Date
