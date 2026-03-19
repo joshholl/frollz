@@ -10,13 +10,6 @@ import { RollTagService } from "../roll-tag/roll-tag.service";
 import { TransitionService } from "../transition/transition.service";
 import { TransitionMetadataField } from "../transition/entities/transition.entity";
 
-const ROLLS_WITH_STOCK_QUERY = `
-  SELECT r.*, s.brand AS stock_name, s.speed AS stock_speed, s.process AS stock_process, f.format AS format_name
-  FROM rolls r
-  LEFT JOIN stocks s ON r.stock_key = s.id
-  LEFT JOIN film_formats f ON s.format_key = f.id
-`;
-
 const ROLLS_WITH_CHILD_COUNT_QUERY = `
   SELECT r.*, s.brand AS stock_name, s.speed AS stock_speed, s.process AS stock_process, f.format AS format_name,
     (SELECT COUNT(*) FROM rolls c WHERE c.parent_roll_id = r.id)::int AS child_roll_count
@@ -152,11 +145,12 @@ export class RollService implements OnModuleInit {
       // Child roll: inherit stock from parent, profile from parent's stock process
       const parentRows = await this.databaseService.query<{
         stock_key: string;
+        roll_id: string;
         transition_profile: string;
         stock_process: string | null;
         expiration_date: string | null;
       }>(
-        `SELECT r.stock_key, r.transition_profile, r.expiration_date, s.process AS stock_process FROM rolls r LEFT JOIN stocks s ON r.stock_key = s.id WHERE r.id = ?`,
+        `SELECT r.stock_key, r.roll_id, r.transition_profile, r.expiration_date, s.process AS stock_process FROM rolls r LEFT JOIN stocks s ON r.stock_key = s.id WHERE r.id = ?`,
         [createRollDto.parentRollId],
       );
       if (parentRows.length === 0) {
@@ -174,7 +168,7 @@ export class RollService implements OnModuleInit {
         parentRows[0].stock_process === "Instant" ? "instant" : "standard";
       // Inherit provenance and expiration from the bulk canister
       createRollDto.obtainmentMethod = ObtainmentMethod.SELF_ROLLED;
-      createRollDto.obtainedFrom = `Bulk Roll (${createRollDto.parentRollId})`;
+      createRollDto.obtainedFrom = `Bulk Roll (${parentRows[0].roll_id})`;
       if (parentRows[0].expiration_date) {
         createRollDto.expirationDate = new Date(parentRows[0].expiration_date);
       }
@@ -287,7 +281,7 @@ export class RollService implements OnModuleInit {
 
   async findChildren(key: string): Promise<Roll[]> {
     const rows = await this.databaseService.query(
-      `${ROLLS_WITH_STOCK_QUERY} WHERE r.parent_roll_id = ?`,
+      `${ROLLS_WITH_CHILD_COUNT_QUERY} WHERE r.parent_roll_id = ?`,
       [key],
     );
     return rows.map(mapRoll);
@@ -298,11 +292,13 @@ export class RollService implements OnModuleInit {
     updateRollDto: UpdateRollDto,
   ): Promise<Roll | null> {
     // Child rolls have their stock locked to the parent's stock
-    const roll = await this.findOne(key);
-    if (roll?.parentRollId && updateRollDto.stockKey !== undefined) {
-      throw new BadRequestException(
-        "Cannot change the stock of a child roll — it is inherited from the parent bulk roll",
-      );
+    if (updateRollDto.stockKey !== undefined) {
+      const roll = await this.findOne(key);
+      if (roll?.parentRollId) {
+        throw new BadRequestException(
+          "Cannot change the stock of a child roll — it is inherited from the parent bulk roll",
+        );
+      }
     }
 
     const fieldMap: Record<string, string> = {

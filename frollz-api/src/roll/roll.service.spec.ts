@@ -788,6 +788,7 @@ describe("RollService", () => {
 
     const bulkParentRow = {
       stock_key: "stock-1",
+      roll_id: "00001",
       transition_profile: "bulk",
       stock_process: "C-41",
     };

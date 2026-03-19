@@ -77,6 +77,7 @@ async function transition(
 
 interface RollRow {
   _key: string;
+  rollId: string;
   state: string;
   transitionProfile: string;
   stockName: string;
@@ -450,8 +451,10 @@ describe("Child roll — auto-set provenance from bulk parent", () => {
     expect((childRoll as any).obtainmentMethod).toBe("Self Rolled");
   });
 
-  it("obtainedFrom is set to 'Bulk Roll (<parentRollId>)'", () => {
-    expect((childRoll as any).obtainedFrom).toBe(`Bulk Roll (${bulkRollKey})`);
+  it("obtainedFrom is set to 'Bulk Roll (<rollId>)'", () => {
+    expect((childRoll as any).obtainedFrom).toBe(
+      `Bulk Roll (${bulkRoll.rollId})`,
+    );
   });
 
   it("inherits expirationDate from a bulk roll that has one", async () => {
@@ -479,14 +482,14 @@ describe("Child roll — auto-set provenance from bulk parent", () => {
       isBulkRoll: true,
     });
 
-    const { data: childFromExpiry } = await POST<{ _key: string; expirationDate?: string }>(
-      "/rolls",
-      {
-        parentRollId: bulkWithExpiry._key,
-        dateObtained: TODAY,
-        timesExposedToXrays: 0,
-      },
-    );
+    const { data: childFromExpiry } = await POST<{
+      _key: string;
+      expirationDate?: string;
+    }>("/rolls", {
+      parentRollId: bulkWithExpiry._key,
+      dateObtained: TODAY,
+      timesExposedToXrays: 0,
+    });
 
     // Cleanup
     await DELETE(`/rolls/${childFromExpiry._key}`).catch(() => {});
