@@ -384,7 +384,7 @@ const handleSubmit = async () => {
   error.value = ''
   try {
     const payload: Parameters<typeof rollApi.create>[0] = {
-      stockKey: (form.value.parentRollId ? undefined : form.value.stockKey) as string,
+      stockKey: form.value.parentRollId ? undefined : form.value.stockKey,
       state: form.value.state,
       dateObtained: new Date(form.value.dateObtained),
       obtainmentMethod: form.value.obtainmentMethod,
@@ -400,9 +400,7 @@ const handleSubmit = async () => {
     if (form.value.parentRollId) {
       payload.parentRollId = form.value.parentRollId
     }
-    // stockKey is intentionally undefined when parentRollId is set; the API accepts this
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const created = await rollApi.create(payload as any)
+    const created = await rollApi.create(payload)
     closeModal()
     await router.push({ name: 'roll-detail', params: { key: created.data._key } })
   } catch {

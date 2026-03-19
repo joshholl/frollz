@@ -576,21 +576,15 @@ const loadData = async () => {
   roll.value = rollRes.data
   history.value = historyRes.data
   allTags.value = tagsRes.data
-  await loadRollTags()
-
-  if (roll.value?.parentRollId) {
-    const parentRes = await rollApi.getById(roll.value.parentRollId)
-    parentRoll.value = parentRes.data
-  } else {
-    parentRoll.value = null
-  }
-
-  if (roll.value?.transitionProfile === 'bulk') {
-    const childrenRes = await rollApi.getChildren(key)
-    childRolls.value = childrenRes.data
-  } else {
-    childRolls.value = []
-  }
+  await Promise.all([
+    loadRollTags(),
+    roll.value?.parentRollId
+      ? rollApi.getById(roll.value.parentRollId).then(r => { parentRoll.value = r.data })
+      : Promise.resolve().then(() => { parentRoll.value = null }),
+    roll.value?.transitionProfile === 'bulk'
+      ? rollApi.getChildren(key).then(r => { childRolls.value = r.data })
+      : Promise.resolve().then(() => { childRolls.value = [] }),
+  ])
 }
 
 const reload = async () => {
