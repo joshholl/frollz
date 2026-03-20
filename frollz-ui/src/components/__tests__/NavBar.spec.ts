@@ -140,6 +140,15 @@ describe('NavBar', () => {
     wrapper.unmount()
   })
 
+  it('root nav has aria-label="Main navigation"', async () => {
+    const wrapper = mountNav()
+    await router.isReady()
+
+    const nav = wrapper.find('nav')
+    expect(nav.attributes('aria-label')).toBe('Main navigation')
+    wrapper.unmount()
+  })
+
   it('all five nav links appear in the drawer', async () => {
     const wrapper = mountNav()
     await router.isReady()
