@@ -1,8 +1,8 @@
 <template>
   <div>
-    <div class="flex justify-between items-center mb-8">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Stocks</h1>
-      <button @click="showModal = true" class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 font-medium">
+      <button @click="showModal = true" class="bg-primary-600 text-white px-4 py-2 min-h-[44px] rounded-md hover:bg-primary-700 font-medium">
         Add Stock
       </button>
     </div>
@@ -10,8 +10,9 @@
     <!-- Active Filters -->
     <div class="flex flex-wrap items-center gap-2 mb-4 min-h-[2rem]">
       <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">Filters:</span>
-      <span v-if="activeFilters.length === 0" class="text-sm text-gray-400 dark:text-gray-500 italic">
-        Click any value in the table to filter by that field
+      <span v-if="activeFilters.length === 0" class="text-sm text-gray-600 dark:text-gray-400 italic">
+        <span class="hidden md:inline">Click any value in the table to filter by that field</span>
+        <span class="md:hidden">No active filters</span>
       </span>
       <template v-else>
         <span
@@ -20,13 +21,49 @@
           class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 font-medium"
         >
           {{ filter.label }}: {{ filter.value }}
-          <button @click="removeFilter(index)" class="ml-1 text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-200 font-bold leading-none">&times;</button>
+          <button @click="removeFilter(index)" class="ml-1 inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-200 font-bold">&times;</button>
         </span>
         <button @click="clearFilters" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline">Clear all</button>
       </template>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <!-- Mobile card list (hidden on md+) -->
+    <div class="md:hidden space-y-3" :aria-busy="isLoading" aria-label="Stocks list">
+      <p v-if="sortedStocks.length === 0" class="text-center py-8 text-gray-600 dark:text-gray-400 italic">No stocks found.</p>
+      <div
+        v-for="stock in sortedStocks"
+        :key="stock._key"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4"
+      >
+        <div class="flex justify-between items-start gap-3">
+          <div class="min-w-0">
+            <p class="font-semibold text-gray-900 dark:text-gray-100 truncate">{{ stock.brand }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ stock.manufacturer }}</p>
+            <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{{ stock.format }} · ISO {{ stock.speed }}</p>
+          </div>
+          <div class="flex flex-col items-end gap-2 shrink-0">
+            <span class="px-2 text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">{{ stock.process }}</span>
+            <button
+              @click="createRoll(stock._key!)"
+              class="bg-primary-600 text-white px-4 py-2 min-h-[44px] rounded-md hover:bg-primary-700 font-medium"
+              title="Add roll from this stock"
+              aria-label="Add roll from this stock"
+            >Add Roll</button>
+          </div>
+        </div>
+        <div v-if="stockTagMap[stock._key!]?.length" class="flex flex-wrap gap-1 mt-2">
+          <span
+            v-for="tag in stockTagMap[stock._key!]"
+            :key="tag._key"
+            class="px-2 py-0.5 rounded text-xs font-medium text-white"
+            :style="{ backgroundColor: tag.color }"
+          >{{ tag.value }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop table (hidden below md) -->
+    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md" :aria-busy="isLoading" aria-label="Stocks table">
       <div class="overflow-x-auto">
         <table class="min-w-full">
           <thead class="bg-gray-50 dark:bg-gray-700">
@@ -70,6 +107,7 @@
                 @click="addFilter('format', 'Format', stock.format ?? '')"
               >{{ stock.format }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
+                <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events, vuejs-accessibility/no-static-element-interactions -- filter chip; will be converted to a button in #202 -->
                 <span
                   class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800"
                   @click="addFilter('process', 'Process', stock.process)"
@@ -83,6 +121,7 @@
               >ISO {{ stock.speed }}</td>
               <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                 <div class="flex flex-wrap gap-1">
+                  <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events, vuejs-accessibility/no-static-element-interactions -- filter chip; will be converted to a button in #202 -->
                   <span
                     v-for="tag in stockTagMap[stock._key!]"
                     :key="tag._key"
@@ -97,9 +136,10 @@
               <td class="px-6 py-4 whitespace-nowrap text-right">
                 <button
                   @click="createRoll(stock._key!)"
-                  class="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 font-bold text-lg leading-none"
+                  class="bg-primary-600 text-white px-4 py-2 min-h-[44px] rounded-md hover:bg-primary-700 font-medium"
                   title="Add roll from this stock"
-                >+</button>
+                  aria-label="Add roll from this stock"
+                >Add Roll</button>
               </td>
             </tr>
           </tbody>
@@ -108,53 +148,63 @@
     </div>
 
     <!-- Add Stock Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg max-h-screen overflow-y-auto">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Add Stock</h2>
+    <BaseModal :open="showModal" title-id="add-stock-title" @close="closeModal">
+        <h2 id="add-stock-title" class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Add Stock</h2>
         <form @submit.prevent="handleSubmit">
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Brand <span class="text-red-500">*</span></label>
+              <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Brand <span class="text-red-500" aria-hidden="true">*</span></p>
               <TypeaheadInput
+                id="stock-brand"
+                aria-label="Brand"
+                aria-required="true"
                 v-model="form.brand"
                 :fetchOptions="(q) => stockApi.getBrands(q).then(r => r.data)"
                 required
                 placeholder="e.g. Portra 400"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Manufacturer <span class="text-red-500">*</span></label>
+              <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Manufacturer <span class="text-red-500" aria-hidden="true">*</span></p>
               <TypeaheadInput
+                id="stock-manufacturer"
+                aria-label="Manufacturer"
+                aria-required="true"
                 v-model="form.manufacturer"
                 :fetchOptions="(q) => stockApi.getManufacturers(q).then(r => r.data)"
                 required
                 placeholder="e.g. Kodak"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Process <span class="text-red-500">*</span></label>
-              <select
-                v-model="form.process"
-                required
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              >
-                <option value="" disabled>Select a process</option>
-                <option v-for="p in processOptions" :key="p" :value="p">{{ p }}</option>
-              </select>
+              <label for="stock-process" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Process <span class="text-red-500" aria-hidden="true">*</span>
+                <select
+                  id="stock-process"
+                  v-model="form.process"
+                  required
+                  aria-required="true"
+                  class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="" disabled>Select a process</option>
+                  <option v-for="p in processOptions" :key="p" :value="p">{{ p }}</option>
+                </select>
+              </label>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Formats <span class="text-red-500">*</span></label>
+            <fieldset>
+              <legend class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Formats <span class="text-red-500" aria-hidden="true">*</span></legend>
               <div class="flex flex-wrap gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded-md min-h-[2.5rem] bg-white dark:bg-gray-700">
-                <span v-if="!form.process" class="text-sm text-gray-400 dark:text-gray-500 italic">Select a process first</span>
+                <span v-if="!form.process" class="text-sm text-gray-600 dark:text-gray-400 italic">Select a process first</span>
                 <label
                   v-else
                   v-for="fmt in filteredFormats"
                   :key="fmt._key"
-                  class="flex items-center gap-1 text-sm cursor-pointer text-gray-900 dark:text-gray-100"
+                  :for="'format-check-' + fmt._key"
+                  class="flex items-center gap-1 min-h-[44px] px-1 text-sm cursor-pointer text-gray-900 dark:text-gray-100"
                 >
                   <input
+                    :id="'format-check-' + fmt._key"
                     type="checkbox"
                     :value="fmt._key"
                     v-model="form.formatKeys"
@@ -163,27 +213,30 @@
                   {{ fmt.format }}
                 </label>
               </div>
-            </div>
+            </fieldset>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Speed (ISO) <span class="text-red-500">*</span></label>
+              <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Speed (ISO) <span class="text-red-500" aria-hidden="true">*</span></p>
               <SpeedTypeaheadInput
+                id="stock-speed"
+                aria-label="Speed (ISO)"
+                aria-required="true"
                 v-model="form.speed"
                 :fetchOptions="(q: string) => stockApi.getSpeeds(q).then(r => r.data)"
                 required
                 min="1"
                 placeholder="e.g. 400"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</label>
+              <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</p>
               <div class="flex flex-wrap gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded-md min-h-[2.5rem] bg-white dark:bg-gray-700">
                 <button
                   v-for="tag in stockScopedTags"
                   :key="tag._key"
                   type="button"
                   @click="toggleTag(tag._key!)"
-                  class="px-2 py-1 rounded text-xs font-medium transition-opacity"
+                  class="px-3 py-2 min-h-[44px] rounded text-xs font-medium transition-opacity"
                   :class="selectedTagKeys.includes(tag._key!) ? 'opacity-100 text-white' : 'opacity-40 text-white'"
                   :style="{ backgroundColor: tag.color }"
                 >
@@ -193,16 +246,18 @@
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Click tags to select</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Box Image URL</label>
-              <input
-                v-model="form.boxImageUrl"
-                type="url"
-                placeholder="https://..."
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-              />
+              <label for="stock-box-image-url" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Box Image URL
+                  <input
+                    id="stock-box-image-url"
+                    v-model="form.boxImageUrl"
+                    type="url"
+                    placeholder="https://..."
+                    class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                  />
+              </label>
             </div>
           </div>
-          <div v-if="error" class="mt-4 text-sm text-red-600 dark:text-red-400">{{ error }}</div>
+          <div v-if="error" role="alert" class="mt-4 text-sm text-red-600 dark:text-red-400">{{ error }}</div>
           <div class="flex justify-end gap-3 mt-6">
             <button
               type="button"
@@ -220,8 +275,7 @@
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </BaseModal>
   </div>
 </template>
 
@@ -232,15 +286,19 @@ import { stockApi, filmFormatApi, tagApi, stockTagApi } from '@/services/api-cli
 import type { Stock, FilmFormat, Tag } from '@/types'
 import { Process, FormFactor } from '@/types'
 import TypeaheadInput from '@/components/TypeaheadInput.vue'
+import BaseModal from '@/components/BaseModal.vue'
 import SpeedTypeaheadInput from '@/components/SpeedTypeaheadInput.vue'
+import { useNotificationStore } from '@/stores/notification'
 
 const router = useRouter()
+const notification = useNotificationStore()
 
 const stocks = ref<Stock[]>([])
 const formats = ref<FilmFormat[]>([])
 const allTags = ref<Tag[]>([])
 // Map from stockKey -> Tag[]
 const stockTagMap = ref<Record<string, Tag[]>>({})
+const isLoading = ref(false)
 const showModal = ref(false)
 const submitting = ref(false)
 const error = ref('')
@@ -388,6 +446,7 @@ const handleSubmit = async () => {
 
     await loadStocks()
     closeModal()
+    notification.announce('Stock added')
   } catch (_) {
     error.value = 'Failed to add stock. Please try again.'
   } finally {
@@ -417,12 +476,15 @@ const buildStockTagMap = async () => {
 }
 
 const loadStocks = async () => {
+  isLoading.value = true
   try {
     const response = await stockApi.getAll()
     stocks.value = response.data
     await buildStockTagMap()
   } catch (err) {
     console.error('Error loading stocks:', err)
+  } finally {
+    isLoading.value = false
   }
 }
 

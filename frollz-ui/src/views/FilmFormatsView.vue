@@ -1,16 +1,39 @@
 <template>
   <div>
-    <div class="flex justify-between items-center mb-8">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Film Formats</h1>
       <button
         @click="showCreateForm = true"
-        class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 font-medium"
+        class="bg-primary-600 text-white px-4 py-2 min-h-[44px] rounded-md hover:bg-primary-700 font-medium"
       >
         Add Format
       </button>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <!-- Mobile card list (hidden on md+) -->
+    <div class="md:hidden space-y-3" :aria-busy="isLoading" aria-label="Film formats list">
+      <p v-if="filmFormats.length === 0" class="text-center py-8 text-gray-600 dark:text-gray-400 italic">No formats found.</p>
+      <div
+        v-for="format in filmFormats"
+        :key="format._key"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4"
+      >
+        <div class="flex justify-between items-start gap-3">
+          <div>
+            <p class="font-semibold text-gray-900 dark:text-gray-100">{{ format.format }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ format.formFactor }}</p>
+            <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ formatDate(format.createdAt) }}</p>
+          </div>
+          <button
+            @click="deleteFormat(format._key!)"
+            class="shrink-0 px-3 py-2.5 min-h-[44px] text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/30"
+          >Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop table (hidden below md) -->
+    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md" :aria-busy="isLoading" aria-label="Film formats table">
       <div class="overflow-x-auto">
         <table class="min-w-full">
           <thead class="bg-gray-50 dark:bg-gray-700">
@@ -43,7 +66,7 @@
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button
                   @click="deleteFormat(format._key!)"
-                  class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                  class="inline-flex items-center px-3 py-2 min-h-[44px] text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                 >
                   Delete
                 </button>
@@ -55,34 +78,37 @@
     </div>
 
     <!-- Create Form Modal -->
-    <div v-if="showCreateForm" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 class="text-lg font-semibold dark:text-gray-100 mb-4">Add Film Format</h3>
+    <BaseModal :open="showCreateForm" title-id="add-format-title" @close="showCreateForm = false">
+        <h3 id="add-format-title" class="text-lg font-semibold dark:text-gray-100 mb-4">Add Film Format</h3>
         <form @submit.prevent="createFormat">
           <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Form Factor</label>
-            <select v-model="newFormat.formFactor" required class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-              <option value="">Select Form Factor</option>
-              <option value="Roll">Roll</option>
-              <option value="Sheet">Sheet</option>
-              <option value="Instant">Instant</option>
-              <option value="100ft Bulk">100ft Bulk</option>
-              <option value="400ft Bulk">400ft Bulk</option>
-            </select>
+            <label for="format-form-factor" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Form Factor <span class="text-red-500" aria-hidden="true">*</span>
+              <select id="format-form-factor" v-model="newFormat.formFactor" required aria-required="true" class="mt-2 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                <option value="">Select Form Factor</option>
+                <option value="Roll">Roll</option>
+                <option value="Sheet">Sheet</option>
+                <option value="Instant">Instant</option>
+                <option value="100ft Bulk">100ft Bulk</option>
+                <option value="400ft Bulk">400ft Bulk</option>
+              </select>
+            </label>
           </div>
 
           <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Format</label>
-            <select v-model="newFormat.format" required class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-              <option value="">Select Format</option>
-              <option value="35mm">35mm</option>
-              <option value="110">110</option>
-              <option value="120">120</option>
-              <option value="220">220</option>
-              <option value="4x5">4x5</option>
-              <option value="8x10">8x10</option>
-            </select>
+            <label for="format-format" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Format <span class="text-red-500" aria-hidden="true">*</span>
+              <select id="format-format" v-model="newFormat.format" required aria-required="true" class="mt-2 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                <option value="">Select Format</option>
+                <option value="35mm">35mm</option>
+                <option value="110">110</option>
+                <option value="120">120</option>
+                <option value="220">220</option>
+                <option value="4x5">4x5</option>
+                <option value="8x10">8x10</option>
+              </select>
+            </label>
           </div>
+
+          <div v-if="createError" role="alert" class="mb-4 text-sm text-red-600 dark:text-red-400">{{ createError }}</div>
 
           <div class="flex justify-end space-x-2">
             <button
@@ -100,8 +126,7 @@
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </BaseModal>
   </div>
 </template>
 
@@ -109,9 +134,15 @@
 import { ref, onMounted } from 'vue'
 import { filmFormatApi } from '@/services/api-client'
 import type { FilmFormat, FormFactor, Format } from '@/types'
+import BaseModal from '@/components/BaseModal.vue'
+import { useNotificationStore } from '@/stores/notification'
+
+const notification = useNotificationStore()
 
 const filmFormats = ref<FilmFormat[]>([])
+const isLoading = ref(false)
 const showCreateForm = ref(false)
+const createError = ref('')
 const newFormat = ref({
   formFactor: '' as FormFactor,
   format: '' as Format,
@@ -122,22 +153,28 @@ const formatDate = (date?: Date) => {
 }
 
 const loadFormats = async () => {
+  isLoading.value = true
   try {
     const response = await filmFormatApi.getAll()
     filmFormats.value = response.data
   } catch (error) {
     console.error('Error loading film formats:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 
 const createFormat = async () => {
+  createError.value = ''
   try {
     await filmFormatApi.create(newFormat.value)
     showCreateForm.value = false
     newFormat.value = { formFactor: '' as FormFactor, format: '' as Format }
     await loadFormats()
+    notification.announce('Film format added')
   } catch (error) {
     console.error('Error creating film format:', error)
+    createError.value = 'Failed to create film format. Please try again.'
   }
 }
 

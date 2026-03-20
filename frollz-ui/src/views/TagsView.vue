@@ -1,10 +1,87 @@
 <template>
   <div>
-    <div class="flex justify-between items-center mb-8">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Tags</h1>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <!-- Mobile card list (hidden on md+) -->
+    <div class="md:hidden space-y-3" :aria-busy="isLoading" aria-label="Tags list">
+      <p v-if="tags.length === 0" class="text-center py-8 text-gray-600 dark:text-gray-400 italic">No tags found.</p>
+      <div
+        v-for="tag in paginatedTags"
+        :key="tag._key"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4"
+      >
+        <!-- View mode -->
+        <template v-if="editingKey !== tag._key">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <span
+                class="shrink-0 inline-block w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600"
+                :style="{ backgroundColor: tag.color }"
+              ></span>
+              <span
+                class="px-2 py-1 rounded text-sm font-medium text-white truncate"
+                :style="{ backgroundColor: tag.color }"
+              >{{ tag.value }}</span>
+            </div>
+            <div class="flex gap-2 shrink-0">
+              <button
+                @click="startEdit(tag)"
+                class="px-3 py-2.5 min-h-[44px] text-xs font-medium text-primary-600 dark:text-primary-400 border border-primary-300 dark:border-primary-600 rounded hover:bg-primary-50 dark:hover:bg-primary-900/30"
+              >Edit</button>
+              <button
+                @click="confirmDelete(tag)"
+                class="px-3 py-2.5 min-h-[44px] text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/30"
+              >Delete</button>
+            </div>
+          </div>
+          <div class="flex gap-4 mt-2 text-xs text-gray-600 dark:text-gray-400">
+            <span>Roll scope: {{ tag.isRollScoped ? 'Yes' : 'No' }}</span>
+            <span>Stock scope: {{ tag.isStockScoped ? 'Yes' : 'No' }}</span>
+            <span>{{ formatDate(tag.createdAt) }}</span>
+          </div>
+        </template>
+
+        <!-- Edit mode -->
+        <template v-else>
+          <div class="space-y-3">
+            <div class="flex gap-3 items-center">
+              <input v-model="editForm.color" type="color" aria-label="Color" class="h-10 w-16 rounded cursor-pointer border border-gray-300 dark:border-gray-600" />
+              <input
+                v-model="editForm.value"
+                type="text"
+                aria-label="Value"
+                class="flex-1 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+            <div class="flex gap-6 text-sm">
+              <label :for="'mobile-roll-scope-' + tag._key" class="flex items-center gap-2 min-h-[44px] cursor-pointer text-gray-600 dark:text-gray-400">
+                <input :id="'mobile-roll-scope-' + tag._key" v-model="editForm.isRollScoped" type="checkbox" class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded" />
+                Roll scope
+              </label>
+              <label :for="'mobile-stock-scope-' + tag._key" class="flex items-center gap-2 min-h-[44px] cursor-pointer text-gray-600 dark:text-gray-400">
+                <input :id="'mobile-stock-scope-' + tag._key" v-model="editForm.isStockScoped" type="checkbox" class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded" />
+                Stock scope
+              </label>
+            </div>
+            <div class="flex gap-2">
+              <button
+                @click="saveEdit(tag._key!)"
+                class="flex-1 px-3 py-2 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700"
+              >Save</button>
+              <button
+                @click="cancelEdit"
+                class="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+              >Cancel</button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Desktop table (hidden below md) -->
+    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md" :aria-busy="isLoading" aria-label="Tags table">
       <div class="overflow-x-auto">
         <table class="min-w-full">
           <thead class="bg-gray-50 dark:bg-gray-700">
@@ -24,6 +101,7 @@
                   <input
                     v-model="editForm.color"
                     type="color"
+                    aria-label="Color"
                     class="h-8 w-16 rounded cursor-pointer border border-gray-300 dark:border-gray-600"
                   />
                 </template>
@@ -39,7 +117,8 @@
                   <input
                     v-model="editForm.value"
                     type="text"
-                    class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    aria-label="Value"
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </template>
                 <template v-else>
@@ -50,22 +129,30 @@
                 </template>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                <input
-                  type="checkbox"
-                  :checked="editingKey === tag._key ? editForm.isRollScoped : tag.isRollScoped"
-                  :disabled="editingKey !== tag._key"
-                  @change="editingKey === tag._key && (editForm.isRollScoped = ($event.target as HTMLInputElement).checked)"
-                  class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded"
-                />
+                <label :for="'table-roll-scope-' + tag._key" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] cursor-pointer">
+                  <input
+                    :id="'table-roll-scope-' + tag._key"
+                    type="checkbox"
+                    aria-label="Roll scope"
+                    :checked="editingKey === tag._key ? editForm.isRollScoped : tag.isRollScoped"
+                    :disabled="editingKey !== tag._key"
+                    @change="editingKey === tag._key && (editForm.isRollScoped = ($event.target as HTMLInputElement).checked)"
+                    class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded"
+                  />
+                </label>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                <input
-                  type="checkbox"
-                  :checked="editingKey === tag._key ? editForm.isStockScoped : tag.isStockScoped"
-                  :disabled="editingKey !== tag._key"
-                  @change="editingKey === tag._key && (editForm.isStockScoped = ($event.target as HTMLInputElement).checked)"
-                  class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded"
-                />
+                <label :for="'table-stock-scope-' + tag._key" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] cursor-pointer">
+                  <input
+                    :id="'table-stock-scope-' + tag._key"
+                    type="checkbox"
+                    aria-label="Stock scope"
+                    :checked="editingKey === tag._key ? editForm.isStockScoped : tag.isStockScoped"
+                    :disabled="editingKey !== tag._key"
+                    @change="editingKey === tag._key && (editForm.isStockScoped = ($event.target as HTMLInputElement).checked)"
+                    class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded"
+                  />
+                </label>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                 {{ formatDate(tag.createdAt) }}
@@ -74,101 +161,97 @@
                 <template v-if="editingKey === tag._key">
                   <button
                     @click="saveEdit(tag._key!)"
-                    class="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700"
+                    class="px-3 py-2 min-h-[44px] text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700"
                   >Save</button>
                   <button
                     @click="cancelEdit"
-                    class="px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+                    class="px-3 py-2 min-h-[44px] text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
                   >Cancel</button>
                 </template>
                 <template v-else>
                   <button
                     @click="startEdit(tag)"
-                    class="px-3 py-1 text-xs font-medium text-primary-600 dark:text-primary-400 border border-primary-300 dark:border-primary-600 rounded hover:bg-primary-50 dark:hover:bg-primary-900/30"
+                    class="px-3 py-2 min-h-[44px] text-xs font-medium text-primary-600 dark:text-primary-400 border border-primary-300 dark:border-primary-600 rounded hover:bg-primary-50 dark:hover:bg-primary-900/30"
                   >Edit</button>
                   <button
                     @click="confirmDelete(tag)"
-                    class="px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/30"
+                    class="px-3 py-2 min-h-[44px] text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/30"
                   >Delete</button>
                 </template>
               </td>
             </tr>
             <tr v-if="tags.length === 0">
-              <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-400 dark:text-gray-500">No tags found.</td>
+              <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-600 dark:text-gray-400">No tags found.</td>
             </tr>
           </tbody>
         </table>
       </div>
+    </div>
 
-      <!-- Pagination -->
-      <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-        <span class="text-sm text-gray-500 dark:text-gray-400">
-          Page {{ currentPage }} of {{ totalPages }}
-        </span>
-        <div class="flex gap-2">
-          <button
-            @click="currentPage--"
-            :disabled="currentPage === 1"
-            class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
-          >Previous</button>
-          <button
-            @click="currentPage++"
-            :disabled="currentPage === totalPages"
-            class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
-          >Next</button>
-        </div>
+    <!-- Pagination -->
+    <div v-if="totalPages > 1" class="flex items-center justify-between px-2 py-3 mt-3">
+      <span class="text-sm text-gray-500 dark:text-gray-400">
+        Page {{ currentPage }} of {{ totalPages }}
+      </span>
+      <div class="flex gap-2">
+        <button
+          @click="currentPage--"
+          :disabled="currentPage === 1"
+          class="px-3 py-2 min-h-[44px] text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
+        >Previous</button>
+        <button
+          @click="currentPage++"
+          :disabled="currentPage === totalPages"
+          class="px-3 py-2 min-h-[44px] text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
+        >Next</button>
       </div>
     </div>
 
     <!-- Stock Scope Removal Warning Modal -->
-    <div v-if="scopeChangeWarning" class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Remove Stock Scope</h2>
-        <p class="text-sm text-gray-700 dark:text-gray-300 mb-6">
-          This tag is currently assigned to
-          <span class="font-semibold">{{ scopeChangeWarning.count }}</span>
-          stock{{ scopeChangeWarning.count === 1 ? '' : 's' }}.
-          Removing the stock scope will remove this tag from all of them.
-        </p>
-        <div class="flex justify-end gap-3">
-          <button
-            @click="cancelScopeChange"
-            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-          >Cancel</button>
-          <button
-            @click="confirmScopeChange"
-            class="px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700"
-          >Confirm</button>
-        </div>
+    <BaseModal :open="!!scopeChangeWarning" title-id="scope-change-title" @close="cancelScopeChange">
+      <h2 id="scope-change-title" class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Remove Stock Scope</h2>
+      <p class="text-sm text-gray-700 dark:text-gray-300 mb-6">
+        This tag is currently assigned to
+        <span class="font-semibold">{{ scopeChangeWarning?.count }}</span>
+        stock{{ scopeChangeWarning?.count === 1 ? '' : 's' }}.
+        Removing the stock scope will remove this tag from all of them.
+      </p>
+      <div class="flex justify-end gap-3">
+        <button
+          @click="cancelScopeChange"
+          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >Cancel</button>
+        <button
+          @click="confirmScopeChange"
+          class="px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700"
+        >Confirm</button>
       </div>
-    </div>
+    </BaseModal>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="deleteTarget" class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Delete Tag</h2>
-        <p class="text-sm text-gray-700 dark:text-gray-300 mb-2">
-          Are you sure you want to delete the tag
-          <span class="font-semibold">{{ deleteTarget.value }}</span>?
-        </p>
-        <p class="text-sm text-gray-700 dark:text-gray-300 mb-6">
-          This tag has
-          <span class="font-semibold">{{ deleteStockTagCount }}</span>
-          stock association{{ deleteStockTagCount === 1 ? '' : 's' }}.
-          All associations will be removed.
-        </p>
-        <div class="flex justify-end gap-3">
-          <button
-            @click="deleteTarget = null"
-            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-          >Cancel</button>
-          <button
-            @click="executeDelete"
-            class="px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700"
-          >Delete</button>
-        </div>
+    <BaseModal :open="!!deleteTarget" title-id="delete-tag-title" @close="deleteTarget = null">
+      <h2 id="delete-tag-title" class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Delete Tag</h2>
+      <p class="text-sm text-gray-700 dark:text-gray-300 mb-2">
+        Are you sure you want to delete the tag
+        <span class="font-semibold">{{ deleteTarget?.value }}</span>?
+      </p>
+      <p class="text-sm text-gray-700 dark:text-gray-300 mb-6">
+        This tag has
+        <span class="font-semibold">{{ deleteStockTagCount }}</span>
+        stock association{{ deleteStockTagCount === 1 ? '' : 's' }}.
+        All associations will be removed.
+      </p>
+      <div class="flex justify-end gap-3">
+        <button
+          @click="deleteTarget = null"
+          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >Cancel</button>
+        <button
+          @click="executeDelete"
+          class="px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700"
+        >Delete</button>
       </div>
-    </div>
+    </BaseModal>
   </div>
 </template>
 
@@ -176,10 +259,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { tagApi, stockTagApi } from '@/services/api-client'
 import type { Tag } from '@/types'
+import BaseModal from '@/components/BaseModal.vue'
+import { useNotificationStore } from '@/stores/notification'
+
+const notification = useNotificationStore()
 
 const PAGE_SIZE = 10
 
 const tags = ref<Tag[]>([])
+const isLoading = ref(false)
 const currentPage = ref(1)
 
 const editingKey = ref<string | null>(null)
@@ -200,11 +288,14 @@ const paginatedTags = computed(() => {
 const formatDate = (date?: Date) => date ? new Date(date).toLocaleDateString() : '-'
 
 const loadTags = async () => {
+  isLoading.value = true
   try {
     const response = await tagApi.getAll()
     tags.value = response.data
   } catch (err) {
     console.error('Error loading tags:', err)
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -242,6 +333,7 @@ const saveEdit = async (key: string) => {
     })
     editingKey.value = null
     await loadTags()
+    notification.announce('Tag saved')
   } catch (err) {
     console.error('Error saving tag:', err)
   }
@@ -262,6 +354,7 @@ const confirmScopeChange = async () => {
     scopeChangeWarning.value = null
     editingKey.value = null
     await loadTags()
+    notification.announce('Tag saved')
   } catch (err) {
     console.error('Error saving tag with scope change:', err)
   }
@@ -291,6 +384,7 @@ const executeDelete = async () => {
     await tagApi.delete(tag._key!)
     deleteTarget.value = null
     await loadTags()
+    notification.announce('Tag deleted')
   } catch (err) {
     console.error('Error deleting tag:', err)
   }

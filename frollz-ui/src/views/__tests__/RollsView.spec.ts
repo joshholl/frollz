@@ -1,10 +1,16 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { axe } from 'vitest-axe'
 import RollsView from '@/views/RollsView.vue'
 import { rollApi, stockApi } from '@/services/api-client'
 import { RollState, ObtainmentMethod } from '@/types'
+
+const axeOptions = {
+  runOnly: { type: 'tag' as const, values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
+}
 
 vi.mock('@/services/api-client', () => ({
   rollApi: {
@@ -38,9 +44,38 @@ const makeRoll = (key: string, state: RollState, overrides: Record<string, any> 
 
 describe('RollsView', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.clearAllMocks()
     vi.mocked(rollApi.getAll).mockResolvedValue({ data: [] } as any)
     vi.mocked(stockApi.getAll).mockResolvedValue({ data: [] } as any)
+  })
+
+  describe('accessibility', () => {
+    it('renders the roll list without a11y violations', async () => {
+      vi.mocked(rollApi.getAll).mockResolvedValue({ data: [] } as any)
+
+      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const results = await axe(wrapper.element, axeOptions)
+      expect(results).toHaveNoViolations()
+    })
+
+    it('renders the Add Roll modal without a11y violations', async () => {
+      vi.mocked(stockApi.getAll).mockResolvedValue({
+        data: [{ _key: 'stock1', brand: 'Portra 400', manufacturer: 'Kodak', format: '35mm', speed: 400, process: 'C-41' }],
+      } as any)
+
+      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      vm.showModal = true
+      await wrapper.vm.$nextTick()
+
+      const results = await axe(wrapper.element, axeOptions)
+      expect(results).toHaveNoViolations()
+    })
   })
 
   describe('shelved spelling', () => {
