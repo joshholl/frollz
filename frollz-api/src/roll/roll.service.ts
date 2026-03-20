@@ -128,10 +128,7 @@ export class RollService implements OnModuleInit {
 
     let rollId = createRollDto.rollId;
     if (!rollId) {
-      const rows = await this.databaseService.query<{ nextval: string }>(
-        `SELECT nextval('roll_id_seq')`,
-      );
-      rollId = String(rows[0].nextval).padStart(5, "0");
+      rollId = await this.getNextId();
     }
 
     const now = new Date();
