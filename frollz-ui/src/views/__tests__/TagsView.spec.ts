@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { axe } from 'vitest-axe'
 import TagsView from '@/views/TagsView.vue'
 import { tagApi } from '@/services/api-client'

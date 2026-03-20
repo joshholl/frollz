@@ -28,7 +28,7 @@
     </div>
 
     <!-- Mobile card list (hidden on md+) -->
-    <div class="md:hidden space-y-3">
+    <div class="md:hidden space-y-3" :aria-busy="isLoading" aria-label="Stocks list">
       <p v-if="sortedStocks.length === 0" class="text-center py-8 text-gray-400 dark:text-gray-500 italic">No stocks found.</p>
       <div
         v-for="stock in sortedStocks"
@@ -62,7 +62,7 @@
     </div>
 
     <!-- Desktop table (hidden below md) -->
-    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md" :aria-busy="isLoading" aria-label="Stocks table">
       <div class="overflow-x-auto">
         <table class="min-w-full">
           <thead class="bg-gray-50 dark:bg-gray-700">
@@ -286,14 +286,17 @@ import { Process, FormFactor } from '@/types'
 import TypeaheadInput from '@/components/TypeaheadInput.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import SpeedTypeaheadInput from '@/components/SpeedTypeaheadInput.vue'
+import { useNotificationStore } from '@/stores/notification'
 
 const router = useRouter()
+const notification = useNotificationStore()
 
 const stocks = ref<Stock[]>([])
 const formats = ref<FilmFormat[]>([])
 const allTags = ref<Tag[]>([])
 // Map from stockKey -> Tag[]
 const stockTagMap = ref<Record<string, Tag[]>>({})
+const isLoading = ref(false)
 const showModal = ref(false)
 const submitting = ref(false)
 const error = ref('')
@@ -441,6 +444,7 @@ const handleSubmit = async () => {
 
     await loadStocks()
     closeModal()
+    notification.announce('Stock added')
   } catch (_) {
     error.value = 'Failed to add stock. Please try again.'
   } finally {
@@ -470,12 +474,15 @@ const buildStockTagMap = async () => {
 }
 
 const loadStocks = async () => {
+  isLoading.value = true
   try {
     const response = await stockApi.getAll()
     stocks.value = response.data
     await buildStockTagMap()
   } catch (err) {
     console.error('Error loading stocks:', err)
+  } finally {
+    isLoading.value = false
   }
 }
 

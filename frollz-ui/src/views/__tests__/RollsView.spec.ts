@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { axe } from 'vitest-axe'
 import RollsView from '@/views/RollsView.vue'
@@ -43,6 +44,7 @@ const makeRoll = (key: string, state: RollState, overrides: Record<string, any> 
 
 describe('RollsView', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.clearAllMocks()
     vi.mocked(rollApi.getAll).mockResolvedValue({ data: [] } as any)
     vi.mocked(stockApi.getAll).mockResolvedValue({ data: [] } as any)

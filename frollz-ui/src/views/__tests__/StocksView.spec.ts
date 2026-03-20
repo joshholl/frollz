@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { axe } from 'vitest-axe'
 import StocksView from '@/views/StocksView.vue'
 import { stockApi, filmFormatApi, tagApi, stockTagApi } from '@/services/api-client'
@@ -51,6 +52,7 @@ describe('StocksView', () => {
   ]
 
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.clearAllMocks()
 
     // Setup default mock returns

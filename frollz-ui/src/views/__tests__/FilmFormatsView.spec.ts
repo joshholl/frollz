@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { axe } from 'vitest-axe'
 import FilmFormatsView from '@/views/FilmFormatsView.vue'
 import { filmFormatApi } from '@/services/api-client'
@@ -25,6 +26,7 @@ describe('FilmFormatsView', () => {
   ]
 
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.clearAllMocks()
     vi.mocked(filmFormatApi.getAll).mockResolvedValue({ data: mockFormats } as any)
     vi.mocked(filmFormatApi.create).mockResolvedValue({ data: mockFormats[0] } as any)

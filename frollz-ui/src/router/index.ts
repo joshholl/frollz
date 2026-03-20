@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { nextTick } from 'vue'
 import Dashboard from '@/views/Dashboard.vue'
 import StocksView from '@/views/StocksView.vue'
 import RollsView from '@/views/RollsView.vue'
@@ -52,13 +53,9 @@ const router = createRouter({
   ]
 })
 
-// Update page title and move focus to <main> after each navigation (WCAG 2.4.2 Page Titled)
-router.afterEach((to) => {
+// Move focus to <main> after each navigation so screen reader users land at the top of new content
+router.afterEach(() => {
   nextTick(() => {
-    const metaTitle = typeof to.meta.title === 'string' ? to.meta.title : ''
-    const filmKey = to.name === 'film-detail' && to.params.key ? String(to.params.key) : ''
-    const pageTitle = filmKey ? `Film ${filmKey}` : metaTitle
-    document.title = pageTitle ? `${pageTitle} | Frollz` : 'Frollz'
     document.getElementById('main-content')?.focus()
   })
 })
