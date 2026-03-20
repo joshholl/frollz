@@ -87,9 +87,9 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s",
-      "!**/*.spec.(t|j)s",
-      "!**/*.smoke-spike.(t|j)s"
+      "**/*.[tj]s",
+      "!**/*.spec.[tj]s",
+      "!**/*.smoke-spike.[tj]s"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
