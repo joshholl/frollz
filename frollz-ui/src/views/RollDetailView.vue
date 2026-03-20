@@ -7,7 +7,7 @@
       >← Back to Rolls</button>
     </div>
 
-    <div v-if="loading" class="text-center py-12 text-gray-400 dark:text-gray-500">Loading...</div>
+    <div v-if="loading" role="status" aria-label="Loading roll detail" class="text-center py-12 text-gray-400 dark:text-gray-500">Loading...</div>
 
     <div v-else-if="!roll" class="text-center py-12 text-gray-400 dark:text-gray-500">Roll not found.</div>
 
@@ -340,9 +340,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { rollApi, rollStateApi, rollTagApi, tagApi, transitionApi } from '@/services/api-client'
 import type { Roll, RollStateHistory, Tag, RollTag, TransitionGraph } from '@/types'
 import { RollState } from '@/types'
+import { useNotificationStore } from '@/stores/notification'
 
 const route = useRoute()
 const router = useRouter()
+const notification = useNotificationStore()
 
 const roll = ref<Roll | null>(null)
 const parentRoll = ref<Roll | null>(null)
@@ -546,6 +548,7 @@ const executeTransition = async (targetState: RollState, isErrorCorrection?: boo
     await rollApi.transition(roll.value._key!, targetState, date, transitionNotes.value || undefined, isErrorCorrection, metadata)
     transitionNotes.value = ''
     await loadData()
+    notification.announce(`Roll moved to ${targetState}`)
   } catch {
     transitionError.value = 'Failed to transition roll. Please try again.'
   } finally {

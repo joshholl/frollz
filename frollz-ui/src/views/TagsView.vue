@@ -5,7 +5,7 @@
     </div>
 
     <!-- Mobile card list (hidden on md+) -->
-    <div class="md:hidden space-y-3">
+    <div class="md:hidden space-y-3" :aria-busy="isLoading" aria-label="Tags list">
       <p v-if="tags.length === 0" class="text-center py-8 text-gray-400 dark:text-gray-500 italic">No tags found.</p>
       <div
         v-for="tag in paginatedTags"
@@ -81,7 +81,7 @@
     </div>
 
     <!-- Desktop table (hidden below md) -->
-    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md" :aria-busy="isLoading" aria-label="Tags table">
       <div class="overflow-x-auto">
         <table class="min-w-full">
           <thead class="bg-gray-50 dark:bg-gray-700">
@@ -254,10 +254,14 @@ import { ref, computed, onMounted } from 'vue'
 import { tagApi, stockTagApi } from '@/services/api-client'
 import type { Tag } from '@/types'
 import BaseModal from '@/components/BaseModal.vue'
+import { useNotificationStore } from '@/stores/notification'
+
+const notification = useNotificationStore()
 
 const PAGE_SIZE = 10
 
 const tags = ref<Tag[]>([])
+const isLoading = ref(false)
 const currentPage = ref(1)
 
 const editingKey = ref<string | null>(null)
@@ -278,11 +282,14 @@ const paginatedTags = computed(() => {
 const formatDate = (date?: Date) => date ? new Date(date).toLocaleDateString() : '-'
 
 const loadTags = async () => {
+  isLoading.value = true
   try {
     const response = await tagApi.getAll()
     tags.value = response.data
   } catch (err) {
     console.error('Error loading tags:', err)
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -320,6 +327,7 @@ const saveEdit = async (key: string) => {
     })
     editingKey.value = null
     await loadTags()
+    notification.announce('Tag saved')
   } catch (err) {
     console.error('Error saving tag:', err)
   }
@@ -340,6 +348,7 @@ const confirmScopeChange = async () => {
     scopeChangeWarning.value = null
     editingKey.value = null
     await loadTags()
+    notification.announce('Tag saved')
   } catch (err) {
     console.error('Error saving tag with scope change:', err)
   }
@@ -369,6 +378,7 @@ const executeDelete = async () => {
     await tagApi.delete(tag._key!)
     deleteTarget.value = null
     await loadTags()
+    notification.announce('Tag deleted')
   } catch (err) {
     console.error('Error deleting tag:', err)
   }

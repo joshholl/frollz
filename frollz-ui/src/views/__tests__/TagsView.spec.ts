@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { axe } from 'vitest-axe'
 import TagsView from '@/views/TagsView.vue'
 import { tagApi, stockTagApi } from '@/services/api-client'
@@ -29,6 +30,7 @@ describe('TagsView', () => {
   ]
 
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.clearAllMocks()
     vi.mocked(tagApi.getAll).mockResolvedValue({ data: mockTags } as any)
     vi.mocked(stockTagApi.getAll).mockResolvedValue({ data: [] } as any)

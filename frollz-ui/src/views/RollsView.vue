@@ -28,7 +28,7 @@
     </div>
 
     <!-- Mobile card list (hidden on md+) -->
-    <div class="md:hidden space-y-3">
+    <div class="md:hidden space-y-3" :aria-busy="isLoading" aria-label="Rolls list">
       <p v-if="filteredRolls.length === 0" class="text-center py-8 text-gray-400 dark:text-gray-500 italic">No rolls found.</p>
       <RouterLink
         v-for="roll in filteredRolls"
@@ -52,7 +52,7 @@
     </div>
 
     <!-- Desktop table (hidden below md) -->
-    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md" :aria-busy="isLoading" aria-label="Rolls table">
       <div class="overflow-x-auto">
         <table class="min-w-full">
           <thead class="bg-gray-50 dark:bg-gray-700">
@@ -301,6 +301,7 @@ const router = useRouter()
 
 const rolls = ref<Roll[]>([])
 const stocks = ref<Stock[]>([])
+const isLoading = ref(false)
 const showModal = ref(false)
 
 type ActiveFilter = { field: string; label: string; value: string }
@@ -458,11 +459,14 @@ const handleSubmit = async () => {
 }
 
 const loadRolls = async () => {
+  isLoading.value = true
   try {
     const response = await rollApi.getAll()
     rolls.value = response.data
   } catch (err) {
     console.error('Error loading rolls:', err)
+  } finally {
+    isLoading.value = false
   }
 }
 

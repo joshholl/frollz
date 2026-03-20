@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { axe } from 'vitest-axe'
 import RollDetailView from '@/views/RollDetailView.vue'
@@ -139,6 +140,7 @@ const mountView = async (rollKey = 'r1') => {
 
 describe('RollDetailView', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.clearAllMocks()
     vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll() } as any)
     vi.mocked(rollStateApi.getHistory).mockResolvedValue({ data: [] } as any)
