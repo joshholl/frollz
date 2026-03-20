@@ -22,13 +22,7 @@ Object.defineProperty(window, 'matchMedia', {
 
 const router = createRouter({
   history: createMemoryHistory(),
-  routes: [
-    { path: '/', component: { template: '<div></div>' } },
-    { path: '/emulsions', component: { template: '<div></div>' } },
-    { path: '/films', component: { template: '<div></div>' } },
-    { path: '/formats', component: { template: '<div></div>' } },
-    { path: '/tags', component: { template: '<div></div>' } },
-  ],
+  routes: [{ path: '/', component: { template: '<div><h1>Dashboard</h1></div>' } }],
 })
 
 const axeOptions = {
