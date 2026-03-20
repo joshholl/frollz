@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { nextTick } from 'vue'
 import Dashboard from '@/views/Dashboard.vue'
 import StocksView from '@/views/StocksView.vue'
 import RollsView from '@/views/RollsView.vue'
@@ -40,6 +41,13 @@ const router = createRouter({
       component: TagsView
     }
   ]
+})
+
+// Move focus to <main> after each navigation so screen reader users land at the top of new content
+router.afterEach(() => {
+  nextTick(() => {
+    document.getElementById('main-content')?.focus()
+  })
 })
 
 export default router

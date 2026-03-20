@@ -11,7 +11,7 @@
     </div>
 
     <!-- Mobile card list (hidden on md+) -->
-    <div class="md:hidden space-y-3">
+    <div class="md:hidden space-y-3" :aria-busy="isLoading" aria-label="Film formats list">
       <p v-if="filmFormats.length === 0" class="text-center py-8 text-gray-400 dark:text-gray-500 italic">No formats found.</p>
       <div
         v-for="format in filmFormats"
@@ -33,7 +33,7 @@
     </div>
 
     <!-- Desktop table (hidden below md) -->
-    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md" :aria-busy="isLoading" aria-label="Film formats table">
       <div class="overflow-x-auto">
         <table class="min-w-full">
           <thead class="bg-gray-50 dark:bg-gray-700">
@@ -135,8 +135,12 @@ import { ref, onMounted } from 'vue'
 import { filmFormatApi } from '@/services/api-client'
 import type { FilmFormat, FormFactor, Format } from '@/types'
 import BaseModal from '@/components/BaseModal.vue'
+import { useNotificationStore } from '@/stores/notification'
+
+const notification = useNotificationStore()
 
 const filmFormats = ref<FilmFormat[]>([])
+const isLoading = ref(false)
 const showCreateForm = ref(false)
 const createError = ref('')
 const newFormat = ref({
@@ -149,11 +153,14 @@ const formatDate = (date?: Date) => {
 }
 
 const loadFormats = async () => {
+  isLoading.value = true
   try {
     const response = await filmFormatApi.getAll()
     filmFormats.value = response.data
   } catch (error) {
     console.error('Error loading film formats:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -164,6 +171,7 @@ const createFormat = async () => {
     showCreateForm.value = false
     newFormat.value = { formFactor: '' as FormFactor, format: '' as Format }
     await loadFormats()
+    notification.announce('Film format added')
   } catch (error) {
     console.error('Error creating film format:', error)
     createError.value = 'Failed to create film format. Please try again.'
