@@ -135,16 +135,21 @@
     </div>
 
     <!-- Add Roll Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50">
+    <div
+      v-if="showModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-roll-title"
+      class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50"
+    >
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg mx-4 max-h-screen overflow-y-auto">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Add Roll</h2>
-        <!-- eslint-disable vuejs-accessibility/label-has-for, vuejs-accessibility/form-control-has-label -- for/id label associations will be added in #199 -->
+        <h2 id="add-roll-title" class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Add Roll</h2>
         <form @submit.prevent="handleSubmit">
           <div class="space-y-4">
             <!-- Bulk roll toggle -->
             <div class="flex items-center gap-3">
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input v-model="form.isBulkRoll" type="checkbox" class="rounded" @change="onBulkRollToggle" />
+              <label for="roll-bulk-canister" class="flex items-center gap-2 cursor-pointer">
+                <input id="roll-bulk-canister" v-model="form.isBulkRoll" type="checkbox" class="rounded" @change="onBulkRollToggle" />
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Bulk canister roll</span>
               </label>
               <span class="text-xs text-gray-400 dark:text-gray-500">(100ft spool or similar)</span>
@@ -152,84 +157,103 @@
 
             <!-- Parent bulk roll selector (only for non-bulk rolls) -->
             <div v-if="!form.isBulkRoll">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From bulk roll — optional</label>
-              <select
-                v-model="form.parentRollId"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                @change="onParentRollChange"
-              >
-                <option value="">None — standalone roll</option>
-                <option v-for="roll in bulkRolls" :key="roll._key" :value="roll._key">
-                  {{ roll.rollId }} — {{ roll.stockName ?? 'Unknown stock' }}
-                </option>
-              </select>
+              <label for="roll-parent" class="block text-sm font-medium text-gray-700 dark:text-gray-300">From bulk roll — optional
+                <select
+                  id="roll-parent"
+                  v-model="form.parentRollId"
+                  class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  @change="onParentRollChange"
+                >
+                  <option value="">None — standalone roll</option>
+                  <option v-for="roll in bulkRolls" :key="roll._key" :value="roll._key">
+                    {{ roll.rollId }} — {{ roll.stockName ?? 'Unknown stock' }}
+                  </option>
+                </select>
+              </label>
             </div>
 
             <!-- Stock selector: hidden when parent roll is selected (inherited) -->
             <div v-if="!form.parentRollId">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stock <span class="text-red-500">*</span></label>
-              <select
-                v-model="form.stockKey"
-                :required="!form.parentRollId"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              >
-                <option value="" disabled>Select a stock</option>
-                <option v-for="stock in sortedStocks" :key="stock._key" :value="stock._key">
-                  {{ stock.brand }} — {{ stock.manufacturer }} (ISO {{ stock.speed }})
-                </option>
-              </select>
+              <label for="roll-stock" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Stock <span class="text-red-500" aria-hidden="true">*</span>
+                <select
+                  id="roll-stock"
+                  v-model="form.stockKey"
+                  :required="!form.parentRollId"
+                  aria-required="true"
+                  class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="" disabled>Select a stock</option>
+                  <option v-for="stock in sortedStocks" :key="stock._key" :value="stock._key">
+                    {{ stock.brand }} — {{ stock.manufacturer }} (ISO {{ stock.speed }})
+                  </option>
+                </select>
+              </label>
             </div>
             <div v-else class="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded px-3 py-2">
               Stock inherited from parent bulk roll
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Initial State <span class="text-red-500">*</span></label>
-              <select
-                v-model="form.state"
-                required
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              >
-                <option v-for="s in rollStateOptions" :key="s" :value="s">{{ s }}</option>
-              </select>
+              <label for="roll-initial-state" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Initial State <span class="text-red-500" aria-hidden="true">*</span>
+                <select
+                  id="roll-initial-state"
+                  v-model="form.state"
+                  required
+                  aria-required="true"
+                  class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option v-for="s in rollStateOptions" :key="s" :value="s">{{ s }}</option>
+                </select>
+              </label>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date Obtained <span class="text-red-500">*</span></label>
-              <input
-                v-model="form.dateObtained"
-                type="date"
-                required
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
+              <label for="roll-date-obtained" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date Obtained <span class="text-red-500" aria-hidden="true">*</span>
+                <input
+                  id="roll-date-obtained"
+                  v-model="form.dateObtained"
+                  type="date"
+                  required
+                  aria-required="true"
+                  class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </label>
             </div>
             <!-- Obtainment method/from/expiration: auto-set for child rolls -->
             <template v-if="!form.parentRollId">
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Obtainment Method <span class="text-red-500">*</span></label>
-                <select
-                  v-model="form.obtainmentMethod"
-                  required
-                  class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                >
-                  <option v-for="m in obtainmentMethodOptions" :key="m" :value="m">{{ m }}</option>
-                </select>
+                <label for="roll-obtainment-method" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Obtainment Method <span class="text-red-500" aria-hidden="true">*</span>
+                  <select
+                    id="roll-obtainment-method"
+                    v-model="form.obtainmentMethod"
+                    required
+                    aria-required="true"
+                    class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
+                    <option v-for="m in obtainmentMethodOptions" :key="m" :value="m">{{ m }}</option>
+                  </select>
+                </label>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Obtained From <span class="text-red-500">*</span></label>
-                <input
-                  v-model="form.obtainedFrom"
-                  type="text"
-                  required
-                  placeholder="e.g. B&H Photo"
-                  class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-                />
+                <label for="roll-obtained-from" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Obtained From <span class="text-red-500" aria-hidden="true">*</span>
+                  <input
+                    id="roll-obtained-from"
+                    v-model="form.obtainedFrom"
+                    type="text"
+                    required
+                    aria-required="true"
+                    placeholder="e.g. B&H Photo"
+                    class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                  />
+                </label>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expiration Date</label>
-                <input
-                  v-model="form.expirationDate"
-                  type="date"
-                  class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                />
+                <label for="roll-expiration-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Expiration Date
+                  <input
+                    id="roll-expiration-date"
+                    v-model="form.expirationDate"
+                    type="date"
+                    class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </label>
               </div>
             </template>
             <div v-else class="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded px-3 py-2 space-y-1">
@@ -238,16 +262,18 @@
               <p>Expiration date: <span class="font-medium text-gray-700 dark:text-gray-300">Inherited from bulk roll</span></p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Times Exposed to X-Rays</label>
-              <input
-                v-model.number="form.timesExposedToXrays"
-                type="number"
-                min="0"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
+              <label for="roll-xray-exposures" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Times Exposed to X-Rays
+                <input
+                  id="roll-xray-exposures"
+                  v-model.number="form.timesExposedToXrays"
+                  type="number"
+                  min="0"
+                  class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </label>
             </div>
           </div>
-          <div v-if="error" class="mt-4 text-sm text-red-600 dark:text-red-400">{{ error }}</div>
+          <div v-if="error" role="alert" class="mt-4 text-sm text-red-600 dark:text-red-400">{{ error }}</div>
           <div class="flex justify-end gap-3 mt-6">
             <button
               type="button"
@@ -265,7 +291,6 @@
             </button>
           </div>
         </form>
-        <!-- eslint-enable vuejs-accessibility/label-has-for, vuejs-accessibility/form-control-has-label -->
       </div>
     </div>
   </div>
