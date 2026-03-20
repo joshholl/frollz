@@ -1,9 +1,14 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { axe } from 'vitest-axe'
 import StocksView from '@/views/StocksView.vue'
 import { stockApi, filmFormatApi, tagApi, stockTagApi } from '@/services/api-client'
 import { Process, FormFactor } from '@/types'
+
+const axeOptions = {
+  runOnly: { type: 'tag' as const, values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
+}
 
 // Mock the API modules
 vi.mock('@/services/api-client', () => ({
@@ -56,6 +61,28 @@ describe('StocksView', () => {
     vi.mocked(stockApi.getBrands).mockResolvedValue({ data: [] } as any)
     vi.mocked(stockApi.getManufacturers).mockResolvedValue({ data: [] } as any)
     vi.mocked(stockApi.getSpeeds).mockResolvedValue({ data: [] } as any)
+  })
+
+  describe('accessibility', () => {
+    it('renders the stock list without a11y violations', async () => {
+      const wrapper = mount(StocksView)
+      await flushPromises()
+
+      const results = await axe(wrapper.element, axeOptions)
+      expect(results).toHaveNoViolations()
+    })
+
+    it('renders the Add Stock modal without a11y violations', async () => {
+      const wrapper = mount(StocksView)
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      vm.showModal = true
+      await wrapper.vm.$nextTick()
+
+      const results = await axe(wrapper.element, axeOptions)
+      expect(results).toHaveNoViolations()
+    })
   })
 
   describe('component mounting', () => {

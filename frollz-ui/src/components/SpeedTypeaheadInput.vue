@@ -1,6 +1,6 @@
 <template>
   <div class="relative">
-    <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -- Full ARIA combobox pattern (including label association) addressed in #201 -->
+    <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -- Full ARIA combobox pattern (role, aria-expanded, etc.) addressed in #201; label association via aria-label on the consumer -->
     <input
       :value="rawInput"
       type="text"
@@ -39,6 +39,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { buildSpeedSuggestions } from '@/utils/speedSuggestions'
+
+defineOptions({ inheritAttrs: false })
 
 const props = defineProps<{
   modelValue: number | undefined

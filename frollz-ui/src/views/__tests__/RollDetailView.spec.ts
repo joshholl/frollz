@@ -2,10 +2,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { axe } from 'vitest-axe'
 import RollDetailView from '@/views/RollDetailView.vue'
 import { rollApi, rollStateApi, rollTagApi, tagApi, transitionApi } from '@/services/api-client'
 import { RollState } from '@/types'
 import type { Roll, RollStateHistory, Tag, RollTag, TransitionGraph, TransitionEdge } from '@/types'
+
+const axeOptions = {
+  runOnly: { type: 'tag' as const, values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
+}
 
 vi.mock('@/services/api-client', () => ({
   rollApi: {
@@ -143,6 +148,29 @@ describe('RollDetailView', () => {
     vi.mocked(rollTagApi.create).mockResolvedValue({ data: makeRollTag('rt-new', 't1') } as any)
     vi.mocked(rollTagApi.delete).mockResolvedValue({} as any)
     vi.mocked(transitionApi.getGraph).mockResolvedValue({ data: makeGraph() } as any)
+  })
+
+  describe('accessibility', () => {
+    it('renders the roll detail view with transitions panel without a11y violations', async () => {
+      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.SHELVED }) } as any)
+      const wrapper = await mountView()
+
+      const results = await axe(wrapper.element, axeOptions)
+      expect(results).toHaveNoViolations()
+    })
+
+    it('renders the metadata form (Sent For Development) without a11y violations', async () => {
+      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.FINISHED }) } as any)
+      const wrapper = await mountView()
+
+      // Open the metadata form via vm directly to avoid fake-timer conflicts with axe
+      const vm = wrapper.vm as any
+      vm.pendingMetadataTransition = RollState.SENT_FOR_DEVELOPMENT
+      await wrapper.vm.$nextTick()
+
+      const results = await axe(wrapper.element, axeOptions)
+      expect(results).toHaveNoViolations()
+    })
   })
 
   describe('data loading', () => {
