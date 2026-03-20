@@ -96,24 +96,25 @@
               </button>
             </div>
             <!-- Storage state metadata form -->
-            <!-- eslint-disable vuejs-accessibility/label-has-for, vuejs-accessibility/form-control-has-label -- for/id label associations will be added in #199 -->
             <div v-if="pendingMetadataTransition" class="border border-blue-300 dark:border-blue-600 rounded-md p-3 bg-blue-50 dark:bg-blue-900/20">
               <p class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-3">{{ pendingMetadataTransition }} details</p>
-              <label v-if="requiresDateCapture(pendingMetadataTransition!)" class="block text-xs text-gray-600 dark:text-gray-400 mb-2">
-                Date <span class="text-red-500">*</span>
-                <input v-model="metadataDate" type="date" class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+              <label v-if="requiresDateCapture(pendingMetadataTransition!)" for="meta-date" class="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                Date <span class="text-red-500" aria-hidden="true">*</span>
+                <input id="meta-date" v-model="metadataDate" type="date" required aria-required="true" class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
               </label>
-              <label v-if="pendingMetadataTransition === RollState.FROZEN || pendingMetadataTransition === RollState.REFRIGERATED || pendingMetadataTransition === RollState.SHELVED" class="block text-xs text-gray-600 dark:text-gray-400">
+              <label v-if="pendingMetadataTransition === RollState.FROZEN || pendingMetadataTransition === RollState.REFRIGERATED || pendingMetadataTransition === RollState.SHELVED" for="meta-temperature" class="block text-xs text-gray-600 dark:text-gray-400">
                 Storage temperature ({{ temperatureUnit }}) — optional
                 <input
+                  id="meta-temperature"
                   v-model="metadataTemperature"
                   type="number"
                   class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </label>
-              <label v-if="pendingMetadataTransition === RollState.FINISHED" class="block text-xs text-gray-600 dark:text-gray-400">
+              <label v-if="pendingMetadataTransition === RollState.FINISHED" for="meta-shot-iso" class="block text-xs text-gray-600 dark:text-gray-400">
                 Shot ISO — optional
                 <input
+                  id="meta-shot-iso"
                   v-model="metadataShotISO"
                   type="number"
                   placeholder="e.g. 400"
@@ -121,38 +122,48 @@
                 />
               </label>
               <div v-if="pendingMetadataTransition === RollState.SENT_FOR_DEVELOPMENT" class="space-y-2">
-                <label class="block text-xs text-gray-600 dark:text-gray-400">
-                  Lab name <span class="text-red-500">*</span>
+                <label for="meta-lab-name" class="block text-xs text-gray-600 dark:text-gray-400">
+                  Lab name <span class="text-red-500" aria-hidden="true">*</span>
                   <input
+                    id="meta-lab-name"
                     v-model="metadataLabName"
                     type="text"
+                    required
+                    aria-required="true"
                     placeholder="e.g. The Darkroom"
                     class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </label>
-                <label class="block text-xs text-gray-600 dark:text-gray-400">
-                  Delivery method <span class="text-red-500">*</span>
+                <label for="meta-delivery-method" class="block text-xs text-gray-600 dark:text-gray-400">
+                  Delivery method <span class="text-red-500" aria-hidden="true">*</span>
                   <select
+                    id="meta-delivery-method"
                     v-model="metadataDeliveryMethod"
+                    required
+                    aria-required="true"
                     class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     <option value="">Select…</option>
                     <option v-for="m in DELIVERY_METHODS" :key="m" :value="m">{{ m }}</option>
                   </select>
                 </label>
-                <label class="block text-xs text-gray-600 dark:text-gray-400">
-                  Process requested <span class="text-red-500">*</span>
+                <label for="meta-process-requested" class="block text-xs text-gray-600 dark:text-gray-400">
+                  Process requested <span class="text-red-500" aria-hidden="true">*</span>
                   <select
+                    id="meta-process-requested"
                     v-model="metadataProcessRequested"
+                    required
+                    aria-required="true"
                     class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     <option value="">Select…</option>
                     <option v-for="p in PROCESSES_REQUESTED" :key="p" :value="p">{{ p }}</option>
                   </select>
                 </label>
-                <label class="block text-xs text-gray-600 dark:text-gray-400">
+                <label for="meta-push-pull" class="block text-xs text-gray-600 dark:text-gray-400">
                   Push/pull stops — optional
                   <input
+                    id="meta-push-pull"
                     v-model="metadataPushPullStops"
                     type="number"
                     placeholder="+2 push, -1 pull"
@@ -160,30 +171,30 @@
                   />
                 </label>
               </div>
-              <p v-if="metadataFormError" class="text-xs text-red-600 dark:text-red-400 mt-1">{{ metadataFormError }}</p>
+              <p v-if="metadataFormError" role="alert" class="text-xs text-red-600 dark:text-red-400 mt-1">{{ metadataFormError }}</p>
               <div v-if="pendingMetadataTransition === RollState.RECEIVED" class="space-y-3">
-                <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
-                  <input v-model="metadataScansReceived" type="checkbox" class="rounded" />
+                <label for="meta-scans-received" class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                  <input id="meta-scans-received" v-model="metadataScansReceived" type="checkbox" class="rounded" />
                   Scans received
                 </label>
                 <div v-if="metadataScansReceived" class="pl-5 space-y-2">
-                  <label class="block text-xs text-gray-600 dark:text-gray-400">
+                  <label for="meta-scans-date" class="block text-xs text-gray-600 dark:text-gray-400">
                     Scans date
-                    <input v-model="metadataScansDate" type="date" class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                    <input id="meta-scans-date" v-model="metadataScansDate" type="date" class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
                   </label>
-                  <label class="block text-xs text-gray-600 dark:text-gray-400">
+                  <label for="meta-scans-url" class="block text-xs text-gray-600 dark:text-gray-400">
                     Scans URL — optional
-                    <input v-model="metadataScansUrl" type="url" placeholder="https://…" class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                    <input id="meta-scans-url" v-model="metadataScansUrl" type="url" placeholder="https://…" class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
                   </label>
                 </div>
-                <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
-                  <input v-model="metadataNegativesReceived" type="checkbox" class="rounded" />
+                <label for="meta-negatives-received" class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                  <input id="meta-negatives-received" v-model="metadataNegativesReceived" type="checkbox" class="rounded" />
                   Negatives received
                 </label>
                 <div v-if="metadataNegativesReceived" class="pl-5">
-                  <label class="block text-xs text-gray-600 dark:text-gray-400">
+                  <label for="meta-negatives-date" class="block text-xs text-gray-600 dark:text-gray-400">
                     Negatives date
-                    <input v-model="metadataNegativesDate" type="date" class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                    <input id="meta-negatives-date" v-model="metadataNegativesDate" type="date" class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
                   </label>
                 </div>
               </div>
@@ -225,15 +236,14 @@
               <textarea
                 v-model="transitionNotes"
                 rows="2"
+                aria-label="Transition notes (optional)"
                 placeholder="Notes for this transition (optional)..."
                 class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
               ></textarea>
             </div>
-            <div v-if="transitionError" class="text-sm text-red-600 dark:text-red-400">{{ transitionError }}</div>
+            <div v-if="transitionError" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ transitionError }}</div>
           </div>
         </div>
-        <!-- eslint-enable vuejs-accessibility/label-has-for, vuejs-accessibility/form-control-has-label -->
-
         <!-- Child rolls card (bulk rolls only) -->
         <div v-if="roll.transitionProfile === 'bulk'" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <div class="flex justify-between items-center mb-4">

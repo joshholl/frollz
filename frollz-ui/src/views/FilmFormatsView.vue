@@ -72,31 +72,40 @@
     </div>
 
     <!-- Create Form Modal -->
-    <div v-if="showCreateForm" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
+    <div
+      v-if="showCreateForm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-format-title"
+      class="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50"
+    >
       <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 class="text-lg font-semibold dark:text-gray-100 mb-4">Add Film Format</h3>
-        <!-- eslint-disable vuejs-accessibility/label-has-for, vuejs-accessibility/form-control-has-label -- for/id label associations will be added in #199 -->
+        <h3 id="add-format-title" class="text-lg font-semibold dark:text-gray-100 mb-4">Add Film Format</h3>
         <form @submit.prevent="createFormat">
           <div class="mb-4">
-            <label for="format-package" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Package <span class="text-red-500" aria-hidden="true">*</span>
-              <select id="format-package" v-model="newFormat.packageId" required aria-required="true" class="mt-2 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                <option value="">Select Package</option>
-                <option v-for="pkg in packages" :key="pkg.id" :value="pkg.id">{{ pkg.name }}</option>
+            <label for="format-form-factor" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Form Factor <span class="text-red-500" aria-hidden="true">*</span>
+              <select id="format-form-factor" v-model="newFormat.formFactor" required aria-required="true" class="mt-2 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                <option value="">Select Form Factor</option>
+                <option value="Roll">Roll</option>
+                <option value="Sheet">Sheet</option>
+                <option value="Instant">Instant</option>
+                <option value="100ft Bulk">100ft Bulk</option>
+                <option value="400ft Bulk">400ft Bulk</option>
               </select>
             </label>
           </div>
 
           <div class="mb-4">
-            <label for="format-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Format Name <span class="text-red-500" aria-hidden="true">*</span>
-              <input
-                id="format-name"
-                v-model="newFormat.name"
-                type="text"
-                required
-                aria-required="true"
-                placeholder="e.g. 35mm, 120, 4x5"
-                class="mt-2 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-              />
+            <label for="format-format" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Format <span class="text-red-500" aria-hidden="true">*</span>
+              <select id="format-format" v-model="newFormat.format" required aria-required="true" class="mt-2 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                <option value="">Select Format</option>
+                <option value="35mm">35mm</option>
+                <option value="110">110</option>
+                <option value="120">120</option>
+                <option value="220">220</option>
+                <option value="4x5">4x5</option>
+                <option value="8x10">8x10</option>
+              </select>
             </label>
           </div>
 
@@ -118,7 +127,6 @@
             </button>
           </div>
         </form>
-        <!-- eslint-enable vuejs-accessibility/label-has-for, vuejs-accessibility/form-control-has-label -->
       </div>
     </div>
   </div>
@@ -138,12 +146,9 @@ const packages = ref<Package[]>([])
 const isLoading = ref(false)
 const showCreateForm = ref(false)
 const createError = ref('')
-const newFormat = ref({ packageId: '', name: '' })
-
-const packageNameById = computed(() => {
-  const map: Record<string, string> = {}
-  for (const pkg of packages.value) map[pkg.id] = pkg.name
-  return map
+const newFormat = ref({
+  formFactor: '' as FormFactor,
+  format: '' as Format,
 })
 
 const loadFormats = async () => {

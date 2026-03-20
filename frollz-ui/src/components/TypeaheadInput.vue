@@ -1,6 +1,6 @@
 <template>
   <div class="relative">
-    <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -- Full ARIA combobox pattern (including label association) addressed in #201 -->
+    <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -- Full ARIA combobox pattern (role, aria-expanded, etc.) addressed in #201; label association via aria-label on the consumer -->
     <input
       v-model="inputValue"
       type="text"
@@ -50,10 +50,6 @@ import { ref, computed, useId } from 'vue'
 import { buildSuggestions } from '@/utils/brandSuggestions'
 
 defineOptions({ inheritAttrs: false })
-
-const uid = useId()
-const listboxId = `typeahead-listbox-${uid}`
-const optionId = (i: number) => `typeahead-option-${uid}-${i}`
 
 const props = defineProps<{
   modelValue: string

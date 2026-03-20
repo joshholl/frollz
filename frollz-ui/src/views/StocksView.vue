@@ -146,15 +146,23 @@
     </div>
 
     <!-- Add Stock Modal -->
-    <div v-if="showModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50">
+    <div
+      v-if="showModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-stock-title"
+      class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50"
+    >
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg mx-4 max-h-screen overflow-y-auto">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Add Stock</h2>
-        <!-- eslint-disable vuejs-accessibility/label-has-for, vuejs-accessibility/form-control-has-label -- for/id label associations will be added in #199 -->
+        <h2 id="add-stock-title" class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Add Stock</h2>
         <form @submit.prevent="handleSubmit">
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Brand <span class="text-red-500">*</span></label>
+              <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Brand <span class="text-red-500" aria-hidden="true">*</span></p>
               <TypeaheadInput
+                id="stock-brand"
+                aria-label="Brand"
+                aria-required="true"
                 v-model="form.brand"
                 :fetchOptions="(q) => stockApi.getBrands(q).then(r => r.data)"
                 required
@@ -163,8 +171,11 @@
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Manufacturer <span class="text-red-500">*</span></label>
+              <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Manufacturer <span class="text-red-500" aria-hidden="true">*</span></p>
               <TypeaheadInput
+                id="stock-manufacturer"
+                aria-label="Manufacturer"
+                aria-required="true"
                 v-model="form.manufacturer"
                 :fetchOptions="(q) => stockApi.getManufacturers(q).then(r => r.data)"
                 required
@@ -173,27 +184,32 @@
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Process <span class="text-red-500">*</span></label>
-              <select
-                v-model="form.process"
-                required
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              >
-                <option value="" disabled>Select a process</option>
-                <option v-for="p in processOptions" :key="p" :value="p">{{ p }}</option>
-              </select>
+              <label for="stock-process" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Process <span class="text-red-500" aria-hidden="true">*</span>
+                <select
+                  id="stock-process"
+                  v-model="form.process"
+                  required
+                  aria-required="true"
+                  class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="" disabled>Select a process</option>
+                  <option v-for="p in processOptions" :key="p" :value="p">{{ p }}</option>
+                </select>
+              </label>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Formats <span class="text-red-500">*</span></label>
+            <fieldset>
+              <legend class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Formats <span class="text-red-500" aria-hidden="true">*</span></legend>
               <div class="flex flex-wrap gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded-md min-h-[2.5rem] bg-white dark:bg-gray-700">
                 <span v-if="!form.process" class="text-sm text-gray-400 dark:text-gray-500 italic">Select a process first</span>
                 <label
                   v-else
                   v-for="fmt in filteredFormats"
                   :key="fmt._key"
+                  :for="'format-check-' + fmt._key"
                   class="flex items-center gap-1 text-sm cursor-pointer text-gray-900 dark:text-gray-100"
                 >
                   <input
+                    :id="'format-check-' + fmt._key"
                     type="checkbox"
                     :value="fmt._key"
                     v-model="form.formatKeys"
@@ -202,10 +218,13 @@
                   {{ fmt.format }}
                 </label>
               </div>
-            </div>
+            </fieldset>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Speed (ISO) <span class="text-red-500">*</span></label>
+              <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Speed (ISO) <span class="text-red-500" aria-hidden="true">*</span></p>
               <SpeedTypeaheadInput
+                id="stock-speed"
+                aria-label="Speed (ISO)"
+                aria-required="true"
                 v-model="form.speed"
                 :fetchOptions="(q: string) => stockApi.getSpeeds(q).then(r => r.data)"
                 required
@@ -215,7 +234,7 @@
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</label>
+              <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</p>
               <div class="flex flex-wrap gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded-md min-h-[2.5rem] bg-white dark:bg-gray-700">
                 <button
                   v-for="tag in stockScopedTags"
@@ -232,16 +251,18 @@
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Click tags to select</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Box Image URL</label>
-              <input
-                v-model="form.boxImageUrl"
-                type="url"
-                placeholder="https://..."
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-              />
+              <label for="stock-box-image-url" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Box Image URL
+                  <input
+                    id="stock-box-image-url"
+                    v-model="form.boxImageUrl"
+                    type="url"
+                    placeholder="https://..."
+                    class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                  />
+              </label>
             </div>
           </div>
-          <div v-if="error" class="mt-4 text-sm text-red-600 dark:text-red-400">{{ error }}</div>
+          <div v-if="error" role="alert" class="mt-4 text-sm text-red-600 dark:text-red-400">{{ error }}</div>
           <div class="flex justify-end gap-3 mt-6">
             <button
               type="button"
@@ -259,7 +280,6 @@
             </button>
           </div>
         </form>
-        <!-- eslint-enable vuejs-accessibility/label-has-for, vuejs-accessibility/form-control-has-label -->
       </div>
     </div>
   </div>

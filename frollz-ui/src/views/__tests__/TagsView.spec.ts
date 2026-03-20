@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
 import { axe } from 'vitest-axe'
 import TagsView from '@/views/TagsView.vue'
 import { tagApi } from '@/services/api-client'
+
+const axeOptions = {
+  runOnly: { type: 'tag' as const, values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
+}
 
 const axeOptions = {
   runOnly: { type: 'tag' as const, values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
@@ -29,6 +32,28 @@ describe('TagsView', () => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
     vi.mocked(tagApi.getAll).mockResolvedValue({ data: mockTags } as any)
+  })
+
+  describe('accessibility', () => {
+    it('renders the tag list without a11y violations', async () => {
+      const wrapper = mount(TagsView)
+      await flushPromises()
+
+      const results = await axe(wrapper.element, axeOptions)
+      expect(results).toHaveNoViolations()
+    })
+
+    it('renders the tag list with inline edit active without a11y violations', async () => {
+      const wrapper = mount(TagsView)
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      vm.startEdit(mockTags[0])
+      await wrapper.vm.$nextTick()
+
+      const results = await axe(wrapper.element, axeOptions)
+      expect(results).toHaveNoViolations()
+    })
   })
 
   describe('accessibility', () => {

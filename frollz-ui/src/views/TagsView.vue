@@ -47,24 +47,21 @@
         <template v-else>
           <div class="space-y-3">
             <div class="flex gap-3 items-center">
-              <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -- inline edit; for/id associations in #199 -->
-              <input v-model="editForm.color" type="color" class="h-10 w-16 rounded cursor-pointer border border-gray-300 dark:border-gray-600" />
-              <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -- inline edit; for/id associations in #199 -->
+              <input v-model="editForm.color" type="color" aria-label="Color" class="h-10 w-16 rounded cursor-pointer border border-gray-300 dark:border-gray-600" />
               <input
                 v-model="editForm.value"
                 type="text"
+                aria-label="Value"
                 class="flex-1 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
             <div class="flex gap-6 text-sm">
-              <!-- eslint-disable-next-line vuejs-accessibility/label-has-for -- wrapping label; for/id associations in #199 -->
-              <label class="flex items-center gap-2 cursor-pointer text-gray-600 dark:text-gray-400">
-                <input v-model="editForm.isRollScoped" type="checkbox" class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded" />
+              <label :for="'mobile-roll-scope-' + tag._key" class="flex items-center gap-2 cursor-pointer text-gray-600 dark:text-gray-400">
+                <input :id="'mobile-roll-scope-' + tag._key" v-model="editForm.isRollScoped" type="checkbox" class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded" />
                 Roll scope
               </label>
-              <!-- eslint-disable-next-line vuejs-accessibility/label-has-for -- wrapping label; for/id associations in #199 -->
-              <label class="flex items-center gap-2 cursor-pointer text-gray-600 dark:text-gray-400">
-                <input v-model="editForm.isStockScoped" type="checkbox" class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded" />
+              <label :for="'mobile-stock-scope-' + tag._key" class="flex items-center gap-2 cursor-pointer text-gray-600 dark:text-gray-400">
+                <input :id="'mobile-stock-scope-' + tag._key" v-model="editForm.isStockScoped" type="checkbox" class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded" />
                 Stock scope
               </label>
             </div>
@@ -101,7 +98,6 @@
             <tr v-for="tag in paginatedTags" :key="tag.id">
               <td class="px-6 py-4 whitespace-nowrap">
                 <template v-if="editingKey === tag._key">
-                  <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -- inline table edit; column header is the visual label; full label associations in #199 -->
                   <input
                     v-model="editForm.colorCode"
                     type="color"
@@ -118,12 +114,11 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                 <template v-if="editingKey === tag._key">
-                  <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -- inline table edit; column header is the visual label; full label associations in #199 -->
                   <input
                     v-model="editForm.name"
                     type="text"
-                    aria-label="Name"
-                    class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    aria-label="Value"
+                    class="border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </template>
                 <template v-else>
@@ -134,9 +129,9 @@
                 </template>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -- inline table edit; column header is the visual label; full label associations in #199 -->
                 <input
                   type="checkbox"
+                  aria-label="Roll scope"
                   :checked="editingKey === tag._key ? editForm.isRollScoped : tag.isRollScoped"
                   :disabled="editingKey !== tag._key"
                   @change="editingKey === tag._key && (editForm.isRollScoped = ($event.target as HTMLInputElement).checked)"
@@ -144,9 +139,9 @@
                 />
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                <!-- eslint-disable-next-line vuejs-accessibility/form-control-has-label -- inline table edit; column header is the visual label; full label associations in #199 -->
                 <input
                   type="checkbox"
+                  aria-label="Stock scope"
                   :checked="editingKey === tag._key ? editForm.isStockScoped : tag.isStockScoped"
                   :disabled="editingKey !== tag._key"
                   @change="editingKey === tag._key && (editForm.isStockScoped = ($event.target as HTMLInputElement).checked)"
@@ -207,9 +202,15 @@
     </div>
 
     <!-- Stock Scope Removal Warning Modal -->
-    <div v-if="scopeChangeWarning" class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50">
+    <div
+      v-if="scopeChangeWarning"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="scope-change-title"
+      class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50"
+    >
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Remove Stock Scope</h2>
+        <h2 id="scope-change-title" class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Remove Stock Scope</h2>
         <p class="text-sm text-gray-700 dark:text-gray-300 mb-6">
           This tag is currently assigned to
           <span class="font-semibold">{{ scopeChangeWarning.count }}</span>
@@ -230,9 +231,15 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="deleteTarget" class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50">
+    <div
+      v-if="deleteTarget"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-tag-title"
+      class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-80 flex items-center justify-center z-50"
+    >
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Delete Tag</h2>
+        <h2 id="delete-tag-title" class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Delete Tag</h2>
         <p class="text-sm text-gray-700 dark:text-gray-300 mb-2">
           Are you sure you want to delete the tag
           <span class="font-semibold">{{ deleteTarget.value }}</span>?

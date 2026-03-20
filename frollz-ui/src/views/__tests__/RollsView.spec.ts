@@ -58,6 +58,22 @@ describe('RollsView', () => {
       const results = await axe(wrapper.element, axeOptions)
       expect(results).toHaveNoViolations()
     })
+
+    it('renders the Add Roll modal without a11y violations', async () => {
+      vi.mocked(stockApi.getAll).mockResolvedValue({
+        data: [{ _key: 'stock1', brand: 'Portra 400', manufacturer: 'Kodak', format: '35mm', speed: 400, process: 'C-41' }],
+      } as any)
+
+      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      vm.showModal = true
+      await wrapper.vm.$nextTick()
+
+      const results = await axe(wrapper.element, axeOptions)
+      expect(results).toHaveNoViolations()
+    })
   })
 
   describe('shelved spelling', () => {
