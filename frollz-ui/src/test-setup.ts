@@ -9,7 +9,9 @@ expect.extend(vitestAxeMatchers)
 const _getComputedStyle = window.getComputedStyle.bind(window)
 window.getComputedStyle = (element: Element, pseudoElt?: string | null): CSSStyleDeclaration => {
   if (pseudoElt) {
-    return {} as CSSStyleDeclaration
+    // Ignore the pseudo-element argument and fall back to the real computed style
+    // so callers (e.g. axe-core) still receive a proper CSSStyleDeclaration.
+    return _getComputedStyle(element)
   }
   return _getComputedStyle(element)
 }
