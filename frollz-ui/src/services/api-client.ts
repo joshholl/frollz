@@ -11,9 +11,9 @@ type CreateStockMultipleFormatsPayload = Pick<Stock, 'brand' | 'manufacturer' | 
 export const filmFormatApi = {
   getAll: () => api.get<FilmFormat[]>('/film-formats'),
   getById: (key: string) => api.get<FilmFormat>(`/film-formats/${key}`),
-  create: (data: Omit<FilmFormat, '_key' | 'createdAt' | 'updatedAt'>) => 
+  create: (data: Omit<FilmFormat, '_key' | 'createdAt' | 'updatedAt'>) =>
     api.post<FilmFormat>('/film-formats', data),
-  update: (key: string, data: Partial<FilmFormat>) => 
+  update: (key: string, data: Partial<FilmFormat>) =>
     api.patch<FilmFormat>(`/film-formats/${key}`, data),
   delete: (key: string) => api.delete(`/film-formats/${key}`),
 }
@@ -67,7 +67,11 @@ export const rollTagApi = {
 
 // Roll API
 export const rollApi = {
-  getAll: (params?: { state?: string[] }) => api.get<Roll[]>('/rolls', { params }),
+  getAll: (params?: { state?: string[] }) => api.get<Roll[]>('/rolls', {
+    params, paramsSerializer: {
+      indexes: null, // no brackets at all
+    }
+  }),
   getById: (key: string) => api.get<Roll>(`/rolls/${key}`),
   getChildren: (key: string) => api.get<Roll[]>(`/rolls/${key}/children`),
   create: (data: Omit<Roll, '_key' | 'rollId' | 'createdAt' | 'updatedAt'> & { isBulkRoll?: boolean; parentRollId?: string }) =>
