@@ -7,6 +7,7 @@ export interface ITransitionRuleRepository {
   findAll(): Promise<TransitionRule[]>;
   findByProfileId(profileId: string): Promise<TransitionRule[]>;
   findByFromStateId(fromStateId: string): Promise<TransitionRule[]>;
+  findByFromStateAndProfile(fromStateId: string, profileId: string): Promise<TransitionRule[]>;
   save(rule: TransitionRule): Promise<void>;
   update(rule: TransitionRule): Promise<void>;
   delete(id: string): Promise<void>;

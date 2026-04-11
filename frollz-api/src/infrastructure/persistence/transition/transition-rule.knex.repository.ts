@@ -31,6 +31,11 @@ export class TransitionRuleKnexRepository implements ITransitionRuleRepository {
     return rows.map((row) => TransitionRuleMapper.toDomain(row));
   }
 
+  async findByFromStateAndProfile(fromStateId: string, profileId: string): Promise<TransitionRule[]> {
+    const rows = await this.knex<TransitionRuleRow>('transition_rule').where({ from_state_id: fromStateId, profile_id: profileId });
+    return rows.map((row) => TransitionRuleMapper.toDomain(row));
+  }
+
   async save(rule: TransitionRule): Promise<void> {
     await this.knex('transition_rule').insert(TransitionRuleMapper.toPersistence(rule));
   }

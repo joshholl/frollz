@@ -20,4 +20,9 @@ export class CreateFilmDto {
   @IsOptional()
   @IsString()
   parentId?: string;
+
+  @ApiProperty({ description: 'ID of the transition profile governing this film\'s workflow', example: 'uuid' })
+  @IsString()
+  @IsNotEmpty()
+  transitionProfileId: string;
 }

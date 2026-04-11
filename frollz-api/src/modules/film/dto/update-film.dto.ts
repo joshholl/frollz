@@ -18,4 +18,10 @@ export class UpdateFilmDto {
   @IsOptional()
   @IsDateString()
   expirationDate?: string;
+
+  @ApiPropertyOptional({ description: 'ID of the transition profile governing this film\'s workflow', example: 'uuid' })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  transitionProfileId?: string;
 }

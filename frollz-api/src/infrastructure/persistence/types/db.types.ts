@@ -4,6 +4,7 @@ export interface FilmRow {
   parent_id: string | null;
   emulsion_id: string;
   expiration_date: Date;
+  transition_profile_id: string;
 }
 
 export interface EmulsionRow {

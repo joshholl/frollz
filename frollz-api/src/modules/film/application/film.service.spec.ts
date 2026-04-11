@@ -18,6 +18,7 @@ const makeFilm = (overrides: Partial<Parameters<typeof Film.create>[0]> = {}): F
     emulsionId: randomUUID(),
     expirationDate: new Date('2026-12-31'),
     parentId: null,
+    transitionProfileId: randomUUID(),
     ...overrides,
   });
 
@@ -87,6 +88,7 @@ const makeRuleRepo = (overrides: Partial<ITransitionRuleRepository> = {}): ITran
   findById: jest.fn().mockResolvedValue(null),
   findByProfileId: jest.fn().mockResolvedValue([]),
   findByFromStateId: jest.fn().mockResolvedValue([]),
+  findByFromStateAndProfile: jest.fn().mockResolvedValue([]),
   save: jest.fn().mockResolvedValue(undefined),
   update: jest.fn().mockResolvedValue(undefined),
   delete: jest.fn().mockResolvedValue(undefined),
@@ -154,6 +156,7 @@ describe('FilmService', () => {
         name: 'Roll 001',
         emulsionId: randomUUID(),
         expirationDate: '2026-12-31',
+        transitionProfileId: randomUUID(),
       });
 
       expect(result.name).toBe('Roll 001');
@@ -194,7 +197,7 @@ describe('FilmService', () => {
       });
       const filmStateRepo = makeFilmStateRepo();
       const stateRepo = makeStateRepo({ findByName: jest.fn().mockResolvedValue(loadedState) });
-      const ruleRepo = makeRuleRepo({ findByFromStateId: jest.fn().mockResolvedValue([rule]) });
+      const ruleRepo = makeRuleRepo({ findByFromStateAndProfile: jest.fn().mockResolvedValue([rule]) });
       const service = makeService(filmRepo, makeFilmTagRepo(), filmStateRepo, stateRepo, ruleRepo);
 
       await service.transition(film.id, { targetStateName: 'Loaded' });
@@ -219,7 +222,7 @@ describe('FilmService', () => {
 
       const filmRepo = makeFilmRepo({ findById: jest.fn().mockResolvedValue(film) });
       const stateRepo = makeStateRepo({ findByName: jest.fn().mockResolvedValue(receivedState) });
-      const ruleRepo = makeRuleRepo({ findByFromStateId: jest.fn().mockResolvedValue([]) });
+      const ruleRepo = makeRuleRepo({ findByFromStateAndProfile: jest.fn().mockResolvedValue([]) });
       const service = makeService(filmRepo, makeFilmTagRepo(), makeFilmStateRepo(), stateRepo, ruleRepo);
 
       await expect(service.transition(film.id, { targetStateName: 'Received' })).rejects.toThrow(BadRequestException);

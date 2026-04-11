@@ -38,6 +38,7 @@ const makeRuleRepo = (overrides: Partial<ITransitionRuleRepository> = {}): ITran
   findById: jest.fn().mockResolvedValue(null),
   findByProfileId: jest.fn().mockResolvedValue([]),
   findByFromStateId: jest.fn().mockResolvedValue([]),
+  findByFromStateAndProfile: jest.fn().mockResolvedValue([]),
   save: jest.fn().mockResolvedValue(undefined),
   update: jest.fn().mockResolvedValue(undefined),
   delete: jest.fn().mockResolvedValue(undefined),

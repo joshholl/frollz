@@ -51,6 +51,7 @@ export class FilmService {
       emulsionId: dto.emulsionId,
       expirationDate: new Date(dto.expirationDate),
       parentId: dto.parentId ?? null,
+      transitionProfileId: dto.transitionProfileId,
     });
     await this.filmRepo.save(film);
     return film;
@@ -64,6 +65,7 @@ export class FilmService {
       emulsionId: dto.emulsionId ?? existing.emulsionId,
       expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : existing.expirationDate,
       parentId: existing.parentId,
+      transitionProfileId: dto.transitionProfileId ?? existing.transitionProfileId,
     });
     await this.filmRepo.update(updated);
     return this.findById(id);
@@ -92,7 +94,10 @@ export class FilmService {
 
     const currentState = film.currentState;
     if (currentState) {
-      const rules = await this.transitionRuleRepo.findByFromStateId(currentState.stateId);
+      const rules = await this.transitionRuleRepo.findByFromStateAndProfile(
+        currentState.stateId,
+        film.transitionProfileId,
+      );
       const allowed = rules.some((r) => r.toStateId === targetState.id);
       if (!allowed) {
         throw new BadRequestException(

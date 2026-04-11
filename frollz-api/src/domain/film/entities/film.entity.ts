@@ -9,6 +9,7 @@ export class Film {
     public readonly emulsionId: string,
     public readonly expirationDate: Date,
     public readonly parentId: string | null,
+    public readonly transitionProfileId: string,
     public readonly emulsion?: Emulsion,
     public readonly tags: Tag[] = [],
     public readonly states: FilmState[] = [],
@@ -21,6 +22,7 @@ export class Film {
     emulsionId: string;
     expirationDate: Date;
     parentId?: string | null;
+    transitionProfileId: string;
     emulsion?: Emulsion;
     tags?: Tag[];
     states?: FilmState[];
@@ -32,6 +34,7 @@ export class Film {
       props.emulsionId,
       props.expirationDate,
       props.parentId ?? null,
+      props.transitionProfileId,
       props.emulsion,
       props.tags ?? [],
       props.states ?? [],
