@@ -180,13 +180,13 @@ Domains needing controllers + services:
 - [ ] `FilmState` (replaces `RollState`) — GET by filmId, POST (transition)
 - [ ] `Transition` — GET graph by profile
 
-### Phase 2 — Restore middleware in `main.ts`
+### Phase 2 — Restore middleware in `main.ts` ✅
 
-- [ ] `ValidationPipe` with `transform: true`, `whitelist: true`, `forbidNonWhitelisted: true`
-- [ ] Global `HttpExceptionFilter`
-- [ ] Helmet security headers
-- [ ] Swagger at `/api/docs`
-- [ ] Rate limiting / throttle guards
+- [x] `ValidationPipe` with `transform: true`, `whitelist: true`, `forbidNonWhitelisted: true`
+- [x] Global `HttpExceptionFilter`
+- [x] Helmet security headers
+- [x] Swagger at `/api/docs` (with `@ApiTags`, `@ApiOperation`, `@ApiProperty` on all controllers and DTOs)
+- [x] Rate limiting — `ThrottlerModule` global guard, 200 req / 60s
 
 ### Phase 3 — Resolve open design questions
 

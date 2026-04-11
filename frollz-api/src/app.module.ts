@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { DatabaseModule } from './infrastructure/persistence/database.module';
 import { SharedModule } from './modules/shared/shared.module';
 import { EmulsionModule } from './modules/emulsion/emulsion.module';
@@ -7,6 +9,15 @@ import { FilmStateModule } from './modules/film-state/film-state.module';
 import { TransitionModule } from './modules/transition/transition.module';
 
 @Module({
-  imports: [DatabaseModule, SharedModule, EmulsionModule, FilmModule, FilmStateModule, TransitionModule],
+  imports: [
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 200 }]),
+    DatabaseModule,
+    SharedModule,
+    EmulsionModule,
+    FilmModule,
+    FilmStateModule,
+    TransitionModule,
+  ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
