@@ -1,97 +1,91 @@
-// Film Format Types
-export enum FormFactor {
-  ROLL = 'Roll',
-  SHEET = 'Sheet',
-  INSTANT = 'Instant',
-  BULK_100FT = '100ft Bulk',
-  BULK_400FT = '400ft Bulk',
+// Package (e.g. Roll, Sheet, Instant)
+export interface Package {
+  id: string
+  name: string
 }
 
-export enum Format {
-  MM35 = '35mm',
-  MM110 = '110',
-  MINI = 'Mini',
-  WIDE = 'Wide',
-  SQUARE = 'Square',
-  MM120 = '120',
-  MM220 = '220',
-  FOURX5 = '4x5',
-  EIGHTX10 = '8x10',
-  I_TYPE = 'I-Type',
-  SIX_HUNDRED = '600',
-  SX_70 = 'SX-70',
-  GO = 'GO',
+// Format (e.g. 35mm, 120) — belongs to a Package
+export interface Format {
+  id: string
+  packageId: string
+  name: string
+  package?: Package
 }
 
-export interface FilmFormat {
-  _key?: string
-  formFactor: string
-  format: string
-  createdAt?: Date
-  updatedAt?: Date
+// Process (e.g. C-41, E-6)
+export interface Process {
+  id: string
+  name: string
 }
 
-// Stock Types
-export enum Process {
-  ECN_2 = 'ECN-2',
-  E_6 = 'E-6',
-  C_41 = 'C-41',
-  BLACK_WHITE = 'Black & White',
-  INSTANT = 'Instant',
-}
-
-export interface Stock {
-  _key?: string
-  format?: string
-  formatKey?: string
-  process: Process
-  manufacturer: string
+// Emulsion (replaces Stock)
+export interface Emulsion {
+  id: string
+  name: string
   brand: string
-  baseStock?: string
-  baseStockKey?: string
+  manufacturer: string
   speed: number
+  formatId: string
+  processId: string
+  parentId: string | null
   boxImageUrl?: string
-  createdAt?: Date
-  updatedAt?: Date
+  tags: Tag[]
 }
 
+// Tag
 export interface Tag {
-  _key?: string
-  value: string
-  color: string
-  isRollScoped?: boolean
-  isStockScoped?: boolean
-  createdAt?: Date
-  updatedAt?: Date
+  id: string
+  name: string
+  colorCode: string
+  description: string | null
 }
 
-export interface StockTag {
-  _key?: string
-  tagKey: string
-  stockKey: string
-  createdAt?: Date
+// EmulsionTag (replaces StockTag)
+export interface EmulsionTag {
+  id: string
+  emulsionId: string
+  tagId: string
 }
 
-export interface RollTag {
-  _key?: string
-  tagKey: string
-  rollKey: string
-  createdAt?: Date
+// FilmTag (replaces RollTag)
+export interface FilmTag {
+  id: string
+  filmId: string
+  tagId: string
 }
 
-// Roll Types
-export enum RollState {
-  ADDED = 'Added',
-  FROZEN = 'Frozen',
-  REFRIGERATED = 'Refrigerated',
-  SHELVED = 'Shelved',
-  LOADED = 'Loaded',
-  FINISHED = 'Finished',
-  SENT_FOR_DEVELOPMENT = 'Sent For Development',
-  DEVELOPED = 'Developed',
-  RECEIVED = 'Received',
+// FilmState (replaces RollStateHistory)
+export interface FilmState {
+  id: string
+  filmId: string
+  stateId: string
+  date: Date
+  note: string | null
+  state?: { id: string; name: string }
+  metadata: unknown[]
 }
 
+// Film (replaces Roll)
+export interface Film {
+  id: string
+  name: string
+  emulsionId: string
+  expirationDate: Date | null
+  parentId: string | null
+  transitionProfileId: string
+  emulsion?: Emulsion
+  tags: Tag[]
+  states: FilmState[]
+  parent?: Film
+}
+
+// Transition profile
+export interface TransitionProfile {
+  id: string
+  name: string
+}
+
+// Transition graph
 export interface TransitionMetadataField {
   field: string
   fieldType: string
@@ -103,8 +97,6 @@ export interface TransitionEdge {
   id: string
   fromState: string
   toState: string
-  transitionType: string
-  requiresDate: boolean
   metadata: TransitionMetadataField[]
 }
 
@@ -113,44 +105,11 @@ export interface TransitionGraph {
   transitions: TransitionEdge[]
 }
 
-export interface RollStateHistory {
-  _key?: string
-  stateId: string
-  rollId: string
-  state: RollState
-  date: Date
-  notes?: string
-  isErrorCorrection?: boolean
-  metadata?: Record<string, unknown>
-  createdAt?: Date
-  updatedAt?: Date
-}
-
-export enum ObtainmentMethod {
-  GIFT = 'Gift',
-  PURCHASE = 'Purchase',
-  SELF_ROLLED = 'Self Rolled',
-}
-
-export interface Roll {
-  _key?: string
-  rollId: string
-  stockKey?: string
-  state: RollState
-  imagesUrl?: string
-  dateObtained: Date
-  obtainmentMethod: ObtainmentMethod
-  obtainedFrom: string
-  expirationDate?: Date
-  timesExposedToXrays: number
-  loadedInto?: string
-  stockName?: string
-  stockSpeed?: number
-  formatName?: string
-  process?: string
-  transitionProfile?: string
-  parentRollId?: string
-  childRollCount?: number
-  createdAt?: Date
-  updatedAt?: Date
+// Helpers — derive current state name from Film.states
+export function currentStateName(film: Film): string {
+  if (!film.states?.length) return ''
+  const sorted = [...film.states].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  )
+  return sorted[0]?.state?.name ?? ''
 }

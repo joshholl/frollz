@@ -3,10 +3,11 @@ import { Knex } from 'knex';
 import { Film } from '../../../domain/film/entities/film.entity';
 import { IFilmRepository } from '../../../domain/film/repositories/film.repository.interface';
 import { KNEX_CONNECTION } from '../knex.provider';
-import { FilmRow, FilmTagRow, TagRow, FilmStateRow } from '../types/db.types';
+import { FilmRow, FilmTagRow, TagRow } from '../types/db.types';
 import { FilmMapper } from './film.mapper';
 import { Tag } from '../../../domain/shared/entities/tag.entity';
 import { FilmState } from '../../../domain/film-state/entities/film-state.entity';
+import { TransitionState } from '../../../domain/transition/entities/transition-state.entity';
 
 @Injectable()
 export class FilmKnexRepository implements IFilmRepository {
@@ -83,9 +84,11 @@ export class FilmKnexRepository implements IFilmRepository {
   }
 
   private async loadStates(filmId: string): Promise<FilmState[]> {
-    const rows = await this.knex<FilmStateRow>('film_state')
-      .where({ film_id: filmId })
-      .orderBy('date', 'desc');
+    const rows = await this.knex('film_state as fs')
+      .join('transition_state as ts', 'ts.id', 'fs.state_id')
+      .where('fs.film_id', filmId)
+      .orderBy('fs.date', 'desc')
+      .select('fs.id', 'fs.film_id', 'fs.state_id', 'fs.date', 'fs.note', 'ts.name as state_name');
     return rows.map((r) =>
       FilmState.create({
         id: r.id.trim(),
@@ -93,6 +96,7 @@ export class FilmKnexRepository implements IFilmRepository {
         stateId: r.state_id.trim(),
         date: new Date(r.date),
         note: r.note,
+        state: TransitionState.create({ id: r.state_id.trim(), name: r.state_name }),
       }),
     );
   }

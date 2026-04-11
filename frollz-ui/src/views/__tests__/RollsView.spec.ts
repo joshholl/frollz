@@ -5,55 +5,64 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { axe } from 'vitest-axe'
 import RollsView from '@/views/RollsView.vue'
-import { rollApi, stockApi } from '@/services/api-client'
-import { RollState, ObtainmentMethod } from '@/types'
+import { filmApi, emulsionApi, transitionApi } from '@/services/api-client'
+import type { Film } from '@/types'
+import { randomUUID } from 'crypto'
 
 const axeOptions = {
   runOnly: { type: 'tag' as const, values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
 }
 
 vi.mock('@/services/api-client', () => ({
-  rollApi: {
+  filmApi: {
     getAll: vi.fn(),
     create: vi.fn(),
   },
-  stockApi: {
+  emulsionApi: {
     getAll: vi.fn(),
+  },
+  transitionApi: {
+    getProfiles: vi.fn(),
   },
 }))
 
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [
-    { path: '/', component: RollsView },
+    { path: '/', name: 'rolls', component: RollsView },
     { path: '/rolls/:key', name: 'roll-detail', component: { template: '<div/>' } },
   ],
 })
 
-const makeRoll = (key: string, state: RollState, overrides: Record<string, any> = {}) => ({
-  _key: key,
-  rollId: `roll-${key}`,
-  stockKey: 'stock1',
-  state,
-  dateObtained: new Date('2024-01-01'),
-  obtainmentMethod: ObtainmentMethod.PURCHASE,
-  obtainedFrom: 'B&H',
-  timesExposedToXrays: 0,
+const makeFilm = (overrides: Partial<Film> = {}): Film => ({
+  id: randomUUID(),
+  name: 'roll-00001',
+  emulsionId: randomUUID(),
+  expirationDate: new Date('2025-12-01'),
+  parentId: null,
+  transitionProfileId: randomUUID(),
+  tags: [],
+  states: [],
   ...overrides,
 })
+
+const mockProfiles = [
+  { id: 'prof-standard', name: 'standard' },
+  { id: 'prof-bulk', name: 'bulk' },
+  { id: 'prof-instant', name: 'instant' },
+]
 
 describe('RollsView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
-    vi.mocked(rollApi.getAll).mockResolvedValue({ data: [] } as any)
-    vi.mocked(stockApi.getAll).mockResolvedValue({ data: [] } as any)
+    vi.mocked(filmApi.getAll).mockResolvedValue({ data: [] } as any)
+    vi.mocked(emulsionApi.getAll).mockResolvedValue({ data: [] } as any)
+    vi.mocked(transitionApi.getProfiles).mockResolvedValue({ data: mockProfiles } as any)
   })
 
   describe('accessibility', () => {
-    it('renders the roll list without a11y violations', async () => {
-      vi.mocked(rollApi.getAll).mockResolvedValue({ data: [] } as any)
-
+    it('renders the films list without a11y violations', async () => {
       const wrapper = mount(RollsView, { global: { plugins: [router] } })
       await flushPromises()
 
@@ -61,16 +70,12 @@ describe('RollsView', () => {
       expect(results).toHaveNoViolations()
     })
 
-    it('renders the Add Roll modal without a11y violations', async () => {
-      vi.mocked(stockApi.getAll).mockResolvedValue({
-        data: [{ _key: 'stock1', brand: 'Portra 400', manufacturer: 'Kodak', format: '35mm', speed: 400, process: 'C-41' }],
-      } as any)
-
+    it('renders the Add Film modal without a11y violations', async () => {
       const wrapper = mount(RollsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
-      vm.showModal = true
+      vm.openAddFilm()
       await wrapper.vm.$nextTick()
 
       const results = await axe(wrapper.element, axeOptions)
@@ -78,309 +83,127 @@ describe('RollsView', () => {
     })
   })
 
-  describe('shelved spelling', () => {
-    it('should display "Shelved" state correctly', async () => {
-      vi.mocked(rollApi.getAll).mockResolvedValue({
-        data: [makeRoll('r1', RollState.SHELVED)],
-      } as any)
+  describe('component mounting', () => {
+    it('should load films and profiles on mount', async () => {
+      mount(RollsView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      expect(filmApi.getAll).toHaveBeenCalled()
+      expect(transitionApi.getProfiles).toHaveBeenCalled()
+    })
+
+    it('should display films after loading', async () => {
+      const film = makeFilm({ name: 'roll-00042' })
+      vi.mocked(filmApi.getAll).mockResolvedValue({ data: [film] } as any)
 
       const wrapper = mount(RollsView, { global: { plugins: [router] } })
       await flushPromises()
 
-      expect(wrapper.text()).toContain('Shelved')
-      expect(wrapper.text()).not.toContain('Shelfed')
+      expect(wrapper.text()).toContain('roll-00042')
+    })
+
+    it('should show empty state when no films', async () => {
+      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('No films found')
     })
   })
 
-  describe('roll ID navigation', () => {
-    it('should navigate to roll detail view when roll ID is clicked', async () => {
-      vi.mocked(rollApi.getAll).mockResolvedValue({
-        data: [makeRoll('r1', RollState.ADDED)],
-      } as any)
+  describe('bulk films', () => {
+    it('should identify bulk films by transition profile', async () => {
+      const bulkFilm = makeFilm({ transitionProfileId: 'prof-bulk', name: 'canister-001' })
+      const standardFilm = makeFilm({ transitionProfileId: 'prof-standard', name: 'roll-00001' })
+      vi.mocked(filmApi.getAll).mockResolvedValue({ data: [bulkFilm, standardFilm] } as any)
 
       const wrapper = mount(RollsView, { global: { plugins: [router] } })
       await flushPromises()
 
-      const rollIdCell = wrapper.find('td.cursor-pointer')
-      await rollIdCell.trigger('click')
-      await flushPromises()
-
-      expect(router.currentRoute.value.name).toBe('roll-detail')
-      expect(router.currentRoute.value.params.key).toBe('r1')
+      const vm = wrapper.vm as any
+      expect(vm.bulkFilms).toHaveLength(1)
+      expect(vm.bulkFilms[0].name).toBe('canister-001')
     })
   })
 
-  describe('create roll navigation', () => {
-    it('should navigate to roll-detail with the new roll key after create', async () => {
-      vi.mocked(rollApi.create).mockResolvedValue({ data: makeRoll('new-key', RollState.ADDED) } as any)
-
+  describe('state filtering', () => {
+    it('should call filmApi.getAll with state param when states are selected', async () => {
       const wrapper = mount(RollsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
-      vm.showModal = true
-      vm.form.stockKey = 'stock1'
-      await wrapper.vm.$nextTick()
-
-      await vm.handleSubmit()
+      vm.selectedStates = ['Added']
       await flushPromises()
 
-      expect(router.currentRoute.value.name).toBe('roll-detail')
-      expect(router.currentRoute.value.params.key).toBe('new-key')
+      expect(filmApi.getAll).toHaveBeenCalledWith({ state: ['Added'] })
+    })
+
+    it('should call filmApi.getAll without params when state filter is cleared', async () => {
+      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      vm.selectedStates = ['Added']
+      await flushPromises()
+      vm.clearStateFilter()
+      await flushPromises()
+
+      expect(filmApi.getAll).toHaveBeenLastCalledWith(undefined)
     })
   })
 
-  describe('filtering', () => {
-    const multiRolls = [
-      makeRoll('r1', RollState.FROZEN,  { rollId: 'roll-r1', obtainedFrom: 'B&H',    timesExposedToXrays: 0 }),
-      makeRoll('r2', RollState.LOADED,  { rollId: 'roll-r2', obtainedFrom: 'Moment', timesExposedToXrays: 2 }),
-      makeRoll('r3', RollState.SHELVED, { rollId: 'roll-r3', obtainedFrom: 'B&H',    timesExposedToXrays: 0 }),
-    ]
-
-    beforeEach(() => {
-      vi.mocked(rollApi.getAll).mockResolvedValue({ data: multiRolls } as any)
-    })
-
-    it('should start with no active filters and show placeholder', async () => {
+  describe('add film form', () => {
+    it('should open modal and set standard profile on openAddFilm', async () => {
       const wrapper = mount(RollsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
-      expect(vm.activeFilters).toEqual([])
-      expect(wrapper.text()).toContain('Click stock or format values in the table to filter')
+      vm.openAddFilm()
+      await wrapper.vm.$nextTick()
+
+      expect(vm.showModal).toBe(true)
+      expect(vm.form.transitionProfileId).toBe('prof-standard')
     })
 
-    it('should add a filter via addFilter', async () => {
+    it('should set bulk profile when isBulkFilm is toggled on', async () => {
       const wrapper = mount(RollsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
-      vm.addFilter('state', 'State', 'Frozen')
+      vm.openAddFilm()
+      vm.form.isBulkFilm = true
+      vm.onBulkFilmToggle()
       await wrapper.vm.$nextTick()
 
-      expect(vm.activeFilters).toHaveLength(1)
-      expect(vm.activeFilters[0]).toEqual({ field: 'state', label: 'State', value: 'Frozen' })
+      expect(vm.form.transitionProfileId).toBe('prof-bulk')
     })
 
-    it('should filter filteredRolls by an active filter', async () => {
+    it('should reset to standard profile when isBulkFilm is toggled off', async () => {
       const wrapper = mount(RollsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
-      vm.addFilter('state', 'State', 'Frozen')
+      vm.openAddFilm()
+      vm.form.isBulkFilm = true
+      vm.onBulkFilmToggle()
+      vm.form.isBulkFilm = false
+      vm.onBulkFilmToggle()
       await wrapper.vm.$nextTick()
 
-      expect(vm.filteredRolls).toHaveLength(1)
-      expect(vm.filteredRolls[0].state).toBe('Frozen')
+      expect(vm.form.transitionProfileId).toBe('prof-standard')
     })
 
-    it('should apply multiple filters with AND logic', async () => {
+    it('should close modal and reset form on closeModal', async () => {
       const wrapper = mount(RollsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
-      vm.addFilter('obtainedFrom', 'Obtained From', 'B&H')
-      vm.addFilter('timesExposedToXrays', 'X-Ray Exposures', '0')
+      vm.openAddFilm()
+      vm.form.name = 'test-roll'
+      vm.closeModal()
       await wrapper.vm.$nextTick()
 
-      // r1 (Frozen, B&H, 0) and r3 (Shelved, B&H, 0) both match
-      expect(vm.filteredRolls).toHaveLength(2)
-    })
-
-    it('should not add duplicate filters', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.addFilter('state', 'State', 'Frozen')
-      vm.addFilter('state', 'State', 'Frozen')
-      await wrapper.vm.$nextTick()
-
-      expect(vm.activeFilters).toHaveLength(1)
-    })
-
-    it('should remove a specific filter chip', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.addFilter('state', 'State', 'Frozen')
-      vm.addFilter('obtainedFrom', 'Obtained From', 'B&H')
-      vm.removeFilter(0)
-      await wrapper.vm.$nextTick()
-
-      expect(vm.activeFilters).toHaveLength(1)
-      expect(vm.activeFilters[0].field).toBe('obtainedFrom')
-    })
-
-    it('should clear all filters', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.addFilter('state', 'State', 'Frozen')
-      vm.addFilter('obtainedFrom', 'Obtained From', 'B&H')
-      vm.clearFilters()
-      await wrapper.vm.$nextTick()
-
-      expect(vm.activeFilters).toHaveLength(0)
-      expect(vm.filteredRolls).toHaveLength(3)
-    })
-
-    it('should show chips with "field: value" format and hide placeholder', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.addFilter('state', 'State', 'Frozen')
-      await wrapper.vm.$nextTick()
-
-      expect(wrapper.text()).toContain('State: Frozen')
-      expect(wrapper.text()).not.toContain('Click any value in the table to filter by that field')
-    })
-
-    it('should show Clear all button only when filters are active', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      expect(wrapper.text()).not.toContain('Clear all')
-
-      const vm = wrapper.vm as any
-      vm.addFilter('state', 'State', 'Frozen')
-      await wrapper.vm.$nextTick()
-
-      expect(wrapper.text()).toContain('Clear all')
-    })
-
-    it('should not add a filter when value is empty', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.addFilter('obtainedFrom', 'Obtained From', '')
-      await wrapper.vm.$nextTick()
-
-      expect(vm.activeFilters).toHaveLength(0)
-    })
-  })
-
-  describe('sorting', () => {
-    const multiRolls = [
-      makeRoll('c', RollState.SHELVED, { rollId: 'roll-c', obtainedFrom: 'Amazon', dateObtained: new Date('2024-03-01'), timesExposedToXrays: 3 }),
-      makeRoll('a', RollState.FROZEN,  { rollId: 'roll-a', obtainedFrom: 'B&H',    dateObtained: new Date('2024-01-01'), timesExposedToXrays: 0 }),
-      makeRoll('b', RollState.LOADED,  { rollId: 'roll-b', obtainedFrom: 'Moment', dateObtained: new Date('2024-02-01'), timesExposedToXrays: 1 }),
-    ]
-
-    beforeEach(() => {
-      vi.mocked(rollApi.getAll).mockResolvedValue({ data: multiRolls } as any)
-    })
-
-    it('should default sort by rollId ascending', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      expect(vm.sortField).toBe('rollId')
-      expect(vm.sortDirection).toBe('asc')
-      expect(vm.filteredRolls.map((r: any) => r.rollId)).toEqual(['roll-a', 'roll-b', 'roll-c'])
-    })
-
-    it('should sort by a different field when setSort is called', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.setSort('obtainedFrom')
-      await wrapper.vm.$nextTick()
-
-      expect(vm.sortField).toBe('obtainedFrom')
-      expect(vm.sortDirection).toBe('asc')
-      expect(vm.filteredRolls.map((r: any) => r.obtainedFrom)).toEqual(['Amazon', 'B&H', 'Moment'])
-    })
-
-    it('should toggle sort direction when the same field is clicked again', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.setSort('rollId') // already rollId/asc → flip to desc
-      await wrapper.vm.$nextTick()
-
-      expect(vm.sortDirection).toBe('desc')
-      expect(vm.filteredRolls.map((r: any) => r.rollId)).toEqual(['roll-c', 'roll-b', 'roll-a'])
-    })
-
-    it('should reset to ascending when switching to a new field', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.setSort('rollId') // flip to desc
-      vm.setSort('obtainedFrom') // new field → asc
-      await wrapper.vm.$nextTick()
-
-      expect(vm.sortField).toBe('obtainedFrom')
-      expect(vm.sortDirection).toBe('asc')
-    })
-
-    it('should sort numerically by timesExposedToXrays', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.setSort('timesExposedToXrays')
-      await wrapper.vm.$nextTick()
-
-      expect(vm.filteredRolls.map((r: any) => r.timesExposedToXrays)).toEqual([0, 1, 3])
-
-      vm.setSort('timesExposedToXrays') // desc
-      await wrapper.vm.$nextTick()
-      expect(vm.filteredRolls.map((r: any) => r.timesExposedToXrays)).toEqual([3, 1, 0])
-    })
-
-    it('should sort chronologically by dateObtained', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.setSort('dateObtained')
-      await wrapper.vm.$nextTick()
-
-      const timestamps = vm.filteredRolls.map((r: any) => new Date(r.dateObtained).getTime())
-      expect(timestamps).toEqual([...timestamps].sort((a: number, b: number) => a - b))
-
-      vm.setSort('dateObtained') // desc
-      await wrapper.vm.$nextTick()
-      const timestampsDesc = vm.filteredRolls.map((r: any) => new Date(r.dateObtained).getTime())
-      expect(timestampsDesc).toEqual([...timestampsDesc].sort((a: number, b: number) => b - a))
-    })
-
-    it('should apply darker background on the active sort column header', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.setSort('state')
-      await wrapper.vm.$nextTick()
-
-      const headers = wrapper.findAll('th')
-      expect(headers[3].classes()).toContain('bg-gray-200')
-      expect(headers[0].classes()).not.toContain('bg-gray-200')
-    })
-
-    it('should show sort direction indicator next to the active column', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
-      await flushPromises()
-
-      // Default: rollId asc
-      expect(wrapper.findAll('th')[0].text()).toContain('↑')
-      expect(wrapper.findAll('th')[1].text()).not.toMatch(/[↑↓]/)
-
-      const vm = wrapper.vm as any
-      vm.setSort('rollId') // flip to desc
-      await wrapper.vm.$nextTick()
-
-      expect(wrapper.findAll('th')[0].text()).toContain('↓')
+      expect(vm.showModal).toBe(false)
+      expect(vm.form.name).toBe('')
     })
   })
 })

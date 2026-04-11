@@ -188,31 +188,30 @@ Domains needing controllers + services:
 - [x] Swagger at `/api/docs` (with `@ApiTags`, `@ApiOperation`, `@ApiProperty` on all controllers and DTOs)
 - [x] Rate limiting — `ThrottlerModule` global guard, 200 req / 60s
 
-### Phase 3 — Resolve open design questions
+### Phase 3 — Resolve open design questions ✅
 
-These fields/concepts were in the old model but have no place in the new domain yet. Each needs an explicit decision before the UI can be updated:
+Decisions made and implemented:
 
-- **`dateObtained`, `obtainmentMethod`, `obtainedFrom`** on Roll — do these move to `Film`, to `FilmState` metadata, or a new `FilmAcquisition` entity?
-- **`timesExposedToXrays`, `loadedInto`, `imagesUrl`** — same question
-- **`transitionProfile`** — was on Roll; likely needs to be on `Film` or derived from `Emulsion.process`
-- **`childRollCount`** — computed or persisted?
-- **`isErrorCorrection`** on RollStateHistory — intentionally removed?
-- **`isRollScoped`, `isStockScoped`** on Tag — intentionally removed?
-- **Typeahead endpoints** (`/emulsions/brands`, `/emulsions/manufacturers`, `/emulsions/speeds`) — repository interfaces don't include these yet
+- **`dateObtained`, `obtainmentMethod`, `obtainedFrom`** → will become metadata on the "Added" `FilmState` (Phase 5 migration concern; no code changes yet)
+- **`timesExposedToXrays`, `loadedInto`, `imagesUrl`** → **removed entirely** (not migrated)
+- **`transitionProfile`** → added as `transitionProfileId` FK on `Film` entity (Option A). Stored in DB, required on create, used to look up the correct transition graph per film.
+- **`childRollCount`** → computed from `films` table query (not persisted)
+- **`isErrorCorrection`** → metadata on backward transitions (Phase 5 concern; removed from UI for now)
+- **`isRollScoped`, `isStockScoped`** on Tag → **removed entirely** (all tags are universal)
+- **Typeahead endpoints** → `GET /emulsions/brands` and `GET /emulsions/manufacturers` added as repository methods
 
-### Phase 4 — Update the UI
+### Phase 4 — Update the UI ✅
 
-Once routes and models are settled, update `frollz-ui`:
-
-- [ ] Rename `filmFormatApi` → rework for `format` + `package` split
-- [ ] Rename `stockApi` → `emulsionApi`, update all field references
-- [ ] Rename `rollApi` → `filmApi`, update all field references
-- [ ] Rename `stockTagApi` → `emulsionTagApi`
-- [ ] Rename `rollTagApi` → `filmTagApi`
-- [ ] Rename `rollStateApi` → `filmStateApi`
-- [ ] Update `Tag` type: `value`→`name`, `color`→`colorCode`
-- [ ] Update `types/index.ts` to reflect new domain model shapes
-- [ ] Update all views that read `Roll`, `Stock`, `FilmFormat`, `Tag` fields
+- [x] Rewrote `types/index.ts` — new `Film`, `Emulsion`, `Format`, `Package`, `Process`, `Tag`, `FilmState`, `FilmTag`, `EmulsionTag`, `TransitionProfile` types + `currentStateName()` helper
+- [x] Rewrote `api-client.ts` — `formatApi`, `packageApi`, `processApi`, `emulsionApi`, `filmApi`, `filmTagApi`, `emulsionTagApi`, `filmStateApi`, `tagApi`, `transitionApi.getProfiles()`
+- [x] Rewrote `FilmFormatsView.vue` — `formatApi` + `packageApi`, Package dropdown in create form
+- [x] Rewrote `StocksView.vue` — `emulsionApi` + `formatApi` + `processApi`, process/format lookup maps
+- [x] Rewrote `TagsView.vue` — removed scope fields and scope-change warning modal
+- [x] Rewrote `RollsView.vue` — `filmApi`, transition profiles dropdown, bulk film detection by `transitionProfileId`
+- [x] Rewrote `RollDetailView.vue` — simplified transition UI (date + note only), history from `film.states`, `filmTagApi`
+- [x] Rewrote `Dashboard.vue` — `filmApi` + `emulsionApi`, state from `currentStateName()`
+- [x] Updated all view spec files to match new API surface and types
+- [x] All 132 UI tests pass; all 33 API tests pass; lint clean
 
 ### Phase 5 — Environment + Docker
 
@@ -227,34 +226,33 @@ Once routes and models are settled, update `frollz-ui`:
 
 | UI currently calls | Should become | Status |
 |---|---|---|
-| `GET /film-formats` | `GET /formats` (+ packages) | Missing |
-| `POST /film-formats` | `POST /formats` | Missing |
-| `PATCH /film-formats/:key` | `PATCH /formats/:id` | Missing |
-| `DELETE /film-formats/:key` | `DELETE /formats/:id` | Missing |
-| `GET /stocks` | `GET /emulsions` | Missing |
-| `POST /stocks` | `POST /emulsions` | Missing |
-| `POST /stocks/bulk` | `POST /emulsions/bulk` | Missing |
-| `PATCH /stocks/:key` | `PATCH /emulsions/:id` | Missing |
-| `DELETE /stocks/:key` | `DELETE /emulsions/:id` | Missing |
-| `GET /stocks/brands` | `GET /emulsions/brands` | Missing + no repo method |
-| `GET /stocks/manufacturers` | `GET /emulsions/manufacturers` | Missing + no repo method |
-| `GET /stocks/speeds` | `GET /emulsions/speeds` | Missing + no repo method |
-| `GET /tags` | `GET /tags` | Missing |
-| `POST /tags` | `POST /tags` | Missing |
-| `PATCH /tags/:key` | `PATCH /tags/:id` | Missing |
-| `DELETE /tags/:key` | `DELETE /tags/:id` | Missing |
-| `GET /stock-tags` | `GET /emulsion-tags` | Missing |
-| `POST /stock-tags` | `POST /emulsion-tags` | Missing |
-| `DELETE /stock-tags/:key` | `DELETE /emulsion-tags/:id` | Missing |
-| `GET /roll-tags` | `GET /film-tags` | Missing |
-| `POST /roll-tags` | `POST /film-tags` | Missing |
-| `DELETE /roll-tags/:key` | `DELETE /film-tags/:id` | Missing |
-| `GET /rolls` | `GET /films` | Missing |
-| `POST /rolls` | `POST /films` | Missing |
-| `GET /rolls/:key` | `GET /films/:id` | Missing |
-| `GET /rolls/:key/children` | `GET /films/:id/children` | Missing |
-| `PATCH /rolls/:key` | `PATCH /films/:id` | Missing |
-| `DELETE /rolls/:key` | `DELETE /films/:id` | Missing |
-| `POST /rolls/:key/transition` | `POST /films/:id/transition` | Missing |
-| `GET /transitions` | `GET /transitions` | Missing |
-| `GET /roll-states` | `GET /film-states` | Missing |
+| `GET /film-formats` | `GET /formats` (+ packages) | ✅ Phase 1 |
+| `POST /film-formats` | `POST /formats` | ✅ Phase 1 |
+| `DELETE /film-formats/:key` | `DELETE /formats/:id` | ✅ Phase 1 |
+| `GET /packages` | `GET /packages` | ✅ Phase 1 |
+| `GET /stocks` | `GET /emulsions` | ✅ Phase 1 |
+| `POST /stocks/bulk` | `POST /emulsions/bulk` | ✅ Phase 1 |
+| `DELETE /stocks/:key` | `DELETE /emulsions/:id` | ✅ Phase 1 |
+| `GET /stocks/brands` | `GET /emulsions/brands` | ✅ Phase 1 |
+| `GET /stocks/manufacturers` | `GET /emulsions/manufacturers` | ✅ Phase 1 |
+| `GET /tags` | `GET /tags` | ✅ Phase 1 |
+| `POST /tags` | `POST /tags` | ✅ Phase 1 |
+| `PATCH /tags/:key` | `PATCH /tags/:id` | ✅ Phase 1 |
+| `DELETE /tags/:key` | `DELETE /tags/:id` | ✅ Phase 1 |
+| `GET /stock-tags` | `GET /emulsion-tags` | ✅ Phase 1 |
+| `POST /stock-tags` | `POST /emulsion-tags` | ✅ Phase 1 |
+| `DELETE /stock-tags/:key` | `DELETE /emulsion-tags/:id` | ✅ Phase 1 |
+| `GET /roll-tags` | `GET /film-tags` | ✅ Phase 1 |
+| `POST /roll-tags` | `POST /film-tags` | ✅ Phase 1 |
+| `DELETE /roll-tags/:key` | `DELETE /film-tags/:id` | ✅ Phase 1 |
+| `GET /rolls` | `GET /films` | ✅ Phase 1 |
+| `POST /rolls` | `POST /films` | ✅ Phase 1 |
+| `GET /rolls/:key` | `GET /films/:id` | ✅ Phase 1 |
+| `GET /rolls/:key/children` | `GET /films/:id/children` | ✅ Phase 1 |
+| `PATCH /rolls/:key` | `PATCH /films/:id` | ✅ Phase 1 |
+| `DELETE /rolls/:key` | `DELETE /films/:id` | ✅ Phase 1 |
+| `POST /rolls/:key/transition` | `POST /films/:id/transition` | ✅ Phase 1 |
+| `GET /transitions` | `GET /transitions?profile=` | ✅ Phase 1 |
+| `GET /transitions/profiles` | `GET /transitions/profiles` | ✅ Phase 3/4 |
+| `GET /processes` | `GET /processes` | ✅ Phase 1 |
+| `GET /roll-states` | `GET /film-states?filmId=` | ✅ Phase 1 |

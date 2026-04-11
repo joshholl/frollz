@@ -13,6 +13,8 @@ module.exports = [
 			"dist/**",
 			"coverage/**",
 			".vite/**",
+			"**/*.vue.d.ts",
+			"**/*.vue.js",
 		],
 	},
 	...pluginVue.configs["flat/essential"],

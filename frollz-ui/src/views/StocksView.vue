@@ -1,9 +1,9 @@
 <template>
   <div>
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Stocks</h1>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Emulsions</h1>
       <button @click="showModal = true" class="bg-primary-600 text-white px-4 py-2 min-h-[44px] rounded-md hover:bg-primary-700 font-medium">
-        Add Stock
+        Add Emulsion
       </button>
     </div>
 
@@ -28,42 +28,42 @@
     </div>
 
     <!-- Mobile card list (hidden on md+) -->
-    <div class="md:hidden space-y-3" :aria-busy="isLoading" aria-label="Stocks list">
-      <p v-if="sortedStocks.length === 0" class="text-center py-8 text-gray-600 dark:text-gray-400 italic">No stocks found.</p>
+    <div class="md:hidden space-y-3" :aria-busy="isLoading" aria-label="Emulsions list">
+      <p v-if="sortedEmulsions.length === 0" class="text-center py-8 text-gray-600 dark:text-gray-400 italic">No emulsions found.</p>
       <div
-        v-for="stock in sortedStocks"
-        :key="stock._key"
+        v-for="emulsion in sortedEmulsions"
+        :key="emulsion.id"
         class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4"
       >
         <div class="flex justify-between items-start gap-3">
           <div class="min-w-0">
-            <p class="font-semibold text-gray-900 dark:text-gray-100 truncate">{{ stock.brand }}</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ stock.manufacturer }}</p>
-            <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{{ stock.format }} · ISO {{ stock.speed }}</p>
+            <p class="font-semibold text-gray-900 dark:text-gray-100 truncate">{{ emulsion.brand }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ emulsion.manufacturer }}</p>
+            <p class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{{ formatNameById[emulsion.formatId] ?? '—' }} · ISO {{ emulsion.speed }}</p>
           </div>
           <div class="flex flex-col items-end gap-2 shrink-0">
-            <span class="px-2 text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">{{ stock.process }}</span>
+            <span class="px-2 text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">{{ processNameById[emulsion.processId] ?? '—' }}</span>
             <button
-              @click="createRoll(stock._key!)"
+              @click="createFilm(emulsion.id)"
               class="bg-primary-600 text-white px-4 py-2 min-h-[44px] rounded-md hover:bg-primary-700 font-medium"
-              title="Add roll from this stock"
-              aria-label="Add roll from this stock"
-            >Add Roll</button>
+              title="Add film from this emulsion"
+              aria-label="Add film from this emulsion"
+            >Add Film</button>
           </div>
         </div>
-        <div v-if="stockTagMap[stock._key!]?.length" class="flex flex-wrap gap-1 mt-2">
+        <div v-if="emulsionTagMap[emulsion.id]?.length" class="flex flex-wrap gap-1 mt-2">
           <span
-            v-for="tag in stockTagMap[stock._key!]"
-            :key="tag._key"
+            v-for="tag in emulsionTagMap[emulsion.id]"
+            :key="tag.id"
             class="px-2 py-0.5 rounded text-xs font-medium text-white"
-            :style="{ backgroundColor: tag.color }"
-          >{{ tag.value }}</span>
+            :style="{ backgroundColor: tag.colorCode }"
+          >{{ tag.name }}</span>
         </div>
       </div>
     </div>
 
     <!-- Desktop table (hidden below md) -->
-    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md" :aria-busy="isLoading" aria-label="Stocks table">
+    <div class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md" :aria-busy="isLoading" aria-label="Emulsions table">
       <div class="overflow-x-auto">
         <table class="min-w-full">
           <thead class="bg-gray-50 dark:bg-gray-700">
@@ -76,14 +76,8 @@
                 @click="setSort('manufacturer')"
                 :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer select-none', sortField === 'manufacturer' ? 'bg-gray-200 dark:bg-gray-600' : '']"
               >Manufacturer {{ sortField === 'manufacturer' ? (sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
-              <th
-                @click="setSort('format')"
-                :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer select-none', sortField === 'format' ? 'bg-gray-200 dark:bg-gray-600' : '']"
-              >Format {{ sortField === 'format' ? (sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
-              <th
-                @click="setSort('process')"
-                :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer select-none', sortField === 'process' ? 'bg-gray-200 dark:bg-gray-600' : '']"
-              >Process {{ sortField === 'process' ? (sortDirection === 'asc' ? '↑' : '↓') : '' }}</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Format</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Process</th>
               <th
                 @click="setSort('speed')"
                 :class="['px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer select-none', sortField === 'speed' ? 'bg-gray-200 dark:bg-gray-600' : '']"
@@ -93,53 +87,46 @@
             </tr>
           </thead>
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            <tr v-for="stock in sortedStocks" :key="stock._key">
+            <tr v-for="emulsion in sortedEmulsions" :key="emulsion.id">
               <td
                 class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400"
-                @click="addFilter('brand', 'Brand', stock.brand)"
-              >{{ stock.brand }}</td>
+                @click="addFilter('brand', 'Brand', emulsion.brand)"
+              >{{ emulsion.brand }}</td>
               <td
                 class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400"
-                @click="addFilter('manufacturer', 'Manufacturer', stock.manufacturer)"
-              >{{ stock.manufacturer }}</td>
-              <td
-                class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400"
-                @click="addFilter('format', 'Format', stock.format ?? '')"
-              >{{ stock.format }}</td>
+                @click="addFilter('manufacturer', 'Manufacturer', emulsion.manufacturer)"
+              >{{ emulsion.manufacturer }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                {{ formatNameById[emulsion.formatId] ?? '—' }}
+              </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events, vuejs-accessibility/no-static-element-interactions -- filter chip; will be converted to a button in #202 -->
-                <span
-                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800"
-                  @click="addFilter('process', 'Process', stock.process)"
-                >
-                  {{ stock.process }}
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                  {{ processNameById[emulsion.processId] ?? '—' }}
                 </span>
               </td>
               <td
                 class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400"
-                @click="addFilter('speed', 'Speed', String(stock.speed))"
-              >ISO {{ stock.speed }}</td>
+                @click="addFilter('speed', 'Speed', String(emulsion.speed))"
+              >ISO {{ emulsion.speed }}</td>
               <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                 <div class="flex flex-wrap gap-1">
-                  <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events, vuejs-accessibility/no-static-element-interactions -- filter chip; will be converted to a button in #202 -->
                   <span
-                    v-for="tag in stockTagMap[stock._key!]"
-                    :key="tag._key"
-                    class="px-2 py-1 rounded text-xs font-medium text-white cursor-pointer hover:opacity-80"
-                    :style="{ backgroundColor: tag.color }"
-                    @click="addFilter('tag', 'Tag', tag.value)"
+                    v-for="tag in emulsionTagMap[emulsion.id]"
+                    :key="tag.id"
+                    class="px-2 py-1 rounded text-xs font-medium text-white"
+                    :style="{ backgroundColor: tag.colorCode }"
                   >
-                    {{ tag.value }}
+                    {{ tag.name }}
                   </span>
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right">
                 <button
-                  @click="createRoll(stock._key!)"
+                  @click="createFilm(emulsion.id)"
                   class="bg-primary-600 text-white px-4 py-2 min-h-[44px] rounded-md hover:bg-primary-700 font-medium"
-                  title="Add roll from this stock"
-                  aria-label="Add roll from this stock"
-                >Add Roll</button>
+                  title="Add film from this emulsion"
+                  aria-label="Add film from this emulsion"
+                >Add Film</button>
               </td>
             </tr>
           </tbody>
@@ -147,81 +134,94 @@
       </div>
     </div>
 
-    <!-- Add Stock Modal -->
-    <BaseModal :open="showModal" title-id="add-stock-title" @close="closeModal">
-        <h2 id="add-stock-title" class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Add Stock</h2>
+    <!-- Add Emulsion Modal -->
+    <BaseModal :open="showModal" title-id="add-emulsion-title" @close="closeModal">
+        <h2 id="add-emulsion-title" class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Add Emulsion</h2>
         <form @submit.prevent="handleSubmit">
           <div class="space-y-4">
             <div>
+              <label for="emulsion-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name <span class="text-red-500" aria-hidden="true">*</span>
+                <input
+                  id="emulsion-name"
+                  v-model="form.name"
+                  type="text"
+                  required
+                  aria-required="true"
+                  placeholder="e.g. Portra 400"
+                  class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                />
+              </label>
+            </div>
+            <div>
               <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Brand <span class="text-red-500" aria-hidden="true">*</span></p>
               <TypeaheadInput
-                id="stock-brand"
+                id="emulsion-brand"
                 aria-label="Brand"
                 aria-required="true"
                 v-model="form.brand"
-                :fetchOptions="(q) => stockApi.getBrands(q).then(r => r.data)"
-                required
-                placeholder="e.g. Portra 400"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-              />
-            </div>
-            <div>
-              <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Manufacturer <span class="text-red-500" aria-hidden="true">*</span></p>
-              <TypeaheadInput
-                id="stock-manufacturer"
-                aria-label="Manufacturer"
-                aria-required="true"
-                v-model="form.manufacturer"
-                :fetchOptions="(q) => stockApi.getManufacturers(q).then(r => r.data)"
+                :fetchOptions="(q) => emulsionApi.getBrands(q).then(r => r.data)"
                 required
                 placeholder="e.g. Kodak"
                 class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
               />
             </div>
             <div>
-              <label for="stock-process" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Process <span class="text-red-500" aria-hidden="true">*</span>
+              <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Manufacturer <span class="text-red-500" aria-hidden="true">*</span></p>
+              <TypeaheadInput
+                id="emulsion-manufacturer"
+                aria-label="Manufacturer"
+                aria-required="true"
+                v-model="form.manufacturer"
+                :fetchOptions="(q) => emulsionApi.getManufacturers(q).then(r => r.data)"
+                required
+                placeholder="e.g. Kodak Alaris"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+              />
+            </div>
+            <div>
+              <label for="emulsion-process" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Process <span class="text-red-500" aria-hidden="true">*</span>
                 <select
-                  id="stock-process"
-                  v-model="form.process"
+                  id="emulsion-process"
+                  v-model="form.processId"
                   required
                   aria-required="true"
                   class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 >
                   <option value="" disabled>Select a process</option>
-                  <option v-for="p in processOptions" :key="p" :value="p">{{ p }}</option>
+                  <option v-for="p in processes" :key="p.id" :value="p.id">{{ p.name }}</option>
                 </select>
               </label>
             </div>
             <fieldset>
               <legend class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Formats <span class="text-red-500" aria-hidden="true">*</span></legend>
               <div class="flex flex-wrap gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded-md min-h-[2.5rem] bg-white dark:bg-gray-700">
-                <span v-if="!form.process" class="text-sm text-gray-600 dark:text-gray-400 italic">Select a process first</span>
+                <span v-if="!form.processId" class="text-sm text-gray-600 dark:text-gray-400 italic">Select a process first</span>
                 <label
                   v-else
-                  v-for="fmt in filteredFormats"
-                  :key="fmt._key"
-                  :for="'format-check-' + fmt._key"
+                  v-for="fmt in availableFormats"
+                  :key="fmt.id"
+                  :for="'format-check-' + fmt.id"
                   class="flex items-center gap-1 min-h-[44px] px-1 text-sm cursor-pointer text-gray-900 dark:text-gray-100"
                 >
                   <input
-                    :id="'format-check-' + fmt._key"
+                    :id="'format-check-' + fmt.id"
                     type="checkbox"
-                    :value="fmt._key"
-                    v-model="form.formatKeys"
+                    :value="fmt.id"
+                    v-model="form.formatIds"
                     class="rounded"
                   />
-                  {{ fmt.format }}
+                  {{ fmt.name }}
                 </label>
               </div>
             </fieldset>
             <div>
               <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Speed (ISO) <span class="text-red-500" aria-hidden="true">*</span></p>
               <SpeedTypeaheadInput
-                id="stock-speed"
+                id="emulsion-speed"
                 aria-label="Speed (ISO)"
                 aria-required="true"
                 v-model="form.speed"
-                :fetchOptions="(q: string) => stockApi.getSpeeds(q).then(r => r.data)"
+                :fetchOptions="(q: string) => emulsionApi.getSpeeds(q).then(r => r.data)"
                 required
                 min="1"
                 placeholder="e.g. 400"
@@ -232,23 +232,23 @@
               <p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</p>
               <div class="flex flex-wrap gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded-md min-h-[2.5rem] bg-white dark:bg-gray-700">
                 <button
-                  v-for="tag in stockScopedTags"
-                  :key="tag._key"
+                  v-for="tag in allTags"
+                  :key="tag.id"
                   type="button"
-                  @click="toggleTag(tag._key!)"
+                  @click="toggleTag(tag.id)"
                   class="px-3 py-2 min-h-[44px] rounded text-xs font-medium transition-opacity"
-                  :class="selectedTagKeys.includes(tag._key!) ? 'opacity-100 text-white' : 'opacity-40 text-white'"
-                  :style="{ backgroundColor: tag.color }"
+                  :class="selectedTagIds.includes(tag.id) ? 'opacity-100 text-white' : 'opacity-40 text-white'"
+                  :style="{ backgroundColor: tag.colorCode }"
                 >
-                  {{ tag.value }}
+                  {{ tag.name }}
                 </button>
               </div>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Click tags to select</p>
             </div>
             <div>
-              <label for="stock-box-image-url" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Box Image URL
+              <label for="emulsion-box-image-url" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Box Image URL
                   <input
-                    id="stock-box-image-url"
+                    id="emulsion-box-image-url"
                     v-model="form.boxImageUrl"
                     type="url"
                     placeholder="https://..."
@@ -271,7 +271,7 @@
               :disabled="submitting"
               class="px-4 py-2 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700 disabled:opacity-50"
             >
-              {{ submitting ? 'Adding...' : 'Add Stock' }}
+              {{ submitting ? 'Adding...' : 'Add Emulsion' }}
             </button>
           </div>
         </form>
@@ -282,9 +282,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { stockApi, filmFormatApi, tagApi, stockTagApi } from '@/services/api-client'
-import type { Stock, FilmFormat, Tag } from '@/types'
-import { Process, FormFactor } from '@/types'
+import { emulsionApi, formatApi, processApi, tagApi, emulsionTagApi } from '@/services/api-client'
+import type { Emulsion, Format, Process, Tag } from '@/types'
 import TypeaheadInput from '@/components/TypeaheadInput.vue'
 import BaseModal from '@/components/BaseModal.vue'
 import SpeedTypeaheadInput from '@/components/SpeedTypeaheadInput.vue'
@@ -293,18 +292,18 @@ import { useNotificationStore } from '@/stores/notification'
 const router = useRouter()
 const notification = useNotificationStore()
 
-const stocks = ref<Stock[]>([])
-const formats = ref<FilmFormat[]>([])
+const emulsions = ref<Emulsion[]>([])
+const formats = ref<Format[]>([])
+const processes = ref<Process[]>([])
 const allTags = ref<Tag[]>([])
-// Map from stockKey -> Tag[]
-const stockTagMap = ref<Record<string, Tag[]>>({})
+const emulsionTagMap = ref<Record<string, Tag[]>>({})
 const isLoading = ref(false)
 const showModal = ref(false)
 const submitting = ref(false)
 const error = ref('')
-const selectedTagKeys = ref<string[]>([])
+const selectedTagIds = ref<string[]>([])
 
-type SortField = 'brand' | 'manufacturer' | 'format' | 'process' | 'speed'
+type SortField = 'brand' | 'manufacturer' | 'speed'
 const sortField = ref<SortField>('brand')
 const sortDirection = ref<'asc' | 'desc'>('asc')
 
@@ -323,61 +322,55 @@ const activeFilters = ref<ActiveFilter[]>([])
 const addFilter = (field: string, label: string, value: string) => {
   if (!value) return
   const exists = activeFilters.value.some(f => f.field === field && f.value === value)
-  if (!exists) {
-    activeFilters.value.push({ field, label, value })
-  }
+  if (!exists) activeFilters.value.push({ field, label, value })
 }
 
-const removeFilter = (index: number) => {
-  activeFilters.value.splice(index, 1)
-}
+const removeFilter = (index: number) => activeFilters.value.splice(index, 1)
+const clearFilters = () => { activeFilters.value = [] }
 
-const clearFilters = () => {
-  activeFilters.value = []
-}
+const formatNameById = computed(() => {
+  const map: Record<string, string> = {}
+  for (const f of formats.value) map[f.id] = f.name
+  return map
+})
 
-const processOptions = Object.values(Process)
+const processNameById = computed(() => {
+  const map: Record<string, string> = {}
+  for (const p of processes.value) map[p.id] = p.name
+  return map
+})
+
+const availableFormats = computed(() => formats.value)
 
 const emptyForm = () => ({
+  name: '',
   brand: '',
   manufacturer: '',
-  formatKeys: [] as string[],
-  process: '' as Process,
+  formatIds: [] as string[],
+  processId: '',
   speed: undefined as number | undefined,
   boxImageUrl: '',
 })
 
 const form = ref(emptyForm())
 
-const stockScopedTags = computed(() => allTags.value.filter(t => t.isStockScoped))
-
-const filteredFormats = computed(() => {
-  if (!form.value.process) return []
-  if (form.value.process === Process.INSTANT) {
-    return formats.value.filter(f => f.formFactor === FormFactor.INSTANT)
-  }
-  return formats.value.filter(f => f.formFactor !== FormFactor.INSTANT)
+watch(() => form.value.processId, () => {
+  form.value.formatIds = []
 })
 
-watch(() => form.value.process, () => {
-  form.value.formatKeys = []
-})
-
-const filteredAndSortedStocks = computed(() => {
-  let result = stocks.value
+const filteredAndSortedEmulsions = computed(() => {
+  let result = emulsions.value
   if (activeFilters.value.length > 0) {
-    result = result.filter(stock => {
-      return activeFilters.value.every(filter => {
+    result = result.filter(emulsion =>
+      activeFilters.value.every(filter => {
         if (filter.field === 'tag') {
-          const tags = stockTagMap.value[stock._key!] ?? []
-          return tags.some(t => t.value === filter.value)
+          const tags = emulsionTagMap.value[emulsion.id] ?? []
+          return tags.some(t => t.name === filter.value)
         }
-        if (filter.field === 'speed') {
-          return String(stock.speed) === filter.value
-        }
-        return (stock[filter.field as keyof Stock] ?? '') === filter.value
+        if (filter.field === 'speed') return String(emulsion.speed) === filter.value
+        return (emulsion[filter.field as keyof Emulsion] ?? '') === filter.value
       })
-    })
+    )
   }
   return result.slice().sort((a, b) => {
     let cmp: number
@@ -392,31 +385,27 @@ const filteredAndSortedStocks = computed(() => {
   })
 })
 
-// Keep sortedStocks as an alias for backwards compatibility with tests
-const sortedStocks = filteredAndSortedStocks
+const sortedEmulsions = filteredAndSortedEmulsions
 
-const toggleTag = (tagKey: string) => {
-  const idx = selectedTagKeys.value.indexOf(tagKey)
-  if (idx === -1) {
-    selectedTagKeys.value.push(tagKey)
-  } else {
-    selectedTagKeys.value.splice(idx, 1)
-  }
+const toggleTag = (tagId: string) => {
+  const idx = selectedTagIds.value.indexOf(tagId)
+  if (idx === -1) selectedTagIds.value.push(tagId)
+  else selectedTagIds.value.splice(idx, 1)
 }
 
-const createRoll = (stockKey: string) => {
-  router.push({ name: 'rolls', query: { stockKey } })
+const createFilm = (emulsionId: string) => {
+  router.push({ name: 'rolls', query: { emulsionId } })
 }
 
 const closeModal = () => {
   showModal.value = false
   form.value = emptyForm()
-  selectedTagKeys.value = []
+  selectedTagIds.value = []
   error.value = ''
 }
 
 const handleSubmit = async () => {
-  if (form.value.formatKeys.length === 0) {
+  if (form.value.formatIds.length === 0) {
     error.value = 'Please select at least one format'
     return
   }
@@ -424,81 +413,73 @@ const handleSubmit = async () => {
   error.value = ''
   try {
     const payload = {
+      name: form.value.name,
       brand: form.value.brand,
       manufacturer: form.value.manufacturer,
-      formatKeys: form.value.formatKeys,
-      process: form.value.process,
+      formatIds: form.value.formatIds,
+      processId: form.value.processId,
       speed: form.value.speed!,
       ...(form.value.boxImageUrl ? { boxImageUrl: form.value.boxImageUrl } : {}),
     }
 
-    const response = await stockApi.createMultipleFormats(payload)
-    const createdStocks = response.data
+    const response = await emulsionApi.createBulk(payload)
+    const createdEmulsions = response.data
 
-    // Associate selected tags with all created stocks
     await Promise.all(
-      createdStocks.flatMap(stock =>
-        selectedTagKeys.value.map(tagKey =>
-          stockTagApi.create({ stockKey: stock._key!, tagKey })
+      createdEmulsions.flatMap(emulsion =>
+        selectedTagIds.value.map(tagId =>
+          emulsionTagApi.create({ emulsionId: emulsion.id, tagId })
         )
       )
     )
 
-    await loadStocks()
+    await loadEmulsions()
     closeModal()
-    notification.announce('Stock added')
+    notification.announce('Emulsion added')
   } catch (_) {
-    error.value = 'Failed to add stock. Please try again.'
+    error.value = 'Failed to add emulsion. Please try again.'
   } finally {
     submitting.value = false
   }
 }
 
-const buildStockTagMap = async () => {
-  const [tagResponse, stockTagResponse] = await Promise.all([
+const buildEmulsionTagMap = async () => {
+  const [tagResponse, emulsionTagResponse] = await Promise.all([
     tagApi.getAll(),
-    stockTagApi.getAll(),
+    emulsionTagApi.getAll(),
   ])
   allTags.value = tagResponse.data
 
-  const tagByKey: Record<string, Tag> = {}
-  for (const t of tagResponse.data) {
-    if (t._key) tagByKey[t._key] = t
-  }
+  const tagById: Record<string, Tag> = {}
+  for (const t of tagResponse.data) tagById[t.id] = t
 
   const map: Record<string, Tag[]> = {}
-  for (const st of stockTagResponse.data) {
-    if (!map[st.stockKey]) map[st.stockKey] = []
-    const tag = tagByKey[st.tagKey]
-    if (tag) map[st.stockKey].push(tag)
+  for (const et of emulsionTagResponse.data) {
+    if (!map[et.emulsionId]) map[et.emulsionId] = []
+    const tag = tagById[et.tagId]
+    if (tag) map[et.emulsionId].push(tag)
   }
-  stockTagMap.value = map
+  emulsionTagMap.value = map
 }
 
-const loadStocks = async () => {
+const loadEmulsions = async () => {
   isLoading.value = true
   try {
-    const response = await stockApi.getAll()
-    stocks.value = response.data
-    await buildStockTagMap()
+    const response = await emulsionApi.getAll()
+    emulsions.value = response.data
+    await buildEmulsionTagMap()
   } catch (err) {
-    console.error('Error loading stocks:', err)
+    console.error('Error loading emulsions:', err)
   } finally {
     isLoading.value = false
   }
 }
 
-const loadFormats = async () => {
-  try {
-    const response = await filmFormatApi.getAll()
-    formats.value = response.data
-  } catch (err) {
-    console.error('Error loading formats:', err)
-  }
-}
-
-onMounted(() => {
-  loadStocks()
-  loadFormats()
+onMounted(async () => {
+  await Promise.all([
+    loadEmulsions(),
+    formatApi.getAll().then(r => { formats.value = r.data }),
+    processApi.getAll().then(r => { processes.value = r.data }),
+  ])
 })
 </script>

@@ -34,6 +34,11 @@ export class TransitionService {
     @Inject(TRANSITION_METADATA_FIELD_REPOSITORY) private readonly metadataFieldRepo: ITransitionMetadataFieldRepository,
   ) {}
 
+  async listProfiles(): Promise<{ id: string; name: string }[]> {
+    const profiles = await this.profileRepo.findAll();
+    return profiles.map((p) => ({ id: p.id, name: p.name }));
+  }
+
   async getGraph(profileName = 'standard'): Promise<TransitionGraphResponse> {
     const profile = await this.profileRepo.findByName(profileName);
     if (!profile) throw new NotFoundException(`Transition profile '${profileName}' not found`);
