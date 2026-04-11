@@ -28,19 +28,16 @@ export interface Emulsion {
   formatId: number
   processId: number
   parentId: number | null
-  boxImageMimeType: string | null
+  boxImageUrl?: string
   tags: Tag[]
 }
 
 // Tag
 export interface Tag {
-  _key?: string
-  value: string
-  color: string
-  isRollScoped?: boolean
-  isStockScoped?: boolean
-  createdAt?: Date
-  updatedAt?: Date
+  id: number
+  name: string
+  colorCode: string
+  description: string | null
 }
 
 // EmulsionTag (replaces StockTag)
@@ -50,26 +47,45 @@ export interface EmulsionTag {
   tagId: number
 }
 
-export interface RollTag {
-  _key?: string
-  tagKey: string
-  rollKey: string
-  createdAt?: Date
+// FilmTag (replaces RollTag)
+export interface FilmTag {
+  id: number
+  filmId: number
+  tagId: number
 }
 
-// Roll Types
-export enum RollState {
-  ADDED = 'Added',
-  FROZEN = 'Frozen',
-  REFRIGERATED = 'Refrigerated',
-  SHELVED = 'Shelved',
-  LOADED = 'Loaded',
-  FINISHED = 'Finished',
-  SENT_FOR_DEVELOPMENT = 'Sent For Development',
-  DEVELOPED = 'Developed',
-  RECEIVED = 'Received',
+// FilmState (replaces RollStateHistory)
+export interface FilmState {
+  id: number
+  filmId: number
+  stateId: number
+  date: Date
+  note: string | null
+  state?: { id: number; name: string }
+  metadata: unknown[]
 }
 
+// Film (replaces Roll)
+export interface Film {
+  id: number
+  name: string
+  emulsionId: number
+  expirationDate: Date | null
+  parentId: number | null
+  transitionProfileId: number
+  emulsion?: Emulsion
+  tags: Tag[]
+  states: FilmState[]
+  parent?: Film
+}
+
+// Transition profile
+export interface TransitionProfile {
+  id: number
+  name: string
+}
+
+// Transition graph
 export interface TransitionMetadataField {
   field: string
   fieldType: string
@@ -78,11 +94,9 @@ export interface TransitionMetadataField {
 }
 
 export interface TransitionEdge {
-  id: string
+  id: number
   fromState: string
   toState: string
-  transitionType: string
-  requiresDate: boolean
   metadata: TransitionMetadataField[]
 }
 
@@ -91,44 +105,11 @@ export interface TransitionGraph {
   transitions: TransitionEdge[]
 }
 
-export interface RollStateHistory {
-  _key?: string
-  stateId: string
-  rollId: string
-  state: RollState
-  date: Date
-  notes?: string
-  isErrorCorrection?: boolean
-  metadata?: Record<string, unknown>
-  createdAt?: Date
-  updatedAt?: Date
-}
-
-export enum ObtainmentMethod {
-  GIFT = 'Gift',
-  PURCHASE = 'Purchase',
-  SELF_ROLLED = 'Self Rolled',
-}
-
-export interface Roll {
-  _key?: string
-  rollId: string
-  stockKey?: string
-  state: RollState
-  imagesUrl?: string
-  dateObtained: Date
-  obtainmentMethod: ObtainmentMethod
-  obtainedFrom: string
-  expirationDate?: Date
-  timesExposedToXrays: number
-  loadedInto?: string
-  stockName?: string
-  stockSpeed?: number
-  formatName?: string
-  process?: string
-  transitionProfile?: string
-  parentRollId?: string
-  childRollCount?: number
-  createdAt?: Date
-  updatedAt?: Date
+// Helpers — derive current state name from Film.states
+export function currentStateName(film: Film): string {
+  if (!film.states?.length) return ''
+  const sorted = [...film.states].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  )
+  return sorted[0]?.state?.name ?? ''
 }

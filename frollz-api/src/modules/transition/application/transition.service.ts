@@ -9,7 +9,6 @@ import { TransitionStateMetadata } from '../../../domain/transition/entities/tra
 export interface TransitionMetadataFieldResponse {
   field: string;
   fieldType: string;
-  allowMultiple: boolean;
   defaultValue: string | null;
   isRequired: boolean;
 }
@@ -83,7 +82,6 @@ export class TransitionService {
         return {
           field: field.name,
           fieldType: field.fieldType ?? 'string',
-          allowMultiple: field.allowMultiple,
           defaultValue: m.defaultValue,
           isRequired: true, // TODO: model optional fields when schema supports it
         };

@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -10,21 +9,13 @@ import {
   ParseIntPipe,
   Patch,
   Post,
-  Put,
   Query,
-  Res,
-  UploadedFile,
-  UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { Response } from 'express';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { EmulsionService } from './application/emulsion.service';
 import { CreateEmulsionDto } from './dto/create-emulsion.dto';
 import { CreateEmulsionMultipleFormatsDto } from './dto/create-emulsion-multiple-formats.dto';
 import { UpdateEmulsionDto } from './dto/update-emulsion.dto';
-
-const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 @ApiTags('Emulsions')
 @Controller('emulsions')
@@ -101,33 +92,5 @@ export class EmulsionController {
   @ApiOperation({ summary: 'Remove a tag from an emulsion' })
   removeTag(@Param('id', ParseIntPipe) id: number, @Param('tagId', ParseIntPipe) tagId: number) {
     return this.emulsionService.removeTag(id, tagId);
-  }
-
-  @Put(':id/box-image')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload or replace the box image for an emulsion (max 4 MB)' })
-  async uploadBoxImage(
-    @Param('id', ParseIntPipe) id: number,
-    @UploadedFile() file: Express.Multer.File,
-  ): Promise<void> {
-    if (!file) throw new BadRequestException('No file uploaded');
-    if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
-      throw new BadRequestException(`Unsupported image type: ${file.mimetype}`);
-    }
-    return this.emulsionService.uploadBoxImage(id, file.buffer, file.mimetype);
-  }
-
-  @Get(':id/box-image')
-  @ApiOperation({ summary: 'Serve the box image for an emulsion' })
-  async getBoxImage(
-    @Param('id', ParseIntPipe) id: number,
-    @Res() res: Response,
-  ): Promise<void> {
-    const image = await this.emulsionService.getBoxImage(id);
-    res.setHeader('Content-Type', image.mimeType);
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.send(image.data);
   }
 }

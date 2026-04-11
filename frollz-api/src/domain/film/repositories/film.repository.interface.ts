@@ -2,21 +2,9 @@ import { Film } from '../entities/film.entity';
 
 export const FILM_REPOSITORY = 'FILM_REPOSITORY';
 
-export interface FilmFilters {
-  stateIds?: number[];
-  emulsionId?: number;
-  formatId?: number;
-  tagIds?: number[];
-  loadedStateId?: number;
-  loadedDateFrom?: Date;
-  loadedDateTo?: Date;
-  searchQuery?: string;
-}
-
 export interface IFilmRepository {
   findById(id: number): Promise<Film | null>;
   findAll(): Promise<Film[]>;
-  findWithFilters(filters: FilmFilters): Promise<Film[]>;
   findByEmulsionId(emulsionId: number): Promise<Film[]>;
   findChildren(parentId: number): Promise<Film[]>;
   findByCurrentStateIds(stateIds: number[]): Promise<Film[]>;

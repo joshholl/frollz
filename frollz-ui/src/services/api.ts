@@ -25,12 +25,8 @@ async function request<T>(
     if (str) url += '?' + str
   }
 
-  const isFormData = body instanceof FormData
-  const init: RequestInit = {
-    method,
-    headers: isFormData ? {} : { 'Content-Type': 'application/json' },
-  }
-  if (body !== undefined) init.body = isFormData ? body : JSON.stringify(body)
+  const init: RequestInit = { method, headers: { 'Content-Type': 'application/json' } }
+  if (body !== undefined) init.body = JSON.stringify(body)
 
   const res = await fetch(url, init)
   if (!res.ok) {
@@ -49,8 +45,6 @@ export const api = {
     request<T>('GET', path, undefined, options?.params),
   post: <T>(path: string, body?: unknown) =>
     request<T>('POST', path, body),
-  put: <T>(path: string, body?: unknown) =>
-    request<T>('PUT', path, body),
   patch: <T>(path: string, body?: unknown) =>
     request<T>('PATCH', path, body),
   delete: <T = unknown>(path: string) =>

@@ -10,10 +10,6 @@ const axeOptions = {
   runOnly: { type: 'tag' as const, values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
 }
 
-const axeOptions = {
-  runOnly: { type: 'tag' as const, values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
-}
-
 vi.mock('@/services/api-client', () => ({
   tagApi: {
     getAll: vi.fn(),
@@ -24,59 +20,15 @@ vi.mock('@/services/api-client', () => ({
 
 describe('TagsView', () => {
   const mockTags = [
-    { _key: 'tag1', value: 'Color', color: '#ff0000', isRollScoped: true, isStockScoped: true, createdAt: new Date('2024-01-01') },
-    { _key: 'tag2', value: 'BW', color: '#000000', isRollScoped: false, isStockScoped: true, createdAt: new Date('2024-02-01') },
-    { _key: 'tag3', value: 'Slide', color: '#0000ff', isRollScoped: true, isStockScoped: false, createdAt: new Date('2024-03-01') },
+    { id: 'tag1', name: 'Color', colorCode: '#ff0000' },
+    { id: 'tag2', name: 'BW', colorCode: '#000000' },
+    { id: 'tag3', name: 'Slide', colorCode: '#0000ff' },
   ]
 
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
     vi.mocked(tagApi.getAll).mockResolvedValue({ data: mockTags } as any)
-  })
-
-  describe('accessibility', () => {
-    it('renders the tag list without a11y violations', async () => {
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const results = await axe(wrapper.element, axeOptions)
-      expect(results).toHaveNoViolations()
-    })
-
-    it('renders the tag list with inline edit active without a11y violations', async () => {
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[0])
-      await wrapper.vm.$nextTick()
-
-      const results = await axe(wrapper.element, axeOptions)
-      expect(results).toHaveNoViolations()
-    })
-  })
-
-  describe('accessibility', () => {
-    it('renders the tag list without a11y violations', async () => {
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const results = await axe(wrapper.element, axeOptions)
-      expect(results).toHaveNoViolations()
-    })
-
-    it('renders the tag list with inline edit active without a11y violations', async () => {
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[0])
-      await wrapper.vm.$nextTick()
-
-      const results = await axe(wrapper.element, axeOptions)
-      expect(results).toHaveNoViolations()
-    })
   })
 
   describe('accessibility', () => {
@@ -175,38 +127,10 @@ describe('TagsView', () => {
       await vm.saveEdit('tag1')
 
       expect(tagApi.update).toHaveBeenCalledWith('tag1', {
-        value: 'Updated',
-        color: '#123456',
-        isRollScoped: true,
-        isStockScoped: true,
+        name: 'Updated',
+        colorCode: '#123456',
+        description: undefined,
       })
-    })
-
-    it('should populate editForm with tag scope values on startEdit', async () => {
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[1]) // BW: isRollScoped=false, isStockScoped=true
-      await wrapper.vm.$nextTick()
-
-      expect(vm.editForm.isRollScoped).toBe(false)
-      expect(vm.editForm.isStockScoped).toBe(true)
-    })
-
-    it('should include isRollScoped and isStockScoped in save payload', async () => {
-      vi.mocked(tagApi.update).mockResolvedValue({ data: {} } as any)
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[2]) // Slide: isRollScoped=true, isStockScoped=false
-      await vm.saveEdit('tag3')
-
-      expect(tagApi.update).toHaveBeenCalledWith('tag3', expect.objectContaining({
-        isRollScoped: true,
-        isStockScoped: false,
-      }))
     })
 
     it('should exit edit mode after saving', async () => {
@@ -298,123 +222,6 @@ describe('TagsView', () => {
       await wrapper.vm.$nextTick()
 
       expect(tagApi.delete).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('stock scope change warning', () => {
-    it('should show warning modal when isStockScoped changes from true to false', async () => {
-      vi.mocked(stockTagApi.getAll).mockResolvedValue({
-        data: [
-          { _key: 'st1', stockKey: 'stock1', tagKey: 'tag1' },
-          { _key: 'st2', stockKey: 'stock2', tagKey: 'tag1' },
-        ],
-      } as any)
-
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[0]) // tag1: isStockScoped=true
-      vm.editForm.isStockScoped = false
-
-      await vm.saveEdit('tag1')
-      await flushPromises()
-
-      expect(vm.scopeChangeWarning).toEqual({ tagKey: 'tag1', count: 2 })
-      expect(tagApi.update).not.toHaveBeenCalled()
-    })
-
-    it('should display stock count in the warning modal', async () => {
-      vi.mocked(stockTagApi.getAll).mockResolvedValue({
-        data: [{ _key: 'st1', stockKey: 'stock1', tagKey: 'tag1' }],
-      } as any)
-
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[0])
-      vm.editForm.isStockScoped = false
-      await vm.saveEdit('tag1')
-      await wrapper.vm.$nextTick()
-
-      expect(wrapper.text()).toContain('1')
-      expect(wrapper.text()).toContain('Remove Stock Scope')
-    })
-
-    it('should not show warning when isStockScoped was already false', async () => {
-      vi.mocked(tagApi.update).mockResolvedValue({ data: {} } as any)
-
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[2]) // tag3: isStockScoped=false
-      await vm.saveEdit('tag3')
-      await flushPromises()
-
-      expect(vm.scopeChangeWarning).toBeNull()
-      expect(tagApi.update).toHaveBeenCalled()
-    })
-
-    it('should not show warning when isStockScoped changes from false to true', async () => {
-      vi.mocked(tagApi.update).mockResolvedValue({ data: {} } as any)
-
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[2]) // tag3: isStockScoped=false
-      vm.editForm.isStockScoped = true
-      await vm.saveEdit('tag3')
-      await flushPromises()
-
-      expect(vm.scopeChangeWarning).toBeNull()
-      expect(tagApi.update).toHaveBeenCalled()
-    })
-
-    it('should update tag and remove all stock-tags on confirmScopeChange', async () => {
-      const mockStockTags = [
-        { _key: 'st1', stockKey: 'stock1', tagKey: 'tag1' },
-        { _key: 'st2', stockKey: 'stock2', tagKey: 'tag1' },
-      ]
-      vi.mocked(stockTagApi.getAll).mockResolvedValue({ data: mockStockTags } as any)
-      vi.mocked(stockTagApi.delete).mockResolvedValue({} as any)
-      vi.mocked(tagApi.update).mockResolvedValue({ data: {} } as any)
-
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[0])
-      vm.editForm.isStockScoped = false
-      vm.scopeChangeWarning = { tagKey: 'tag1', count: 2 }
-
-      await vm.confirmScopeChange()
-      await flushPromises()
-
-      expect(tagApi.update).toHaveBeenCalledWith('tag1', expect.objectContaining({ isStockScoped: false }))
-      expect(stockTagApi.delete).toHaveBeenCalledWith('st1')
-      expect(stockTagApi.delete).toHaveBeenCalledWith('st2')
-      expect(vm.scopeChangeWarning).toBeNull()
-      expect(vm.editingKey).toBeNull()
-    })
-
-    it('should revert isStockScoped to true and clear warning on cancelScopeChange', async () => {
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[0])
-      vm.editForm.isStockScoped = false
-      vm.scopeChangeWarning = { tagKey: 'tag1', count: 3 }
-
-      vm.cancelScopeChange()
-      await wrapper.vm.$nextTick()
-
-      expect(vm.editForm.isStockScoped).toBe(true)
-      expect(vm.scopeChangeWarning).toBeNull()
-      expect(vm.editingKey).toBe('tag1') // still in edit mode
     })
   })
 

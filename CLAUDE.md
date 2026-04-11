@@ -125,11 +125,11 @@ Five routes map to domain views: `/` (dashboard), `/stocks`, `/rolls`, `/formats
 
 | Variable | Service | Default |
 |----------|---------|---------|
-| `POSTGRES_HOST` | API | `postgres` |
-| `POSTGRES_PORT` | API | `5432` |
-| `POSTGRES_DATABASE` | API | `frollz` |
-| `POSTGRES_USER` | API | `frollz` |
-| `POSTGRES_PASSWORD` | API | `frollz` |
+| `DATABASE_HOST` | API | `postgres` |
+| `DATABASE_PORT` | API | `5432` |
+| `DATABASE_NAME` | API | `frollz` |
+| `DATABASE_USER` | API | `frollz` |
+| `DATABASE_PASSWORD` | API | `frollz` |
 | `PORT` | API | `3000` |
 | `VITE_API_URL` | UI | `/api` (Docker) or `http://localhost:3000` (local) |
 
