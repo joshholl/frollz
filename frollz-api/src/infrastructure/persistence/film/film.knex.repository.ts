@@ -14,33 +14,35 @@ export class FilmKnexRepository implements IFilmRepository {
 
   async findById(id: string): Promise<Film | null> {
     const row = await this.knex<FilmRow>('film').where({ id }).first();
-    if (!row) return null;
-    const film = FilmMapper.toDomain(row);
-    const tags = await this.loadTags(id);
-    const states = await this.loadStates(id);
-    return Film.create({ ...film, tags, states });
+    return row ? this.hydrate(row) : null;
   }
 
   async findAll(): Promise<Film[]> {
     const rows = await this.knex<FilmRow>('film').select('*');
-    return Promise.all(
-      rows.map(async (row) => {
-        const film = FilmMapper.toDomain(row);
-        const tags = await this.loadTags(row.id.trim());
-        return Film.create({ ...film, tags });
-      }),
-    );
+    return Promise.all(rows.map((row) => this.hydrate(row)));
   }
 
   async findByEmulsionId(emulsionId: string): Promise<Film[]> {
     const rows = await this.knex<FilmRow>('film').where({ emulsion_id: emulsionId });
-    return Promise.all(
-      rows.map(async (row) => {
-        const film = FilmMapper.toDomain(row);
-        const tags = await this.loadTags(row.id.trim());
-        return Film.create({ ...film, tags });
-      }),
-    );
+    return Promise.all(rows.map((row) => this.hydrate(row)));
+  }
+
+  async findChildren(parentId: string): Promise<Film[]> {
+    const rows = await this.knex<FilmRow>('film').where({ parent_id: parentId });
+    return Promise.all(rows.map((row) => this.hydrate(row)));
+  }
+
+  async findByCurrentStateIds(stateIds: string[]): Promise<Film[]> {
+    const latestStateSubquery = this.knex('film_state as fs2')
+      .select('fs2.film_id')
+      .whereIn('fs2.state_id', stateIds)
+      .where(
+        'fs2.date',
+        this.knex('film_state as fs3').max('fs3.date').where('fs3.film_id', this.knex.ref('fs2.film_id')),
+      );
+
+    const rows = await this.knex<FilmRow>('film').whereIn('id', latestStateSubquery);
+    return Promise.all(rows.map((row) => this.hydrate(row)));
   }
 
   async save(film: Film): Promise<void> {
@@ -54,6 +56,15 @@ export class FilmKnexRepository implements IFilmRepository {
 
   async delete(id: string): Promise<void> {
     await this.knex('film').where({ id }).delete();
+  }
+
+  private async hydrate(row: FilmRow): Promise<Film> {
+    const film = FilmMapper.toDomain(row);
+    const [tags, states] = await Promise.all([
+      this.loadTags(row.id.trim()),
+      this.loadStates(row.id.trim()),
+    ]);
+    return Film.create({ ...film, tags, states });
   }
 
   private async loadTags(filmId: string): Promise<Tag[]> {

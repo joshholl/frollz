@@ -1,0 +1,100 @@
+import { randomUUID } from 'crypto';
+import { NotFoundException } from '@nestjs/common';
+import { TagService } from './tag.service';
+import { ITagRepository } from '../../../domain/shared/repositories/tag.repository.interface';
+import { Tag } from '../../../domain/shared/entities/tag.entity';
+
+const makeTag = (overrides: Partial<{ id: string; name: string; colorCode: string; description: string | null }> = {}): Tag =>
+  Tag.create({ id: randomUUID(), name: 'Expired', colorCode: '#ff0000', description: null, ...overrides });
+
+const makeRepo = (overrides: Partial<ITagRepository> = {}): ITagRepository => ({
+  findAll: jest.fn().mockResolvedValue([]),
+  findById: jest.fn().mockResolvedValue(null),
+  findByName: jest.fn().mockResolvedValue(null),
+  save: jest.fn().mockResolvedValue(undefined),
+  update: jest.fn().mockResolvedValue(undefined),
+  delete: jest.fn().mockResolvedValue(undefined),
+  ...overrides,
+});
+
+describe('TagService', () => {
+  describe('findAll', () => {
+    it('returns all tags from the repository', async () => {
+      const tag = makeTag();
+      const repo = makeRepo({ findAll: jest.fn().mockResolvedValue([tag]) });
+      const service = new TagService(repo);
+
+      const result = await service.findAll();
+
+      expect(result).toEqual([tag]);
+    });
+  });
+
+  describe('findById', () => {
+    it('returns the tag when found', async () => {
+      const tag = makeTag();
+      const repo = makeRepo({ findById: jest.fn().mockResolvedValue(tag) });
+      const service = new TagService(repo);
+
+      await expect(service.findById(tag.id)).resolves.toEqual(tag);
+    });
+
+    it('throws NotFoundException when tag does not exist', async () => {
+      const service = new TagService(makeRepo());
+
+      await expect(service.findById(randomUUID())).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('create', () => {
+    it('saves and returns a new tag with a generated uuid', async () => {
+      const repo = makeRepo();
+      const service = new TagService(repo);
+
+      const result = await service.create({ name: 'Expired', colorCode: '#ff0000' });
+
+      expect(result.name).toBe('Expired');
+      expect(result.colorCode).toBe('#ff0000');
+      expect(result.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(repo.save).toHaveBeenCalledWith(result);
+    });
+  });
+
+  describe('update', () => {
+    it('applies partial changes and saves', async () => {
+      const existing = makeTag();
+      const repo = makeRepo({ findById: jest.fn().mockResolvedValue(existing) });
+      const service = new TagService(repo);
+
+      const result = await service.update(existing.id, { name: 'Pushed' });
+
+      expect(result.name).toBe('Pushed');
+      expect(result.colorCode).toBe(existing.colorCode);
+      expect(repo.update).toHaveBeenCalledWith(result);
+    });
+
+    it('throws NotFoundException for a missing tag', async () => {
+      const service = new TagService(makeRepo());
+
+      await expect(service.update(randomUUID(), { name: 'x' })).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('delete', () => {
+    it('deletes an existing tag', async () => {
+      const tag = makeTag();
+      const repo = makeRepo({ findById: jest.fn().mockResolvedValue(tag) });
+      const service = new TagService(repo);
+
+      await service.delete(tag.id);
+
+      expect(repo.delete).toHaveBeenCalledWith(tag.id);
+    });
+
+    it('throws NotFoundException when tag does not exist', async () => {
+      const service = new TagService(makeRepo());
+
+      await expect(service.delete(randomUUID())).rejects.toThrow(NotFoundException);
+    });
+  });
+});

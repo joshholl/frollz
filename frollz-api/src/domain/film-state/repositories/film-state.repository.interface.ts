@@ -6,6 +6,7 @@ export interface IFilmStateRepository {
   findById(id: string): Promise<FilmState | null>;
   findByFilmId(filmId: string): Promise<FilmState[]>;
   findLatestByFilmId(filmId: string): Promise<FilmState | null>;
+  findFilmIdsByCurrentState(stateIds: string[]): Promise<string[]>;
   save(filmState: FilmState): Promise<void>;
   update(filmState: FilmState): Promise<void>;
   delete(id: string): Promise<void>;

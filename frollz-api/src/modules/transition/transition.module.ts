@@ -10,6 +10,8 @@ import { TransitionStateKnexRepository } from '../../infrastructure/persistence/
 import { TransitionProfileKnexRepository } from '../../infrastructure/persistence/transition/transition-profile.knex.repository';
 import { TransitionMetadataFieldKnexRepository } from '../../infrastructure/persistence/transition/transition-metadata-field.knex.repository';
 import { TransitionStateMetadataKnexRepository } from '../../infrastructure/persistence/transition/transition-state-metadata.knex.repository';
+import { TransitionService } from './application/transition.service';
+import { TransitionController } from './transition.controller';
 
 @Module({
   imports: [DatabaseModule],
@@ -19,7 +21,9 @@ import { TransitionStateMetadataKnexRepository } from '../../infrastructure/pers
     { provide: TRANSITION_PROFILE_REPOSITORY, useClass: TransitionProfileKnexRepository },
     { provide: TRANSITION_METADATA_FIELD_REPOSITORY, useClass: TransitionMetadataFieldKnexRepository },
     { provide: TRANSITION_STATE_METADATA_REPOSITORY, useClass: TransitionStateMetadataKnexRepository },
+    TransitionService,
   ],
+  controllers: [TransitionController],
   exports: [
     TRANSITION_RULE_REPOSITORY,
     TRANSITION_STATE_REPOSITORY,

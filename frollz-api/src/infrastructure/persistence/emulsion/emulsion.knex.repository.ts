@@ -52,6 +52,27 @@ export class EmulsionKnexRepository implements IEmulsionRepository {
     );
   }
 
+  async findBrands(q?: string): Promise<string[]> {
+    const query = this.knex<EmulsionRow>('emulsion').distinct('brand').orderBy('brand');
+    if (q) query.whereILike('brand', `%${q}%`);
+    const rows = await query;
+    return rows.map((r) => r.brand);
+  }
+
+  async findManufacturers(q?: string): Promise<string[]> {
+    const query = this.knex<EmulsionRow>('emulsion').distinct('manufacturer').orderBy('manufacturer');
+    if (q) query.whereILike('manufacturer', `%${q}%`);
+    const rows = await query;
+    return rows.map((r) => r.manufacturer);
+  }
+
+  async findSpeeds(q?: string): Promise<number[]> {
+    const query = this.knex<EmulsionRow>('emulsion').distinct('speed').orderBy('speed');
+    if (q) query.where('speed', 'like', `%${q}%`);
+    const rows = await query;
+    return rows.map((r) => r.speed);
+  }
+
   async save(emulsion: Emulsion): Promise<void> {
     await this.knex('emulsion').insert(EmulsionMapper.toPersistence(emulsion));
   }

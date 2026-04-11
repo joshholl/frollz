@@ -43,6 +43,17 @@ export class FilmStateKnexRepository implements IFilmStateRepository {
     return FilmState.create({ ...filmState, metadata });
   }
 
+  async findFilmIdsByCurrentState(stateIds: string[]): Promise<string[]> {
+    const rows = await this.knex<FilmStateRow>('film_state as fs')
+      .whereIn('fs.state_id', stateIds)
+      .where(
+        'fs.date',
+        this.knex('film_state as fs2').max('fs2.date').where('fs2.film_id', this.knex.ref('fs.film_id')),
+      )
+      .select('fs.film_id');
+    return rows.map((r) => r.film_id.trim());
+  }
+
   async save(filmState: FilmState): Promise<void> {
     await this.knex('film_state').insert(FilmStateMapper.toPersistence(filmState));
   }
