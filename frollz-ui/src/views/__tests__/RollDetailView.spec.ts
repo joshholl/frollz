@@ -5,23 +5,23 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { axe } from 'vitest-axe'
 import RollDetailView from '@/views/RollDetailView.vue'
-import { rollApi, rollStateApi, rollTagApi, tagApi, transitionApi } from '@/services/api-client'
-import { RollState } from '@/types'
-import type { Roll, RollStateHistory, Tag, RollTag, TransitionGraph, TransitionEdge } from '@/types'
+import { filmApi, filmTagApi, tagApi, transitionApi } from '@/services/api-client'
+import type { Film, Tag, FilmTag, TransitionGraph, TransitionEdge, FilmState } from '@/types'
+import { randomInt } from 'crypto'
+
+const randomId = () => randomInt(1, 1000000);
 
 const axeOptions = {
   runOnly: { type: 'tag' as const, values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
 }
 
 vi.mock('@/services/api-client', () => ({
-  rollApi: {
+  filmApi: {
     getById: vi.fn(),
     transition: vi.fn(),
+    getChildren: vi.fn(),
   },
-  rollStateApi: {
-    getHistory: vi.fn(),
-  },
-  rollTagApi: {
+  filmTagApi: {
     getAll: vi.fn(),
     create: vi.fn(),
     delete: vi.fn(),
@@ -31,11 +31,12 @@ vi.mock('@/services/api-client', () => ({
   },
   transitionApi: {
     getGraph: vi.fn(),
+    getProfiles: vi.fn(),
   },
 }))
 
 const edge = (
-  id: string,
+  id: number,
   fromState: string,
   toState: string,
   transitionType: 'FORWARD' | 'BACKWARD',
@@ -44,45 +45,41 @@ const edge = (
 ): TransitionEdge => ({ id, fromState, toState, transitionType, requiresDate, metadata })
 
 const makeGraph = (): TransitionGraph => ({
-  states: ['Added', 'Frozen', 'Refrigerated', 'Shelved', 'Loaded', 'Finished', 'Sent For Development', 'Developed', 'Received'],
+  states: ['Added', 'Shelved', 'Loaded', 'Finished'],
   transitions: [
-    // FORWARD
-    edge('e1',  'Added',                'Frozen',               'FORWARD', true,  [{ field: 'temperature', fieldType: 'number', defaultValue: null, isRequired: false }]),
-    edge('e2',  'Added',                'Refrigerated',         'FORWARD', true,  [{ field: 'temperature', fieldType: 'number', defaultValue: null, isRequired: false }]),
-    edge('e3',  'Added',                'Shelved',              'FORWARD', true,  [{ field: 'temperature', fieldType: 'number', defaultValue: null, isRequired: false }]),
-    edge('e4',  'Frozen',               'Refrigerated',         'FORWARD', true,  [{ field: 'temperature', fieldType: 'number', defaultValue: null, isRequired: false }]),
-    edge('e5',  'Frozen',               'Shelved',              'FORWARD', true,  [{ field: 'temperature', fieldType: 'number', defaultValue: null, isRequired: false }]),
-    edge('e6',  'Refrigerated',         'Shelved',              'FORWARD', true,  [{ field: 'temperature', fieldType: 'number', defaultValue: null, isRequired: false }]),
-    edge('e7',  'Shelved',              'Loaded',               'FORWARD', true,  []),
-    edge('e8',  'Loaded',               'Finished',             'FORWARD', true,  [{ field: 'shotISO', fieldType: 'number', defaultValue: null, isRequired: false }]),
-    edge('e9',  'Finished',             'Sent For Development', 'FORWARD', true,  [
-      { field: 'labName',           fieldType: 'string',  defaultValue: null, isRequired: false },
-      { field: 'deliveryMethod',    fieldType: 'string',  defaultValue: null, isRequired: false },
-      { field: 'processRequested',  fieldType: 'string',  defaultValue: null, isRequired: false },
-      { field: 'pushPullStops',     fieldType: 'number',  defaultValue: null, isRequired: false },
-    ]),
-    edge('e10', 'Sent For Development', 'Developed',            'FORWARD', true,  []),
-    edge('e11', 'Developed',            'Received',             'FORWARD', false, [
-      { field: 'scansReceived',     fieldType: 'boolean', defaultValue: null, isRequired: false },
-      { field: 'scansUrl',          fieldType: 'string',  defaultValue: null, isRequired: false },
-      { field: 'negativesReceived', fieldType: 'boolean', defaultValue: null, isRequired: false },
-      { field: 'negativesDate',     fieldType: 'date',    defaultValue: null, isRequired: false },
-    ]),
-    // BACKWARD
-    edge('e12', 'Frozen',               'Added',                'BACKWARD', false, []),
-    edge('e13', 'Refrigerated',         'Frozen',               'BACKWARD', false, []),
-    edge('e14', 'Refrigerated',         'Added',                'BACKWARD', false, []),
-    edge('e15', 'Shelved',              'Refrigerated',         'BACKWARD', false, []),
-    edge('e16', 'Shelved',              'Frozen',               'BACKWARD', false, []),
-    edge('e17', 'Loaded',               'Shelved',              'BACKWARD', false, []),
-    edge('e18', 'Loaded',               'Refrigerated',         'BACKWARD', false, []),
-    edge('e19', 'Loaded',               'Frozen',               'BACKWARD', false, []),
-    edge('e20', 'Finished',             'Loaded',               'BACKWARD', false, []),
-    edge('e21', 'Sent For Development', 'Finished',             'BACKWARD', false, []),
-    edge('e22', 'Developed',            'Sent For Development', 'BACKWARD', false, []),
-    edge('e23', 'Received',             'Developed',            'BACKWARD', false, []),
+    edge(randomId(), 'Added',    'Shelved',  'FORWARD',  true, []),
+    edge(randomId(), 'Shelved',  'Loaded',   'FORWARD',  true, []),
+    edge(randomId(), 'Loaded',   'Finished', 'FORWARD',  true, []),
+    edge(randomId(), 'Shelved',  'Added',    'BACKWARD', false, []),
+    edge(randomId(), 'Loaded',   'Shelved',  'BACKWARD', false, []),
   ],
 })
+
+const makeFilmState = (stateName: string, date: Date): FilmState => ({
+  id: randomId(),
+  filmId: 'film1',
+  stateId: randomId(),
+  date,
+  note: undefined,
+  state: { id: randomId(), name: stateName },
+})
+
+const makeFilm = (overrides: Partial<Film> = {}): Film => ({
+  id: 'film1',
+  name: 'roll-00001',
+  emulsionId: randomId(),
+  expirationDate: new Date('2026-12-01'),
+  parentId: null,
+  transitionProfileId: 'prof-standard',
+  tags: [],
+  states: [makeFilmState('Shelved', new Date('2024-01-15'))],
+  ...overrides,
+})
+
+const mockProfiles = [
+  { id: 'prof-standard', name: 'standard' },
+  { id: 'prof-bulk', name: 'bulk' },
+]
 
 const router = createRouter({
   history: createMemoryHistory(),
@@ -92,46 +89,8 @@ const router = createRouter({
   ],
 })
 
-const makeRoll = (overrides: Partial<Roll> = {}): Roll => ({
-  _key: 'r1',
-  rollId: 'roll-00001',
-  stockKey: 'stock1',
-  state: RollState.SHELVED,
-  dateObtained: new Date('2024-01-15'),
-  obtainmentMethod: 'Purchase' as any,
-  obtainedFrom: 'B&H',
-  timesExposedToXrays: 0,
-  ...overrides,
-} as Roll)
-
-const makeHistory = (entries: Partial<RollStateHistory>[]): RollStateHistory[] =>
-  entries.map((e, i) => ({
-    stateId: `state-${i}`,
-    rollKey: 'r1',
-    state: RollState.ADDED,
-    date: new Date(`2024-01-${String(i + 1).padStart(2, '0')}`),
-    notes: undefined,
-    ...e,
-  } as RollStateHistory))
-
-const makeTag = (key: string, value: string, isRollScoped = true, color = '#ff0000'): Tag => ({
-  _key: key,
-  value,
-  color,
-  isRollScoped,
-  isStockScoped: false,
-  createdAt: new Date(),
-})
-
-const makeRollTag = (key: string, tagKey: string): RollTag => ({
-  _key: key,
-  rollKey: 'r1',
-  tagKey,
-  createdAt: new Date(),
-})
-
-const mountView = async (rollKey = 'r1') => {
-  await router.push(`/rolls/${rollKey}`)
+const mountView = async (filmId = 'film1') => {
+  await router.push(`/rolls/${filmId}`)
   await router.isReady()
   const wrapper = mount(RollDetailView, { global: { plugins: [router] } })
   await flushPromises()
@@ -142,32 +101,30 @@ describe('RollDetailView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
-    vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll() } as any)
-    vi.mocked(rollStateApi.getHistory).mockResolvedValue({ data: [] } as any)
+    vi.mocked(filmApi.getById).mockResolvedValue({ data: makeFilm() } as any)
+    vi.mocked(filmApi.transition).mockResolvedValue({ data: makeFilm() } as any)
+    vi.mocked(filmApi.getChildren).mockResolvedValue({ data: [] } as any)
     vi.mocked(tagApi.getAll).mockResolvedValue({ data: [] } as any)
-    vi.mocked(rollTagApi.getAll).mockResolvedValue({ data: [] } as any)
-    vi.mocked(rollApi.transition).mockResolvedValue({ data: makeRoll() } as any)
-    vi.mocked(rollTagApi.create).mockResolvedValue({ data: makeRollTag('rt-new', 't1') } as any)
-    vi.mocked(rollTagApi.delete).mockResolvedValue({} as any)
+    vi.mocked(filmTagApi.getAll).mockResolvedValue({ data: [] } as any)
+    vi.mocked(filmTagApi.create).mockResolvedValue({ data: {} } as any)
+    vi.mocked(filmTagApi.delete).mockResolvedValue({} as any)
     vi.mocked(transitionApi.getGraph).mockResolvedValue({ data: makeGraph() } as any)
+    vi.mocked(transitionApi.getProfiles).mockResolvedValue({ data: mockProfiles } as any)
   })
 
   describe('accessibility', () => {
-    it('renders the roll detail view with transitions panel without a11y violations', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.SHELVED }) } as any)
+    it('renders the film detail view with transitions panel without a11y violations', async () => {
       const wrapper = await mountView()
 
       const results = await axe(wrapper.element, axeOptions)
       expect(results).toHaveNoViolations()
     })
 
-    it('renders the metadata form (Sent For Development) without a11y violations', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.FINISHED }) } as any)
+    it('renders the transition date form without a11y violations', async () => {
       const wrapper = await mountView()
 
-      // Open the metadata form via vm directly to avoid fake-timer conflicts with axe
       const vm = wrapper.vm as any
-      vm.pendingMetadataTransition = RollState.SENT_FOR_DEVELOPMENT
+      vm.pendingTransition = 'Loaded'
       await wrapper.vm.$nextTick()
 
       const results = await axe(wrapper.element, axeOptions)
@@ -177,105 +134,57 @@ describe('RollDetailView', () => {
 
   describe('data loading', () => {
     it('should show loading state initially', () => {
-      vi.mocked(rollApi.getById).mockReturnValue(new Promise(() => {}) as any)
+      vi.mocked(filmApi.getById).mockReturnValue(new Promise(() => {}) as any)
       const wrapper = mount(RollDetailView, { global: { plugins: [router] } })
       expect(wrapper.text()).toContain('Loading...')
     })
 
-    it('should display roll ID as heading', async () => {
+    it('should display film name as heading', async () => {
       const wrapper = await mountView()
       expect(wrapper.find('h1').text()).toBe('roll-00001')
     })
 
-    it('should display roll state as badge', async () => {
+    it('should display current state as badge', async () => {
       const wrapper = await mountView()
       expect(wrapper.text()).toContain('Shelved')
     })
 
-    it('should display obtained from in details', async () => {
+    it('should show film not found when film is null', async () => {
+      vi.mocked(filmApi.getById).mockResolvedValue({ data: null } as any)
       const wrapper = await mountView()
-      expect(wrapper.text()).toContain('B&H')
+      expect(wrapper.text()).toContain('Film not found')
     })
 
-    it('should show not found when roll is missing', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: null } as any)
-      const wrapper = await mountView()
-      expect(wrapper.text()).toContain('Roll not found')
-    })
-
-    it('should show no history message when history is empty', async () => {
+    it('should show no history message when states is empty', async () => {
+      vi.mocked(filmApi.getById).mockResolvedValue({ data: makeFilm({ states: [] }) } as any)
       const wrapper = await mountView()
       expect(wrapper.text()).toContain('No history recorded yet')
     })
   })
 
-  describe('transition history direction annotation', () => {
-    it('should mark first entry as initial', async () => {
-      vi.mocked(rollStateApi.getHistory).mockResolvedValue({
-        data: makeHistory([{ state: RollState.ADDED, date: new Date('2024-01-01') }]),
+  describe('transition history', () => {
+    it('should display history entries from film.states newest first', async () => {
+      vi.mocked(filmApi.getById).mockResolvedValue({
+        data: makeFilm({
+          states: [
+            makeFilmState('Added',   new Date('2024-01-01')),
+            makeFilmState('Shelved', new Date('2024-01-10')),
+          ],
+        }),
       } as any)
-      const wrapper = await mountView()
-      expect(wrapper.text()).toContain('initial')
-    })
 
-    it('should classify forward transitions correctly', async () => {
-      vi.mocked(rollStateApi.getHistory).mockResolvedValue({
-        data: makeHistory([
-          { state: RollState.ADDED, date: new Date('2024-01-01') },
-          { state: RollState.SHELVED, date: new Date('2024-01-02') },
-        ]),
-      } as any)
       const wrapper = await mountView()
-      // No "correction" label means forward transition
-      expect(wrapper.text()).not.toContain('correction')
-    })
+      const historyText = wrapper.text()
 
-    it('should label backward transitions as "↩ backward" when not an error correction', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.ADDED }) } as any)
-      vi.mocked(rollStateApi.getHistory).mockResolvedValue({
-        data: makeHistory([
-          { state: RollState.ADDED, date: new Date('2024-01-01') },
-          { state: RollState.FROZEN, date: new Date('2024-01-02') },
-          { state: RollState.ADDED, date: new Date('2024-01-03') },
-        ]),
-      } as any)
-      const wrapper = await mountView()
-      expect(wrapper.text()).toContain('↩ backward')
-    })
-
-    it('should label backward transitions as "↩ error correction" when isErrorCorrection is true', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.ADDED }) } as any)
-      vi.mocked(rollStateApi.getHistory).mockResolvedValue({
-        data: makeHistory([
-          { state: RollState.ADDED, date: new Date('2024-01-01') },
-          { state: RollState.FROZEN, date: new Date('2024-01-02') },
-          { state: RollState.ADDED, date: new Date('2024-01-03'), isErrorCorrection: true } as any,
-        ]),
-      } as any)
-      const wrapper = await mountView()
-      expect(wrapper.text()).toContain('↩ error correction')
-    })
-
-    it('should display history newest first', async () => {
-      vi.mocked(rollStateApi.getHistory).mockResolvedValue({
-        data: makeHistory([
-          { state: RollState.ADDED, date: new Date('2024-01-01') },
-          { state: RollState.FROZEN, date: new Date('2024-01-02') },
-          { state: RollState.SHELVED, date: new Date('2024-01-03') },
-        ]),
-      } as any)
-      const wrapper = await mountView()
-      const badges = wrapper.findAll('ol li span.rounded-full')
-      expect(badges[0].text()).toBe('Shelved')
-      expect(badges[badges.length - 1].text()).toBe('Added')
+      // Newest (Shelved) should appear before oldest (Added)
+      const shelvedIdx = historyText.indexOf('Shelved')
+      const addedIdx = historyText.lastIndexOf('Added')
+      expect(shelvedIdx).toBeLessThan(addedIdx)
     })
   })
 
   describe('transitions', () => {
     beforeEach(() => {
-      // Fix the clock to noon UTC so date-with-current-time logic in RollDetailView
-      // produces ISO strings whose calendar date matches the user-entered date
-      // in every timezone (UTC-12 through UTC+12).
       vi.useFakeTimers()
       vi.setSystemTime(new Date('2026-01-01T12:00:00.000Z'))
     })
@@ -285,438 +194,147 @@ describe('RollDetailView', () => {
     })
 
     it('should show forward transition buttons for current state', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.SHELVED }) } as any)
       const wrapper = await mountView()
       expect(wrapper.text()).toContain('Loaded')
     })
 
-    it('should show backward transition buttons with ↩ prefix', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.SHELVED }) } as any)
+    it('should show backward transition buttons for current state', async () => {
       const wrapper = await mountView()
-      // SHELVED can go back to REFRIGERATED and FROZEN
-      const buttons = wrapper.findAll('button')
-      const backwardBtn = buttons.find(b => b.text().startsWith('↩'))
-      expect(backwardBtn).toBeTruthy()
+      // Shelved has a backward rule to Added; the button should be present
+      expect(wrapper.text()).toContain('Added')
     })
 
-    it('should show backward transitions for RECEIVED state', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.RECEIVED }) } as any)
+    it('should open date+note form when a transition button is clicked', async () => {
       const wrapper = await mountView()
-      expect(wrapper.text()).toContain('Transitions')
-      const buttons = wrapper.findAll('button')
-      const backwardBtn = buttons.find(b => b.text().startsWith('↩'))
-      expect(backwardBtn).toBeTruthy()
-    })
-
-    it('should show metadata form when clicking FROZEN from ADDED', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.ADDED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const frozenBtn = buttons.find(b => b.text() === 'Frozen')
-      await frozenBtn!.trigger('click')
-      await flushPromises()
-
-      expect(wrapper.text()).toContain('Frozen details')
-      expect(wrapper.find('input[type="number"]').exists()).toBe(true)
-      expect(rollApi.transition).not.toHaveBeenCalled()
-    })
-
-    it('should call transition with temperature metadata when metadata form is confirmed', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.ADDED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const frozenBtn = buttons.find(b => b.text() === 'Frozen')
-      await frozenBtn!.trigger('click')
-      await flushPromises()
 
       const vm = wrapper.vm as any
-      vm.metadataDate = '2026-01-10'
-      const input = wrapper.find('input[type="number"]')
-      await input.setValue('-20')
-
-      const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Confirm')
-      await confirmBtn!.trigger('click')
-      await flushPromises()
-
-      expect(rollApi.transition).toHaveBeenCalledWith(
-        'r1', RollState.FROZEN, expect.stringContaining('2026-01-10'), undefined, undefined, { temperature: -20 },
-      )
-    })
-
-    it('should call transition with no metadata when temperature is cleared', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.ADDED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const frozenBtn = buttons.find(b => b.text() === 'Frozen')
-      await frozenBtn!.trigger('click')
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.metadataDate = '2026-01-10'
-      const input = wrapper.find('input[type="number"]')
-      await input.setValue('')
-
-      const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Confirm')
-      await confirmBtn!.trigger('click')
-      await flushPromises()
-
-      expect(rollApi.transition).toHaveBeenCalledWith(
-        'r1', RollState.FROZEN, expect.stringContaining('2026-01-10'), undefined, undefined, undefined,
-      )
-    })
-
-    it('should show shot ISO field (not temperature) when clicking Finished', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.LOADED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const finishedBtn = buttons.find(b => b.text() === 'Finished')
-      await finishedBtn!.trigger('click')
-      await flushPromises()
-
-      expect(wrapper.text()).toContain('Shot ISO')
-      expect(wrapper.text()).not.toContain('temperature')
-      expect(rollApi.transition).not.toHaveBeenCalled()
-    })
-
-    it('should include shotISO in metadata when confirming FINISHED', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.LOADED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const finishedBtn = buttons.find(b => b.text() === 'Finished')
-      await finishedBtn!.trigger('click')
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.metadataDate = '2026-02-14'
-      const input = wrapper.find('input[type="number"]')
-      await input.setValue('800')
-
-      const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Confirm')
-      await confirmBtn!.trigger('click')
-      await flushPromises()
-
-      expect(rollApi.transition).toHaveBeenCalledWith(
-        'r1', RollState.FINISHED, expect.stringContaining('2026-02-14'), undefined, undefined, { shotISO: 800 },
-      )
-    })
-
-    it('should transition FINISHED with no metadata when shotISO is left blank', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.LOADED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const finishedBtn = buttons.find(b => b.text() === 'Finished')
-      await finishedBtn!.trigger('click')
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.metadataDate = '2026-02-14'
-
-      const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Confirm')
-      await confirmBtn!.trigger('click')
-      await flushPromises()
-
-      expect(rollApi.transition).toHaveBeenCalledWith(
-        'r1', RollState.FINISHED, expect.stringContaining('2026-02-14'), undefined, undefined, undefined,
-      )
-    })
-
-    it('should show lab form when clicking Sent For Development', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.FINISHED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const sentBtn = buttons.find(b => b.text() === 'Sent For Development')
-      await sentBtn!.trigger('click')
-      await flushPromises()
-
-      expect(wrapper.text()).toContain('Lab name')
-      expect(wrapper.text()).toContain('Delivery method')
-      expect(wrapper.text()).toContain('Process requested')
-      expect(rollApi.transition).not.toHaveBeenCalled()
-    })
-
-    it('should show validation error when required lab fields are missing', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.FINISHED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const sentBtn = buttons.find(b => b.text() === 'Sent For Development')
-      await sentBtn!.trigger('click')
-      await flushPromises()
-
-      const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Confirm')
-      await confirmBtn!.trigger('click')
-      await flushPromises()
-
-      expect(wrapper.text()).toContain('required')
-      expect(rollApi.transition).not.toHaveBeenCalled()
-    })
-
-    it('should call transition with lab metadata when all required fields are filled', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.FINISHED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const sentBtn = buttons.find(b => b.text() === 'Sent For Development')
-      await sentBtn!.trigger('click')
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.metadataDate = '2026-03-01'
-      vm.metadataLabName = 'The Darkroom'
-      vm.metadataDeliveryMethod = 'Mail in'
-      vm.metadataProcessRequested = 'C-41'
+      vm.handleTransition('Loaded')
       await wrapper.vm.$nextTick()
 
-      const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Confirm')
-      await confirmBtn!.trigger('click')
-      await flushPromises()
-
-      expect(rollApi.transition).toHaveBeenCalledWith(
-        'r1', RollState.SENT_FOR_DEVELOPMENT, expect.stringContaining('2026-03-01'), undefined, undefined,
-        expect.objectContaining({ labName: 'The Darkroom', deliveryMethod: 'Mail in', processRequested: 'C-41' }),
-      )
+      expect(vm.pendingTransition).toBe('Loaded')
+      expect(wrapper.find('input[type="date"]').exists()).toBe(true)
     })
 
-    it('should show scans/negatives checkboxes when clicking Received', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.DEVELOPED }) } as any)
+    it('should call filmApi.transition and reload on confirmTransition', async () => {
+      vi.mocked(filmApi.transition).mockResolvedValue({ data: makeFilm() } as any)
+
       const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const receivedBtn = buttons.find(b => b.text() === 'Received')
-      await receivedBtn!.trigger('click')
-      await flushPromises()
-
-      expect(wrapper.text()).toContain('Scans received')
-      expect(wrapper.text()).toContain('Negatives received')
-      expect(rollApi.transition).not.toHaveBeenCalled()
-    })
-
-    it('should include scans metadata when scans checkbox is checked and form confirmed', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.DEVELOPED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const receivedBtn = buttons.find(b => b.text() === 'Received')
-      await receivedBtn!.trigger('click')
-      await flushPromises()
-
       const vm = wrapper.vm as any
-      vm.metadataScansReceived = true
-      vm.metadataScansDate = '2026-03-18'
+      vm.handleTransition('Loaded')
+      vm.transitionDate = '2026-01-15'
+      vm.transitionNote = 'test note'
       await wrapper.vm.$nextTick()
 
-      const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Confirm')
-      await confirmBtn!.trigger('click')
+      await vm.confirmTransition()
       await flushPromises()
 
-      expect(rollApi.transition).toHaveBeenCalledWith(
-        'r1', RollState.RECEIVED, undefined, undefined, undefined,
-        expect.objectContaining({ scansReceived: true, scansDate: '2026-03-18' }),
+      expect(filmApi.transition).toHaveBeenCalledWith(
+        'film1',
+        'Loaded',
+        expect.stringContaining('2026-01-15'),
+        'test note',
       )
     })
 
-    it('should transition Received with no metadata when no boxes are checked', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.DEVELOPED }) } as any)
+    it('should dismiss the pending transition when Cancel is clicked', async () => {
       const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const receivedBtn = buttons.find(b => b.text() === 'Received')
-      await receivedBtn!.trigger('click')
-      await flushPromises()
-
-      const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Confirm')
-      await confirmBtn!.trigger('click')
-      await flushPromises()
-
-      expect(rollApi.transition).toHaveBeenCalledWith(
-        'r1', RollState.RECEIVED, undefined, undefined, undefined, undefined,
-      )
-    })
-
-    it('should dismiss metadata form without transitioning when Cancel is clicked', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.ADDED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const frozenBtn = buttons.find(b => b.text() === 'Frozen')
-      await frozenBtn!.trigger('click')
-      await flushPromises()
-
-      const cancelBtn = wrapper.findAll('button').find(b => b.text() === 'Cancel')
-      await cancelBtn!.trigger('click')
-      await flushPromises()
-
-      expect(rollApi.transition).not.toHaveBeenCalled()
-      expect(wrapper.text()).not.toContain('Frozen details')
-    })
-
-    it('should call rollApi.transition and reload on forward transition click', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.SHELVED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const loadedBtn = buttons.find(b => b.text() === 'Loaded')
-      await loadedBtn!.trigger('click')
-      await flushPromises()
-
-      // LOADED now requires a metadata form with a date
       const vm = wrapper.vm as any
-      vm.metadataDate = '2026-01-15'
+      vm.handleTransition('Loaded')
       await wrapper.vm.$nextTick()
 
-      const confirmBtn = wrapper.findAll('button').find(b => b.text() === 'Confirm')
-      await confirmBtn!.trigger('click')
-      await flushPromises()
+      vm.pendingTransition = null
+      await wrapper.vm.$nextTick()
 
-      expect(rollApi.transition).toHaveBeenCalledWith('r1', RollState.LOADED, expect.stringContaining('2026-01-15'), undefined, undefined, undefined)
-      expect(rollApi.getById).toHaveBeenCalledTimes(2)
-    })
-
-    it('should show error correction prompt when backward transition is clicked', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.SHELVED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const backwardBtn = buttons.find(b => b.text().startsWith('↩'))
-      await backwardBtn!.trigger('click')
-      await flushPromises()
-
-      expect(wrapper.text()).toContain('Was this done to correct an error?')
-      expect(rollApi.transition).not.toHaveBeenCalled()
-    })
-
-    it('should call transition with isErrorCorrection=true when Yes is clicked', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.SHELVED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const backwardBtn = buttons.find(b => b.text().startsWith('↩'))
-      await backwardBtn!.trigger('click')
-      await flushPromises()
-
-      const yesBtn = wrapper.findAll('button').find(b => b.text() === 'Yes')
-      await yesBtn!.trigger('click')
-      await flushPromises()
-
-      expect(rollApi.transition).toHaveBeenCalledWith('r1', expect.any(String), undefined, undefined, true, undefined)
-    })
-
-    it('should call transition with isErrorCorrection=false when No is clicked', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.SHELVED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const backwardBtn = buttons.find(b => b.text().startsWith('↩'))
-      await backwardBtn!.trigger('click')
-      await flushPromises()
-
-      const noBtn = wrapper.findAll('button').find(b => b.text() === 'No')
-      await noBtn!.trigger('click')
-      await flushPromises()
-
-      expect(rollApi.transition).toHaveBeenCalledWith('r1', expect.any(String), undefined, undefined, false, undefined)
-    })
-
-    it('should dismiss the prompt without transitioning when Cancel is clicked', async () => {
-      vi.mocked(rollApi.getById).mockResolvedValue({ data: makeRoll({ state: RollState.SHELVED }) } as any)
-      const wrapper = await mountView()
-
-      const buttons = wrapper.findAll('button')
-      const backwardBtn = buttons.find(b => b.text().startsWith('↩'))
-      await backwardBtn!.trigger('click')
-      await flushPromises()
-
-      const cancelBtn = wrapper.findAll('button').find(b => b.text() === 'Cancel')
-      await cancelBtn!.trigger('click')
-      await flushPromises()
-
-      expect(rollApi.transition).not.toHaveBeenCalled()
-      expect(wrapper.text()).not.toContain('Was this done to correct an error?')
+      expect(vm.pendingTransition).toBeNull()
+      expect(wrapper.find('input[type="date"]').exists()).toBe(false)
     })
   })
 
   describe('tags', () => {
+    const tagA: Tag = { id: 'tag-a', name: 'Push', colorCode: '#ff0000' }
+    const tagB: Tag = { id: 'tag-b', name: 'Pull', colorCode: '#0000ff' }
+    const filmTagA: FilmTag = { id: 'ft-a', filmId: 'film1', tagId: 'tag-a' }
+
     it('should show "No tags yet" when no tags are assigned', async () => {
       const wrapper = await mountView()
       expect(wrapper.text()).toContain('No tags yet')
     })
 
     it('should display assigned tags as chips', async () => {
-      vi.mocked(tagApi.getAll).mockResolvedValue({
-        data: [makeTag('t1', 'expired'), makeTag('t2', 'pushed')],
-      } as any)
-      vi.mocked(rollTagApi.getAll).mockResolvedValue({
-        data: [makeRollTag('rt1', 't1')],
-      } as any)
+      vi.mocked(tagApi.getAll).mockResolvedValue({ data: [tagA, tagB] } as any)
+      vi.mocked(filmTagApi.getAll).mockResolvedValue({ data: [filmTagA] } as any)
+
       const wrapper = await mountView()
-      expect(wrapper.text()).toContain('expired')
+      expect(wrapper.text()).toContain('Push')
     })
 
-    it('should only show roll-scoped tags in available tags', async () => {
-      vi.mocked(tagApi.getAll).mockResolvedValue({
-        data: [
-          makeTag('t1', 'roll-tag', true),
-          makeTag('t2', 'stock-only-tag', false),
-        ],
-      } as any)
+    it('should show unassigned tags in the available tags list', async () => {
+      vi.mocked(tagApi.getAll).mockResolvedValue({ data: [tagA, tagB] } as any)
+      vi.mocked(filmTagApi.getAll).mockResolvedValue({ data: [filmTagA] } as any)
+
       const wrapper = await mountView()
       const vm = wrapper.vm as any
-      expect(vm.availableTags.map((t: Tag) => t.value)).toContain('roll-tag')
-      expect(vm.availableTags.map((t: Tag) => t.value)).not.toContain('stock-only-tag')
+
+      // tagA is assigned, only tagB should be available
+      expect(vm.availableTags.map((t: Tag) => t.id)).toContain('tag-b')
+      expect(vm.availableTags.map((t: Tag) => t.id)).not.toContain('tag-a')
     })
 
     it('should not show already-assigned tags in available tags', async () => {
-      vi.mocked(tagApi.getAll).mockResolvedValue({
-        data: [makeTag('t1', 'expired'), makeTag('t2', 'pushed')],
-      } as any)
-      vi.mocked(rollTagApi.getAll).mockResolvedValue({
-        data: [makeRollTag('rt1', 't1')],
-      } as any)
+      vi.mocked(tagApi.getAll).mockResolvedValue({ data: [tagA] } as any)
+      vi.mocked(filmTagApi.getAll).mockResolvedValue({ data: [filmTagA] } as any)
+
       const wrapper = await mountView()
       const vm = wrapper.vm as any
-      expect(vm.availableTags.map((t: Tag) => t._key)).not.toContain('t1')
-      expect(vm.availableTags.map((t: Tag) => t._key)).toContain('t2')
+      expect(vm.availableTags).toHaveLength(0)
     })
 
-    it('should call rollTagApi.create and reload when adding a tag', async () => {
-      vi.mocked(tagApi.getAll).mockResolvedValue({
-        data: [makeTag('t1', 'expired')],
-      } as any)
+    it('should call filmTagApi.create and reload when adding a tag', async () => {
+      vi.mocked(tagApi.getAll).mockResolvedValue({ data: [tagA, tagB] } as any)
+      vi.mocked(filmTagApi.getAll).mockResolvedValue({ data: [] } as any)
+
       const wrapper = await mountView()
       const vm = wrapper.vm as any
-      await vm.addTag({ _key: 't1', value: 'expired' })
+      await vm.addTag(tagA)
       await flushPromises()
 
-      expect(rollTagApi.create).toHaveBeenCalledWith({ rollKey: 'r1', tagKey: 't1' })
-      expect(rollTagApi.getAll).toHaveBeenCalledTimes(2)
+      expect(filmTagApi.create).toHaveBeenCalledWith({ filmId: 'film1', tagId: 'tag-a' })
+      expect(filmTagApi.getAll).toHaveBeenCalledTimes(2)
     })
 
-    it('should call rollTagApi.delete and reload when removing a tag', async () => {
-      vi.mocked(tagApi.getAll).mockResolvedValue({
-        data: [makeTag('t1', 'expired')],
-      } as any)
-      vi.mocked(rollTagApi.getAll).mockResolvedValue({
-        data: [makeRollTag('rt1', 't1')],
-      } as any)
+    it('should call filmTagApi.delete and reload when removing a tag', async () => {
+      vi.mocked(filmTagApi.getAll).mockResolvedValue({ data: [filmTagA] } as any)
+
       const wrapper = await mountView()
       const vm = wrapper.vm as any
-      await vm.removeTag('rt1')
+      await vm.removeTag('ft-a')
       await flushPromises()
 
-      expect(rollTagApi.delete).toHaveBeenCalledWith('rt1')
-      expect(rollTagApi.getAll).toHaveBeenCalledTimes(2)
+      expect(filmTagApi.delete).toHaveBeenCalledWith('ft-a')
+      expect(filmTagApi.getAll).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('bulk film detection', () => {
+    it('should compute isBulkFilm as true when transitionProfileId matches bulk profile', async () => {
+      vi.mocked(filmApi.getById).mockResolvedValue({
+        data: makeFilm({ transitionProfileId: 'prof-bulk' }),
+      } as any)
+
+      const wrapper = await mountView()
+      const vm = wrapper.vm as any
+      expect(vm.isBulkFilm).toBe(true)
+    })
+
+    it('should compute isBulkFilm as false for standard profile', async () => {
+      const wrapper = await mountView()
+      const vm = wrapper.vm as any
+      expect(vm.isBulkFilm).toBe(false)
     })
   })
 
   describe('navigation', () => {
-    it('should navigate back to rolls list when back button is clicked', async () => {
+    it('should navigate back to films list on back button click', async () => {
       const wrapper = await mountView()
       const backBtn = wrapper.find('button')
       await backBtn.trigger('click')

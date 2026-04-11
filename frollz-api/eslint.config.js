@@ -1,49 +1,26 @@
-const {
-    defineConfig,
-    globalIgnores,
-} = require("eslint/config");
+// @ts-check
+const tseslint = require('@typescript-eslint/eslint-plugin');
+const tsParser = require('@typescript-eslint/parser');
 
-const tsParser = require("@typescript-eslint/parser");
-const typescriptEslintEslintPlugin = require("@typescript-eslint/eslint-plugin");
-const globals = require("globals");
-const js = require("@eslint/js");
-
-const {
-    FlatCompat,
-} = require("@eslint/eslintrc");
-
-const compat = new FlatCompat({
-    baseDirectory: __dirname,
-    recommendedConfig: js.configs.recommended,
-    allConfig: js.configs.all
-});
-
-module.exports = defineConfig([{
+/** @type {import('eslint').Linter.FlatConfig[]} */
+module.exports = [
+  {
+    files: ['src/**/*.ts'],
     languageOptions: {
-        parser: tsParser,
-        sourceType: "module",
-
-        parserOptions: {
-            project: "tsconfig.json",
-            tsconfigRootDir: __dirname,
-        },
-
-        globals: {
-            ...globals.node,
-            ...globals.jest,
-        },
+      parser: tsParser,
+      parserOptions: {
+        project: './tsconfig.json',
+        tsconfigRootDir: __dirname,
+      },
     },
-
-    plugins: {
-        "@typescript-eslint": typescriptEslintEslintPlugin,
-    },
-
-    extends: compat.extends("plugin:@typescript-eslint/recommended", "plugin:prettier/recommended"),
-
+    plugins: { '@typescript-eslint': tseslint },
     rules: {
-        "@typescript-eslint/interface-name-prefix": "off",
-        "@typescript-eslint/explicit-function-return-type": "off",
-        "@typescript-eslint/explicit-module-boundary-types": "off",
-        "@typescript-eslint/no-explicit-any": "off",
+      ...tseslint.configs['recommended'].rules,
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'warn',
     },
-}, globalIgnores(["**/.eslintrc.js"])]);
+  },
+  {
+    ignores: ['dist/**', 'node_modules/**'],
+  },
+];

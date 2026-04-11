@@ -1,96 +1,100 @@
 import { api } from './api'
-import type { FilmFormat, Stock, Roll, RollStateHistory, Tag, StockTag, RollTag, TransitionGraph } from '@/types'
-import { Process } from '@/types'
+import type { Format, Package, Process, Emulsion, Film, FilmState, Tag, EmulsionTag, FilmTag, TransitionGraph, TransitionProfile } from '@/types'
 
-type CreateStockMultipleFormatsPayload = Pick<Stock, 'brand' | 'manufacturer' | 'speed' | 'baseStockKey' | 'boxImageUrl'> & {
-  formatKeys: string[]
-  process: Process
+// Format API (replaces filmFormatApi)
+export const formatApi = {
+  getAll: () => api.get<Format[]>('/formats'),
+  getById: (id: number) => api.get<Format>(`/formats/${id}`),
+  create: (data: { packageId: number; name: string }) => api.post<Format>('/formats', data),
+  update: (id: number, data: Partial<{ packageId: number; name: string }>) =>
+    api.patch<Format>(`/formats/${id}`, data),
+  delete: (id: number) => api.delete(`/formats/${id}`),
 }
 
-// Film Format API
-export const filmFormatApi = {
-  getAll: () => api.get<FilmFormat[]>('/film-formats'),
-  getById: (key: string) => api.get<FilmFormat>(`/film-formats/${key}`),
-  create: (data: Omit<FilmFormat, '_key' | 'createdAt' | 'updatedAt'>) =>
-    api.post<FilmFormat>('/film-formats', data),
-  update: (key: string, data: Partial<FilmFormat>) =>
-    api.patch<FilmFormat>(`/film-formats/${key}`, data),
-  delete: (key: string) => api.delete(`/film-formats/${key}`),
+// Package API
+export const packageApi = {
+  getAll: () => api.get<Package[]>('/packages'),
 }
 
-// Stock API
-export const stockApi = {
-  getAll: () => api.get<Stock[]>('/stocks'),
-  getById: (key: string) => api.get<Stock>(`/stocks/${key}`),
-  create: (data: Omit<Stock, '_key' | 'createdAt' | 'updatedAt'>) =>
-    api.post<Stock>('/stocks', data),
-  createMultipleFormats: (data: CreateStockMultipleFormatsPayload) =>
-    api.post<Stock[]>('/stocks/bulk', data),
-  update: (key: string, data: Partial<Stock>) =>
-    api.patch<Stock>(`/stocks/${key}`, data),
-  delete: (key: string) => api.delete(`/stocks/${key}`),
-  getBrands: (q: string) => api.get<string[]>('/stocks/brands', { params: { q } }),
-  getManufacturers: (q: string) => api.get<string[]>('/stocks/manufacturers', { params: { q } }),
-  getSpeeds: (q: string) => api.get<number[]>('/stocks/speeds', { params: { q } }),
+// Process API
+export const processApi = {
+  getAll: () => api.get<Process[]>('/processes'),
+}
+
+// Emulsion API (replaces stockApi)
+export const emulsionApi = {
+  getAll: () => api.get<Emulsion[]>('/emulsions'),
+  getById: (id: number) => api.get<Emulsion>(`/emulsions/${id}`),
+  create: (data: { name: string; brand: string; manufacturer: string; speed: number; processId: number; formatId: number; parentId?: string; boxImageUrl?: string }) =>
+    api.post<Emulsion>('/emulsions', data),
+  createBulk: (data: { name: string; brand: string; manufacturer: string; speed: number; processId: number; formatIds: string[]; parentId?: string; boxImageUrl?: string }) =>
+    api.post<Emulsion[]>('/emulsions/bulk', data),
+  update: (id: number, data: Partial<{ name: string; brand: string; manufacturer: string; speed: number; processId: number; formatId: number; boxImageUrl: string }>) =>
+    api.patch<Emulsion>(`/emulsions/${id}`, data),
+  delete: (id: number) => api.delete(`/emulsions/${id}`),
+  getBrands: (q: string) => api.get<string[]>('/emulsions/brands', { params: { q } }),
+  getManufacturers: (q: string) => api.get<string[]>('/emulsions/manufacturers', { params: { q } }),
+  getSpeeds: (q: string) => api.get<number[]>('/emulsions/speeds', { params: { q } }),
 }
 
 // Tag API
 export const tagApi = {
   getAll: () => api.get<Tag[]>('/tags'),
-  getById: (key: string) => api.get<Tag>(`/tags/${key}`),
-  create: (data: Omit<Tag, '_key' | 'createdAt'>) =>
+  getById: (id: number) => api.get<Tag>(`/tags/${id}`),
+  create: (data: { name: string; colorCode: string; description?: string }) =>
     api.post<Tag>('/tags', data),
-  update: (key: string, data: Partial<Tag>) =>
-    api.patch<Tag>(`/tags/${key}`, data),
-  delete: (key: string) => api.delete(`/tags/${key}`),
+  update: (id: number, data: Partial<{ name: string; colorCode: string; description: string }>) =>
+    api.patch<Tag>(`/tags/${id}`, data),
+  delete: (id: number) => api.delete(`/tags/${id}`),
 }
 
-// StockTag API
-export const stockTagApi = {
-  getAll: (params?: { stockKey?: string; tagKey?: string }) =>
-    api.get<StockTag[]>('/stock-tags', { params }),
-  getById: (key: string) => api.get<StockTag>(`/stock-tags/${key}`),
-  create: (data: Omit<StockTag, '_key' | 'createdAt'>) =>
-    api.post<StockTag>('/stock-tags', data),
-  delete: (key: string) => api.delete(`/stock-tags/${key}`),
+// EmulsionTag API (replaces stockTagApi)
+export const emulsionTagApi = {
+  getAll: (params?: { emulsionId?: string; tagId?: string }) =>
+    api.get<EmulsionTag[]>('/emulsion-tags', { params }),
+  create: (data: { emulsionId: number; tagId: number }) =>
+    api.post<EmulsionTag>('/emulsion-tags', data),
+  delete: (id: number) => api.delete(`/emulsion-tags/${id}`),
 }
 
-// RollTag API
-export const rollTagApi = {
-  getAll: (params?: { rollKey?: string; tagKey?: string }) =>
-    api.get<RollTag[]>('/roll-tags', { params }),
-  getById: (key: string) => api.get<RollTag>(`/roll-tags/${key}`),
-  create: (data: Omit<RollTag, '_key' | 'createdAt'>) =>
-    api.post<RollTag>('/roll-tags', data),
-  delete: (key: string) => api.delete(`/roll-tags/${key}`),
+// FilmTag API (replaces rollTagApi)
+export const filmTagApi = {
+  getAll: (params?: { filmId?: number; tagId?: number }) =>
+    api.get<FilmTag[]>('/film-tags', { params }),
+  create: (data: { filmId: number; tagId: number }) =>
+    api.post<FilmTag>('/film-tags', data),
+  delete: (id: number) => api.delete(`/film-tags/${id}`),
 }
 
-// Roll API
-export const rollApi = {
-  getAll: (params?: { state?: string[] }) => api.get<Roll[]>('/rolls', {
-    params, paramsSerializer: {
-      indexes: null, // no brackets at all
-    }
-  }),
-  getById: (key: string) => api.get<Roll>(`/rolls/${key}`),
-  getChildren: (key: string) => api.get<Roll[]>(`/rolls/${key}/children`),
-  create: (data: Omit<Roll, '_key' | 'rollId' | 'createdAt' | 'updatedAt'> & { isBulkRoll?: boolean; parentRollId?: string }) =>
-    api.post<Roll>('/rolls', data),
-  update: (key: string, data: Partial<Roll>) =>
-    api.patch<Roll>(`/rolls/${key}`, data),
-  delete: (key: string) => api.delete(`/rolls/${key}`),
-  transition: (key: string, targetState: string, date?: string, notes?: string, isErrorCorrection?: boolean, metadata?: Record<string, unknown>) =>
-    api.post<Roll>(`/rolls/${key}/transition`, { targetState, date, notes, isErrorCorrection, metadata }),
+// Film API (replaces rollApi)
+export const filmApi = {
+  getAll: (params?: { state?: string[] }) =>
+    api.get<Film[]>('/films', {
+      params,
+      paramsSerializer: { indexes: null },
+    }),
+  getById: (id: number) => api.get<Film>(`/films/${id}`),
+  getChildren: (id: number) => api.get<Film[]>(`/films/${id}/children`),
+  create: (data: { name: string; emulsionId?: string; expirationDate?: string; parentId?: string; transitionProfileId: number }) =>
+    api.post<Film>('/films', data),
+  update: (id: number, data: Partial<{ name: string; emulsionId: number; expirationDate: string; transitionProfileId: number }>) =>
+    api.patch<Film>(`/films/${id}`, data),
+  delete: (id: number) => api.delete(`/films/${id}`),
+  transition: (id: number, targetStateName: string, date?: string, note?: string) =>
+    api.post<Film>(`/films/${id}/transition`, { targetStateName, date, note }),
+  addTag: (id: number, tagId: number) => api.post(`/films/${id}/tags`, { tagId }),
+  removeTag: (id: number, tagId: number) => api.delete(`/films/${id}/tags/${tagId}`),
+}
+
+// FilmState API (replaces rollStateApi)
+export const filmStateApi = {
+  getByFilmId: (filmId: number) =>
+    api.get<FilmState[]>('/film-states', { params: { filmId } }),
 }
 
 // Transition API
 export const transitionApi = {
+  getProfiles: () => api.get<TransitionProfile[]>('/transitions/profiles'),
   getGraph: (profile = 'standard') =>
     api.get<TransitionGraph>('/transitions', { params: { profile } }),
-}
-
-// Roll State History API
-export const rollStateApi = {
-  getHistory: (rollKey: string) =>
-    api.get<RollStateHistory[]>('/roll-states', { params: { rollKey } }),
 }
