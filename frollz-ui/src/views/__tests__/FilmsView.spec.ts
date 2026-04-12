@@ -154,7 +154,7 @@ describe('FilmsView', () => {
       const vm = wrapper.vm as any
       vm.selectedStates = ['Added']
       await flushPromises()
-      vm.clearStateFilter()
+      vm.selectedStates = []
       await flushPromises()
 
       expect(filmApi.getAll).toHaveBeenLastCalledWith(undefined)

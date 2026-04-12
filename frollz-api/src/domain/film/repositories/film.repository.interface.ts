@@ -7,6 +7,9 @@ export interface FilmFilters {
   emulsionId?: number;
   formatId?: number;
   tagIds?: number[];
+  loadedStateId?: number;
+  loadedDateFrom?: Date;
+  loadedDateTo?: Date;
 }
 
 export interface IFilmRepository {
