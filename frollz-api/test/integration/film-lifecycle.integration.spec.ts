@@ -373,7 +373,7 @@ describe('findAll with state filter', () => {
     await filmService.transition(filmB.id, { targetStateName: 'Added', date: t1 });
     await filmService.transition(filmB.id, { targetStateName: 'Shelved', date: t2 });
 
-    const addedFilms = await filmService.findAll(['Added']);
+    const addedFilms = await filmService.findAll({ stateNames: ['Added'] });
     const addedIds = addedFilms.map((f) => f.id);
 
     expect(addedIds).toContain(filmA.id);

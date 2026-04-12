@@ -46,7 +46,7 @@
         <div v-else-if="recentFilms.length === 0" class="py-8 text-center">
           <p class="text-gray-500 dark:text-gray-400 mb-4">No films yet.</p>
           <RouterLink
-            to="/rolls?action=create"
+            to="/films?action=create"
             class="inline-block bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 font-medium text-sm"
           >
             Add your first film
@@ -71,13 +71,13 @@
         <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Quick Actions</h2>
         <div class="space-y-4">
           <RouterLink
-            to="/rolls?action=create"
+            to="/films?action=create"
             class="block w-full bg-primary-600 text-white text-center py-3 px-4 rounded-md hover:bg-primary-700 font-medium"
           >
             Add New Film
           </RouterLink>
           <RouterLink
-            to="/stocks?action=create"
+            to="/emulsions?action=create"
             class="block w-full bg-green-600 text-white text-center py-3 px-4 rounded-md hover:bg-green-700 font-medium"
           >
             Add New Emulsion
@@ -123,7 +123,8 @@ const getStateDate = (film: Film): Date | null => {
   const sorted = [...film.states].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   )
-  return sorted[0]?.date ?? null
+  const date = sorted[0]?.date
+  return date ? new Date(date) : null
 }
 
 const loadStats = async () => {

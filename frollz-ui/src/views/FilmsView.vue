@@ -133,7 +133,7 @@
         <RouterLink
           v-for="film in filteredFilms"
           :key="film.id"
-          :to="{ name: 'roll-detail', params: { key: film.id } }"
+          :to="{ name: 'film-detail', params: { key: film.id } }"
           class="block bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow"
         >
           <div class="flex justify-between items-start gap-3">
@@ -179,7 +179,7 @@
               <tr v-for="film in filteredFilms" :key="film.id" v-memo="[film, film.states]">
                 <td
                   class="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-600 dark:text-primary-400 cursor-pointer hover:underline"
-                  @click="$router.push({ name: 'roll-detail', params: { key: film.id } })"
+                  @click="$router.push({ name: 'film-detail', params: { key: film.id } })"
                 >{{ film.name }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   {{ film.emulsion?.brand ?? '—' }}
@@ -192,7 +192,7 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right">
                   <button
-                    @click="$router.push({ name: 'roll-detail', params: { key: film.id } })"
+                    @click="$router.push({ name: 'film-detail', params: { key: film.id } })"
                     class="px-3 py-2 min-h-[44px] text-xs font-medium text-primary-600 dark:text-primary-400 border border-primary-300 dark:border-primary-600 rounded hover:bg-primary-50 dark:hover:bg-primary-900/30"
                   >View</button>
                 </td>
@@ -429,7 +429,7 @@ const handleSubmit = async () => {
     }
     const created = await filmApi.create(payload)
     closeModal()
-    await router.push({ name: 'roll-detail', params: { key: created.data.id } })
+    await router.push({ name: 'film-detail', params: { key: created.data.id } })
   } catch {
     error.value = 'Failed to add film. Please try again.'
   } finally {

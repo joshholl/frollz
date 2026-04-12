@@ -2,7 +2,7 @@
   <div>
     <div class="mb-6">
       <button
-        @click="$router.push({ name: 'rolls' })"
+        @click="$router.push({ name: 'films' })"
         class="inline-flex items-center min-h-[44px] text-sm text-primary-600 dark:text-primary-400 hover:underline"
       >← Back to Films</button>
     </div>
@@ -28,7 +28,7 @@
           <p class="text-sm text-gray-500 dark:text-gray-400">
             Cut from bulk canister
             <button
-              @click="router.push({ name: 'roll-detail', params: { key: parentFilm.id } })"
+              @click="router.push({ name: 'film-detail', params: { key: parentFilm.id } })"
               class="inline-flex items-center min-h-[44px] px-1 text-primary-600 dark:text-primary-400 hover:underline font-medium ml-1"
             >{{ parentFilm.name }}</button>
           </p>
@@ -110,7 +110,7 @@
           <ul v-else class="space-y-2">
             <li v-for="child in childFilms" :key="child.id" class="flex items-center justify-between text-sm">
               <button
-                @click="router.push({ name: 'roll-detail', params: { key: child.id } })"
+                @click="router.push({ name: 'film-detail', params: { key: child.id } })"
                 class="inline-flex items-center min-h-[44px] px-1 text-primary-600 dark:text-primary-400 hover:underline font-medium"
               >{{ child.name }}</button>
               <span
@@ -182,7 +182,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { filmApi, filmTagApi, tagApi, transitionApi } from '@/services/api-client'
+import { filmApi, tagApi, transitionApi } from '@/services/api-client'
 import type { Film, FilmTag, Tag, TransitionGraph, TransitionProfile } from '@/types'
 import { currentStateName } from '@/types'
 import { useNotificationStore } from '@/stores/notification'
@@ -279,16 +279,19 @@ const confirmTransition = async () => {
 const addTag = async (tag: Tag) => {
   if (!film.value) return
   try {
-    await filmTagApi.create({ filmId: film.value.id, tagId: tag.id })
+    await filmApi.addTag(film.value.id, tag.id)
+    film.value = (await filmApi.getById(film.value.id)).data
     await loadFilmTags()
   } catch (err) {
     console.error('Error adding tag:', err)
   }
 }
 
-const removeTag = async (filmTagId: number) => {
+const removeTag = async (tagId: number) => {
+  if (!film.value) return
   try {
-    await filmTagApi.delete(filmTagId)
+    await filmApi.removeTag(film.value.id, tagId)
+    film.value = (await filmApi.getById(film.value.id)).data
     await loadFilmTags()
   } catch (err) {
     console.error('Error removing tag:', err)
@@ -297,8 +300,11 @@ const removeTag = async (filmTagId: number) => {
 
 const loadFilmTags = async () => {
   if (!film.value) return
-  const response = await filmTagApi.getAll({ filmId: film.value.id })
-  filmTags.value = response.data
+  filmTags.value = (film.value.tags ?? []).map(ft => ({
+    id: ft.id,
+    filmId: film.value!.id,
+    tagId: ft.id,
+  }))
 }
 
 const loadData = async () => {

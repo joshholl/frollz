@@ -59,6 +59,9 @@ export class FilmService {
   }
 
   async create(dto: CreateFilmDto): Promise<Film> {
+    const addedState = await this.transitionStateRepo.findByName('Added');
+    if (!addedState) throw new NotFoundException(`Initial state 'Added' not found`);
+
     const film = Film.create({
       name: dto.name,
       emulsionId: dto.emulsionId,
@@ -67,6 +70,15 @@ export class FilmService {
       transitionProfileId: dto.transitionProfileId,
     });
     const id = await this.filmRepo.save(film);
+
+    const initialState = FilmState.create({
+      filmId: id,
+      stateId: addedState.id,
+      date: new Date(),
+      note: null,
+    });
+    await this.filmStateRepo.save(initialState);
+
     return this.findById(id);
   }
 

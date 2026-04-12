@@ -4,8 +4,8 @@ import { mount, flushPromises, config } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { axe } from 'vitest-axe'
-import StocksView from '@/views/StocksView.vue'
-import { emulsionApi, formatApi, processApi, tagApi, emulsionTagApi } from '@/services/api-client'
+import EmulsionsView from '@/views/EmulsionsView.vue'
+import { emulsionApi, formatApi, processApi, tagApi } from '@/services/api-client'
 
 const axeOptions = {
   runOnly: { type: 'tag' as const, values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
@@ -15,6 +15,7 @@ vi.mock('@/services/api-client', () => ({
   emulsionApi: {
     getAll: vi.fn(),
     createBulk: vi.fn(),
+    addTag: vi.fn(),
     getBrands: vi.fn(),
     getManufacturers: vi.fn(),
   },
@@ -26,10 +27,6 @@ vi.mock('@/services/api-client', () => ({
   },
   tagApi: {
     getAll: vi.fn(),
-  },
-  emulsionTagApi: {
-    getAll: vi.fn(),
-    create: vi.fn(),
   },
 }))
 
@@ -71,7 +68,7 @@ describe('StocksView', () => {
     vi.mocked(formatApi.getAll).mockResolvedValue({ data: mockFormats } as any)
     vi.mocked(processApi.getAll).mockResolvedValue({ data: mockProcesses } as any)
     vi.mocked(tagApi.getAll).mockResolvedValue({ data: [] } as any)
-    vi.mocked(emulsionTagApi.getAll).mockResolvedValue({ data: [] } as any)
+    vi.mocked(emulsionApi.addTag).mockResolvedValue({ data: {} } as any)
     vi.mocked(emulsionApi.getBrands).mockResolvedValue({ data: [] } as any)
     vi.mocked(emulsionApi.getManufacturers).mockResolvedValue({ data: [] } as any)
   })
@@ -82,7 +79,7 @@ describe('StocksView', () => {
 
   describe('accessibility', () => {
     it('renders the emulsion list without a11y violations', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
 
       const results = await axe(wrapper.element, axeOptions)
@@ -90,7 +87,7 @@ describe('StocksView', () => {
     })
 
     it('renders the Add Emulsion modal without a11y violations', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -104,7 +101,7 @@ describe('StocksView', () => {
 
   describe('component mounting', () => {
     it('should mount successfully and load data', async () => {
-      mount(StocksView)
+      mount(EmulsionsView)
       await flushPromises()
 
       expect(emulsionApi.getAll).toHaveBeenCalled()
@@ -115,7 +112,7 @@ describe('StocksView', () => {
 
   describe('form validation', () => {
     it('should validate format selection in handleSubmit', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       const vm = wrapper.vm as any
 
       vm.form = {
@@ -138,7 +135,7 @@ describe('StocksView', () => {
 
       vi.mocked(emulsionApi.createBulk).mockResolvedValue({ data: mockCreated } as any)
 
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       const vm = wrapper.vm as any
 
       vm.form = {
@@ -177,7 +174,7 @@ describe('StocksView', () => {
     })
 
     it('should default sort by brand ascending', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -188,7 +185,7 @@ describe('StocksView', () => {
     })
 
     it('should sort by a different field when setSort is called', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -202,7 +199,7 @@ describe('StocksView', () => {
     })
 
     it('should toggle sort direction when the same field is clicked again', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -215,7 +212,7 @@ describe('StocksView', () => {
     })
 
     it('should reset to ascending when switching to a new field', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -230,7 +227,7 @@ describe('StocksView', () => {
     })
 
     it('should sort numerically by speed', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -257,13 +254,13 @@ describe('StocksView', () => {
     })
 
     it('should start with no active filters', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
       expect((wrapper.vm as any).activeFilters).toEqual([])
     })
 
     it('should add a filter via addFilter', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
       const vm = wrapper.vm as any
 
@@ -275,7 +272,7 @@ describe('StocksView', () => {
     })
 
     it('should not add duplicate filters for the same field and value', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
       const vm = wrapper.vm as any
 
@@ -287,7 +284,7 @@ describe('StocksView', () => {
     })
 
     it('should filter sortedEmulsions by active filters', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
       const vm = wrapper.vm as any
 
@@ -299,7 +296,7 @@ describe('StocksView', () => {
     })
 
     it('should apply multiple filters with AND logic', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
       const vm = wrapper.vm as any
 
@@ -311,7 +308,7 @@ describe('StocksView', () => {
     })
 
     it('should remove a specific filter', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
       const vm = wrapper.vm as any
 
@@ -327,7 +324,7 @@ describe('StocksView', () => {
     })
 
     it('should clear all filters', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
       const vm = wrapper.vm as any
 
@@ -341,7 +338,7 @@ describe('StocksView', () => {
     })
 
     it('should not add filter when value is empty', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
       const vm = wrapper.vm as any
 
@@ -352,7 +349,7 @@ describe('StocksView', () => {
     })
 
     it('should render filter chips with "field: value" label', async () => {
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       await flushPromises()
       const vm = wrapper.vm as any
 
@@ -369,7 +366,7 @@ describe('StocksView', () => {
 
       vi.mocked(emulsionApi.createBulk).mockResolvedValue({ data: mockCreated } as any)
 
-      const wrapper = mount(StocksView)
+      const wrapper = mount(EmulsionsView)
       const vm = wrapper.vm as any
 
       vm.form = {
@@ -386,11 +383,11 @@ describe('StocksView', () => {
       await vm.handleSubmit()
 
       // 2 emulsions × 2 tags = 4 calls
-      expect(emulsionTagApi.create).toHaveBeenCalledTimes(4)
-      expect(emulsionTagApi.create).toHaveBeenCalledWith({ emulsionId: 'emu1', tagId: 'tag1' })
-      expect(emulsionTagApi.create).toHaveBeenCalledWith({ emulsionId: 'emu1', tagId: 'tag2' })
-      expect(emulsionTagApi.create).toHaveBeenCalledWith({ emulsionId: 'emu2', tagId: 'tag1' })
-      expect(emulsionTagApi.create).toHaveBeenCalledWith({ emulsionId: 'emu2', tagId: 'tag2' })
+      expect(emulsionApi.addTag).toHaveBeenCalledTimes(4)
+      expect(emulsionApi.addTag).toHaveBeenCalledWith('emu1', 'tag1')
+      expect(emulsionApi.addTag).toHaveBeenCalledWith('emu1', 'tag2')
+      expect(emulsionApi.addTag).toHaveBeenCalledWith('emu2', 'tag1')
+      expect(emulsionApi.addTag).toHaveBeenCalledWith('emu2', 'tag2')
     })
   })
 })

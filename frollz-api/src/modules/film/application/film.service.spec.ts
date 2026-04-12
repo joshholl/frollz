@@ -200,10 +200,13 @@ describe('FilmService', () => {
   });
 
   describe('create', () => {
-    it('saves and returns a new film with a generated uuid', async () => {
+    it('saves the film and inserts an initial Added state', async () => {
       const savedFilm = makeFilm({ name: 'Roll 001' });
+      const addedState = makeTransitionState({ name: 'Added' });
       const filmRepo = makeFilmRepo({ findById: jest.fn().mockResolvedValue(savedFilm) });
-      const service = makeService(filmRepo);
+      const filmStateRepo = makeFilmStateRepo();
+      const stateRepo = makeStateRepo({ findByName: jest.fn().mockResolvedValue(addedState) });
+      const service = makeService(filmRepo, makeFilmTagRepo(), filmStateRepo, stateRepo);
 
       const result = await service.create({
         name: 'Roll 001',
@@ -214,6 +217,24 @@ describe('FilmService', () => {
 
       expect(result.name).toBe('Roll 001');
       expect(filmRepo.save).toHaveBeenCalledWith(expect.objectContaining({ name: 'Roll 001' }));
+      expect(filmStateRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ stateId: addedState.id }),
+      );
+    });
+
+    it('throws NotFoundException when the Added state is missing from the database', async () => {
+      const filmRepo = makeFilmRepo();
+      const stateRepo = makeStateRepo({ findByName: jest.fn().mockResolvedValue(null) });
+      const service = makeService(filmRepo, makeFilmTagRepo(), makeFilmStateRepo(), stateRepo);
+
+      await expect(
+        service.create({
+          name: 'Roll 001',
+          emulsionId: randomId(),
+          expirationDate: '2026-12-31',
+          transitionProfileId: randomId(),
+        }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

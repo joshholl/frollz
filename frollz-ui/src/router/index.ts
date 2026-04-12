@@ -11,21 +11,21 @@ const router = createRouter({
       meta: { title: 'Dashboard' }
     },
     {
-      path: '/stocks',
-      name: 'stocks',
-      component: () => import('@/views/StocksView.vue'),
-      meta: { title: 'Stocks' }
+      path: '/emulsions',
+      name: 'emulsions',
+      component: () => import('@/views/EmulsionsView.vue'),
+      meta: { title: 'Emulsions' }
     },
     {
-      path: '/rolls',
-      name: 'rolls',
-      component: () => import('@/views/RollsView.vue'),
-      meta: { title: 'Rolls' }
+      path: '/films',
+      name: 'films',
+      component: () => import('@/views/FilmsView.vue'),
+      meta: { title: 'Films' }
     },
     {
-      path: '/rolls/:key',
-      name: 'roll-detail',
-      component: () => import('@/views/RollDetailView.vue')
+      path: '/films/:key',
+      name: 'film-detail',
+      component: () => import('@/views/FilmDetailView.vue')
     },
     {
       path: '/formats',
@@ -46,8 +46,8 @@ const router = createRouter({
 router.afterEach((to) => {
   nextTick(() => {
     const metaTitle = typeof to.meta.title === 'string' ? to.meta.title : ''
-    const rollKey = to.name === 'roll-detail' && to.params.key ? String(to.params.key) : ''
-    const pageTitle = rollKey ? `Roll ${rollKey}` : metaTitle
+    const filmKey = to.name === 'film-detail' && to.params.key ? String(to.params.key) : ''
+    const pageTitle = filmKey ? `Film ${filmKey}` : metaTitle
     document.title = pageTitle ? `${pageTitle} | Frollz` : 'Frollz'
     document.getElementById('main-content')?.focus()
   })

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "clean": "rm -rf dist node_modules",
     "build": "vite build",
     "dev": "vite --host 0.0.0.0",
     "preview": "vite preview",

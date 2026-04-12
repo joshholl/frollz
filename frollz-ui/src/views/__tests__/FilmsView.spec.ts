@@ -4,7 +4,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { axe } from 'vitest-axe'
-import RollsView from '@/views/RollsView.vue'
+import FilmsView from '@/views/FilmsView.vue'
 import { filmApi, emulsionApi, transitionApi, formatApi, tagApi } from '@/services/api-client'
 import type { Film } from '@/types'
 import { randomInt } from 'crypto'
@@ -37,8 +37,8 @@ vi.mock('@/services/api-client', () => ({
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [
-    { path: '/', name: 'rolls', component: RollsView },
-    { path: '/rolls/:key', name: 'roll-detail', component: { template: '<div/>' } },
+    { path: '/', name: 'films', component: FilmsView },
+    { path: '/films/:key', name: 'film-detail', component: { template: '<div/>' } },
   ],
 })
 
@@ -60,7 +60,7 @@ const mockProfiles = [
   { id: 'prof-instant', name: 'instant' },
 ]
 
-describe('RollsView', () => {
+describe('FilmsView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
@@ -73,7 +73,7 @@ describe('RollsView', () => {
 
   describe('accessibility', () => {
     it('renders the films list without a11y violations', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      const wrapper = mount(FilmsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const results = await axe(wrapper.element, axeOptions)
@@ -81,7 +81,7 @@ describe('RollsView', () => {
     })
 
     it('renders the Add Film modal without a11y violations', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      const wrapper = mount(FilmsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -95,7 +95,7 @@ describe('RollsView', () => {
 
   describe('component mounting', () => {
     it('should load films and profiles on mount', async () => {
-      mount(RollsView, { global: { plugins: [router] } })
+      mount(FilmsView, { global: { plugins: [router] } })
       await flushPromises()
 
       expect(filmApi.getAll).toHaveBeenCalled()
@@ -106,14 +106,14 @@ describe('RollsView', () => {
       const film = makeFilm({ name: 'roll-00042' })
       vi.mocked(filmApi.getAll).mockResolvedValue({ data: [film] } as any)
 
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      const wrapper = mount(FilmsView, { global: { plugins: [router] } })
       await flushPromises()
 
       expect(wrapper.text()).toContain('roll-00042')
     })
 
     it('should show empty state when no films', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      const wrapper = mount(FilmsView, { global: { plugins: [router] } })
       await flushPromises()
 
       expect(wrapper.text()).toContain('No films found')
@@ -126,7 +126,7 @@ describe('RollsView', () => {
       const standardFilm = makeFilm({ transitionProfileId: 'prof-standard', name: 'roll-00001' })
       vi.mocked(filmApi.getAll).mockResolvedValue({ data: [bulkFilm, standardFilm] } as any)
 
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      const wrapper = mount(FilmsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -137,7 +137,7 @@ describe('RollsView', () => {
 
   describe('state filtering', () => {
     it('should call filmApi.getAll with state param when states are selected', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      const wrapper = mount(FilmsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -148,7 +148,7 @@ describe('RollsView', () => {
     })
 
     it('should call filmApi.getAll without params when state filter is cleared', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      const wrapper = mount(FilmsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -163,7 +163,7 @@ describe('RollsView', () => {
 
   describe('add film form', () => {
     it('should open modal and set standard profile on openAddFilm', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      const wrapper = mount(FilmsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -175,7 +175,7 @@ describe('RollsView', () => {
     })
 
     it('should set bulk profile when isBulkFilm is toggled on', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      const wrapper = mount(FilmsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -188,7 +188,7 @@ describe('RollsView', () => {
     })
 
     it('should reset to standard profile when isBulkFilm is toggled off', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      const wrapper = mount(FilmsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any
@@ -203,7 +203,7 @@ describe('RollsView', () => {
     })
 
     it('should close modal and reset form on closeModal', async () => {
-      const wrapper = mount(RollsView, { global: { plugins: [router] } })
+      const wrapper = mount(FilmsView, { global: { plugins: [router] } })
       await flushPromises()
 
       const vm = wrapper.vm as any

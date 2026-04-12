@@ -282,7 +282,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { emulsionApi, formatApi, processApi, tagApi, emulsionTagApi } from '@/services/api-client'
+import { emulsionApi, formatApi, processApi, tagApi } from '@/services/api-client'
 import type { Emulsion, Format, Process, Tag } from '@/types'
 import TypeaheadInput from '@/components/TypeaheadInput.vue'
 import BaseModal from '@/components/BaseModal.vue'
@@ -394,7 +394,7 @@ const toggleTag = (tagId: number) => {
 }
 
 const createFilm = (emulsionId: number) => {
-  router.push({ name: 'rolls', query: { emulsionId } })
+  router.push({ name: 'films', query: { emulsionId } })
 }
 
 const closeModal = () => {
@@ -428,7 +428,7 @@ const handleSubmit = async () => {
     await Promise.all(
       createdEmulsions.flatMap(emulsion =>
         selectedTagIds.value.map(tagId =>
-          emulsionTagApi.create({ emulsionId: emulsion.id, tagId })
+          emulsionApi.addTag(emulsion.id, tagId)
         )
       )
     )
@@ -444,20 +444,12 @@ const handleSubmit = async () => {
 }
 
 const buildEmulsionTagMap = async () => {
-  const [tagResponse, emulsionTagResponse] = await Promise.all([
-    tagApi.getAll(),
-    emulsionTagApi.getAll(),
-  ])
+  const tagResponse = await tagApi.getAll()
   allTags.value = tagResponse.data
 
-  const tagById: Record<string, Tag> = {}
-  for (const t of tagResponse.data) tagById[t.id] = t
-
   const map: Record<string, Tag[]> = {}
-  for (const et of emulsionTagResponse.data) {
-    if (!map[et.emulsionId]) map[et.emulsionId] = []
-    const tag = tagById[et.tagId]
-    if (tag) map[et.emulsionId].push(tag)
+  for (const emulsion of emulsions.value) {
+    map[emulsion.id] = emulsion.tags ?? []
   }
   emulsionTagMap.value = map
 }
