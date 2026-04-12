@@ -4,9 +4,9 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { axe } from 'vitest-axe'
-import RollDetailView from '@/views/RollDetailView.vue'
-import { filmApi, filmTagApi, tagApi, transitionApi } from '@/services/api-client'
-import type { Film, Tag, FilmTag, TransitionGraph, TransitionEdge, FilmState } from '@/types'
+import FilmDetailView from '@/views/FilmDetailView.vue'
+import { filmApi, tagApi, transitionApi } from '@/services/api-client'
+import type { Film, Tag, TransitionGraph, TransitionEdge, FilmState } from '@/types'
 import { randomInt } from 'crypto'
 
 const randomId = () => randomInt(1, 1000000);
@@ -20,11 +20,8 @@ vi.mock('@/services/api-client', () => ({
     getById: vi.fn(),
     transition: vi.fn(),
     getChildren: vi.fn(),
-  },
-  filmTagApi: {
-    getAll: vi.fn(),
-    create: vi.fn(),
-    delete: vi.fn(),
+    addTag: vi.fn(),
+    removeTag: vi.fn(),
   },
   tagApi: {
     getAll: vi.fn(),
@@ -84,15 +81,15 @@ const mockProfiles = [
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [
-    { path: '/rolls', name: 'rolls', component: { template: '<div/>' } },
-    { path: '/rolls/:key', name: 'roll-detail', component: RollDetailView },
+    { path: '/films', name: 'films', component: { template: '<div/>' } },
+    { path: '/rolls/:key', name: 'film-detail', component: FilmDetailView },
   ],
 })
 
 const mountView = async (filmId = 'film1') => {
   await router.push(`/rolls/${filmId}`)
   await router.isReady()
-  const wrapper = mount(RollDetailView, { global: { plugins: [router] } })
+  const wrapper = mount(FilmDetailView, { global: { plugins: [router] } })
   await flushPromises()
   return wrapper
 }
@@ -105,9 +102,8 @@ describe('RollDetailView', () => {
     vi.mocked(filmApi.transition).mockResolvedValue({ data: makeFilm() } as any)
     vi.mocked(filmApi.getChildren).mockResolvedValue({ data: [] } as any)
     vi.mocked(tagApi.getAll).mockResolvedValue({ data: [] } as any)
-    vi.mocked(filmTagApi.getAll).mockResolvedValue({ data: [] } as any)
-    vi.mocked(filmTagApi.create).mockResolvedValue({ data: {} } as any)
-    vi.mocked(filmTagApi.delete).mockResolvedValue({} as any)
+    vi.mocked(filmApi.addTag).mockResolvedValue({ data: {} } as any)
+    vi.mocked(filmApi.removeTag).mockResolvedValue({ data: {} } as any)
     vi.mocked(transitionApi.getGraph).mockResolvedValue({ data: makeGraph() } as any)
     vi.mocked(transitionApi.getProfiles).mockResolvedValue({ data: mockProfiles } as any)
   })
@@ -135,7 +131,7 @@ describe('RollDetailView', () => {
   describe('data loading', () => {
     it('should show loading state initially', () => {
       vi.mocked(filmApi.getById).mockReturnValue(new Promise(() => {}) as any)
-      const wrapper = mount(RollDetailView, { global: { plugins: [router] } })
+      const wrapper = mount(FilmDetailView, { global: { plugins: [router] } })
       expect(wrapper.text()).toContain('Loading...')
     })
 
@@ -253,8 +249,6 @@ describe('RollDetailView', () => {
   describe('tags', () => {
     const tagA: Tag = { id: 'tag-a', name: 'Push', colorCode: '#ff0000' }
     const tagB: Tag = { id: 'tag-b', name: 'Pull', colorCode: '#0000ff' }
-    const filmTagA: FilmTag = { id: 'ft-a', filmId: 'film1', tagId: 'tag-a' }
-
     it('should show "No tags yet" when no tags are assigned', async () => {
       const wrapper = await mountView()
       expect(wrapper.text()).toContain('No tags yet')
@@ -262,7 +256,7 @@ describe('RollDetailView', () => {
 
     it('should display assigned tags as chips', async () => {
       vi.mocked(tagApi.getAll).mockResolvedValue({ data: [tagA, tagB] } as any)
-      vi.mocked(filmTagApi.getAll).mockResolvedValue({ data: [filmTagA] } as any)
+      vi.mocked(filmApi.getById).mockResolvedValue({ data: makeFilm({ tags: [tagA] }) } as any)
 
       const wrapper = await mountView()
       expect(wrapper.text()).toContain('Push')
@@ -270,48 +264,45 @@ describe('RollDetailView', () => {
 
     it('should show unassigned tags in the available tags list', async () => {
       vi.mocked(tagApi.getAll).mockResolvedValue({ data: [tagA, tagB] } as any)
-      vi.mocked(filmTagApi.getAll).mockResolvedValue({ data: [filmTagA] } as any)
+      vi.mocked(filmApi.getById).mockResolvedValue({ data: makeFilm({ tags: [tagA] }) } as any)
 
       const wrapper = await mountView()
       const vm = wrapper.vm as any
 
-      // tagA is assigned, only tagB should be available
+      // tagA is assigned via film.tags, only tagB should be available
       expect(vm.availableTags.map((t: Tag) => t.id)).toContain('tag-b')
       expect(vm.availableTags.map((t: Tag) => t.id)).not.toContain('tag-a')
     })
 
     it('should not show already-assigned tags in available tags', async () => {
       vi.mocked(tagApi.getAll).mockResolvedValue({ data: [tagA] } as any)
-      vi.mocked(filmTagApi.getAll).mockResolvedValue({ data: [filmTagA] } as any)
+      vi.mocked(filmApi.getById).mockResolvedValue({ data: makeFilm({ tags: [tagA] }) } as any)
 
       const wrapper = await mountView()
       const vm = wrapper.vm as any
       expect(vm.availableTags).toHaveLength(0)
     })
 
-    it('should call filmTagApi.create and reload when adding a tag', async () => {
+    it('should call filmApi.addTag when adding a tag', async () => {
       vi.mocked(tagApi.getAll).mockResolvedValue({ data: [tagA, tagB] } as any)
-      vi.mocked(filmTagApi.getAll).mockResolvedValue({ data: [] } as any)
 
       const wrapper = await mountView()
       const vm = wrapper.vm as any
       await vm.addTag(tagA)
       await flushPromises()
 
-      expect(filmTagApi.create).toHaveBeenCalledWith({ filmId: 'film1', tagId: 'tag-a' })
-      expect(filmTagApi.getAll).toHaveBeenCalledTimes(2)
+      expect(filmApi.addTag).toHaveBeenCalledWith('film1', 'tag-a')
     })
 
-    it('should call filmTagApi.delete and reload when removing a tag', async () => {
-      vi.mocked(filmTagApi.getAll).mockResolvedValue({ data: [filmTagA] } as any)
+    it('should call filmApi.removeTag when removing a tag', async () => {
+      vi.mocked(filmApi.getById).mockResolvedValue({ data: makeFilm({ tags: [tagA] }) } as any)
 
       const wrapper = await mountView()
       const vm = wrapper.vm as any
-      await vm.removeTag('ft-a')
+      await vm.removeTag(tagA.id)
       await flushPromises()
 
-      expect(filmTagApi.delete).toHaveBeenCalledWith('ft-a')
-      expect(filmTagApi.getAll).toHaveBeenCalledTimes(2)
+      expect(filmApi.removeTag).toHaveBeenCalledWith('film1', tagA.id)
     })
   })
 
@@ -340,7 +331,7 @@ describe('RollDetailView', () => {
       await backBtn.trigger('click')
       await flushPromises()
 
-      expect(router.currentRoute.value.name).toBe('rolls')
+      expect(router.currentRoute.value.name).toBe('films')
     })
   })
 })

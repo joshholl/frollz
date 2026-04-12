@@ -1,5 +1,5 @@
 import { api } from './api'
-import type { Format, Package, Process, Emulsion, Film, FilmState, Tag, EmulsionTag, FilmTag, TransitionGraph, TransitionProfile } from '@/types'
+import type { Format, Package, Process, Emulsion, Film, FilmState, Tag, FilmTag, TransitionGraph, TransitionProfile } from '@/types'
 
 // Format API (replaces filmFormatApi)
 export const formatApi = {
@@ -32,6 +32,8 @@ export const emulsionApi = {
   update: (id: number, data: Partial<{ name: string; brand: string; manufacturer: string; speed: number; processId: number; formatId: number; boxImageUrl: string }>) =>
     api.patch<Emulsion>(`/emulsions/${id}`, data),
   delete: (id: number) => api.delete(`/emulsions/${id}`),
+  addTag: (id: number, tagId: number) => api.post(`/emulsions/${id}/tags`, { tagId }),
+  removeTag: (id: number, tagId: number) => api.delete(`/emulsions/${id}/tags/${tagId}`),
   getBrands: (q: string) => api.get<string[]>('/emulsions/brands', { params: { q } }),
   getManufacturers: (q: string) => api.get<string[]>('/emulsions/manufacturers', { params: { q } }),
   getSpeeds: (q: string) => api.get<number[]>('/emulsions/speeds', { params: { q } }),
@@ -48,15 +50,6 @@ export const tagApi = {
   delete: (id: number) => api.delete(`/tags/${id}`),
 }
 
-// EmulsionTag API (replaces stockTagApi)
-export const emulsionTagApi = {
-  getAll: (params?: { emulsionId?: string; tagId?: string }) =>
-    api.get<EmulsionTag[]>('/emulsion-tags', { params }),
-  create: (data: { emulsionId: number; tagId: number }) =>
-    api.post<EmulsionTag>('/emulsion-tags', data),
-  delete: (id: number) => api.delete(`/emulsion-tags/${id}`),
-}
-
 // FilmTag API (replaces rollTagApi)
 export const filmTagApi = {
   getAll: (params?: { filmId?: number; tagId?: number }) =>
@@ -68,7 +61,7 @@ export const filmTagApi = {
 
 // Film API (replaces rollApi)
 export const filmApi = {
-  getAll: (params?: { state?: string[] }) =>
+  getAll: (params?: { state?: string[]; emulsionId?: number; formatId?: number; tagId?: number[] }) =>
     api.get<Film[]>('/films', {
       params,
       paramsSerializer: { indexes: null },
