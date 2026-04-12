@@ -261,9 +261,10 @@ const confirmTransition = async () => {
   transitionSubmitting.value = true
   transitionError.value = ''
   try {
-    const dateStr = transitionDate.value
+    const today = new Date().toISOString().slice(0, 10)
+    const dateStr = transitionDate.value && transitionDate.value !== today
       ? new Date(transitionDate.value + 'T12:00:00').toISOString()
-      : undefined
+      : new Date().toISOString()
     await filmApi.transition(film.value.id, pendingTransition.value, dateStr, transitionNote.value || undefined)
     pendingTransition.value = null
     transitionNote.value = ''

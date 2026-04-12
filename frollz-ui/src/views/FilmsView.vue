@@ -43,7 +43,7 @@
       </div>
     </div>
 
-    <!-- Emulsion / Format / Tag Filters -->
+    <!-- Emulsion / Format / Tag / Date Filters -->
     <div class="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
@@ -100,6 +100,30 @@
           </div>
         </div>
       </div>
+      <!-- Loaded Date Range -->
+      <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="filter-from" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Loaded from
+            <input
+              id="filter-from"
+              v-model="selectedFrom"
+              type="date"
+              class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </label>
+        </div>
+        <div>
+          <label for="filter-to" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Loaded to
+            <input
+              id="filter-to"
+              v-model="selectedTo"
+              type="date"
+              class="mt-1 w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </label>
+        </div>
+      </div>
+      <p v-if="dateRangeError" role="alert" class="mt-2 text-sm text-red-600 dark:text-red-400">{{ dateRangeError }}</p>
       <div class="mt-3 flex items-center gap-3">
         <button
           v-if="hasActiveFilters"
@@ -341,6 +365,8 @@ const selectedStates = ref<string[]>([])
 const selectedEmulsionId = ref<number | null>(null)
 const selectedFormatId = ref<number | null>(null)
 const selectedTagIds = ref<number[]>([])
+const selectedFrom = ref<string>('')
+const selectedTo = ref<string>('')
 
 const submitting = ref(false)
 const error = ref('')
@@ -351,11 +377,20 @@ const filmStateOptions = [
   'Finished', 'Sent For Development', 'Developed', 'Received',
 ]
 
+const dateRangeError = computed(() => {
+  if (selectedFrom.value && selectedTo.value && selectedFrom.value > selectedTo.value) {
+    return '"Loaded from" must be on or before "Loaded to".'
+  }
+  return ''
+})
+
 const hasActiveFilters = computed(() =>
   selectedStates.value.length > 0 ||
   selectedEmulsionId.value !== null ||
   selectedFormatId.value !== null ||
-  selectedTagIds.value.length > 0,
+  selectedTagIds.value.length > 0 ||
+  !!selectedFrom.value ||
+  !!selectedTo.value,
 )
 
 const clearAllFilters = () => {
@@ -363,6 +398,8 @@ const clearAllFilters = () => {
   selectedEmulsionId.value = null
   selectedFormatId.value = null
   selectedTagIds.value = []
+  selectedFrom.value = ''
+  selectedTo.value = ''
 }
 
 const clearStateFilter = () => { selectedStates.value = [] }
@@ -438,6 +475,7 @@ const handleSubmit = async () => {
 }
 
 const loadFilms = async () => {
+  if (dateRangeError.value) return
   isLoading.value = true
   try {
     const params: Parameters<typeof filmApi.getAll>[0] = {}
@@ -445,6 +483,8 @@ const loadFilms = async () => {
     if (selectedEmulsionId.value !== null) params.emulsionId = selectedEmulsionId.value
     if (selectedFormatId.value !== null) params.formatId = selectedFormatId.value
     if (selectedTagIds.value.length > 0) params.tagId = selectedTagIds.value
+    if (selectedFrom.value) params.from = selectedFrom.value
+    if (selectedTo.value) params.to = selectedTo.value
     const response = await filmApi.getAll(Object.keys(params).length > 0 ? params : undefined)
     films.value = response.data
   } catch (err) {
@@ -460,10 +500,12 @@ const updateUrlQueryParams = () => {
   if (selectedEmulsionId.value !== null) query.emulsionId = String(selectedEmulsionId.value)
   if (selectedFormatId.value !== null) query.formatId = String(selectedFormatId.value)
   if (selectedTagIds.value.length > 0) query.tagId = selectedTagIds.value.map(String)
+  if (selectedFrom.value) query.from = selectedFrom.value
+  if (selectedTo.value) query.to = selectedTo.value
   router.replace({ query })
 }
 
-watch([selectedStates, selectedEmulsionId, selectedFormatId, selectedTagIds], () => {
+watch([selectedStates, selectedEmulsionId, selectedFormatId, selectedTagIds, selectedFrom, selectedTo], () => {
   loadFilms()
   updateUrlQueryParams()
 }, { deep: true })
@@ -495,6 +537,10 @@ onMounted(async () => {
     const ids = Array.isArray(tagIdParam) ? tagIdParam : [tagIdParam]
     selectedTagIds.value = ids.map(Number).filter(Boolean)
   }
+  const fromParam = route.query.from
+  if (fromParam && typeof fromParam === 'string') selectedFrom.value = fromParam
+  const toParam = route.query.to
+  if (toParam && typeof toParam === 'string') selectedTo.value = toParam
 
   await Promise.all([
     loadFilms(),

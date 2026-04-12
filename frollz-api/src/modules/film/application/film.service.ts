@@ -16,6 +16,8 @@ export interface FilmFindAllParams {
   emulsionId?: number;
   formatId?: number;
   tagIds?: number[];
+  from?: string;
+  to?: string;
 }
 
 @Injectable()
@@ -31,8 +33,10 @@ export class FilmService {
   async findAll(params: FilmFindAllParams = {}): Promise<Film[]> {
     const filters: FilmFilters = {};
 
+    const needsStates = params.stateNames?.length || params.from || params.to;
+    const allStates = needsStates ? await this.transitionStateRepo.findAll() : [];
+
     if (params.stateNames?.length) {
-      const allStates = await this.transitionStateRepo.findAll();
       const stateIds = allStates
         .filter((s) => params.stateNames!.includes(s.name))
         .map((s) => s.id);
@@ -43,6 +47,15 @@ export class FilmService {
     if (params.emulsionId !== undefined) filters.emulsionId = params.emulsionId;
     if (params.formatId !== undefined) filters.formatId = params.formatId;
     if (params.tagIds?.length) filters.tagIds = params.tagIds;
+
+    if (params.from || params.to) {
+      const loadedState = allStates.find((s) => s.name === 'Loaded');
+      if (loadedState) {
+        filters.loadedStateId = loadedState.id;
+        if (params.from) filters.loadedDateFrom = new Date(`${params.from}T00:00:00.000Z`);
+        if (params.to) filters.loadedDateTo = new Date(`${params.to}T23:59:59.999Z`);
+      }
+    }
 
     const hasFilters = Object.keys(filters).length > 0;
     return hasFilters ? this.filmRepo.findWithFilters(filters) : this.filmRepo.findAll();

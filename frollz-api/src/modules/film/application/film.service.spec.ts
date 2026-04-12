@@ -182,6 +182,81 @@ describe('FilmService', () => {
 
       expect(filmRepo.findWithFilters).toHaveBeenCalledWith({ stateIds: [addedState.id], emulsionId });
     });
+
+    it('filters by from date, passing loadedStateId and loadedDateFrom', async () => {
+      const loadedState = makeTransitionState({ name: 'Loaded' });
+      const film = makeFilm();
+      const filmRepo = makeFilmRepo({ findWithFilters: jest.fn().mockResolvedValue([film]) });
+      const stateRepo = makeStateRepo({ findAll: jest.fn().mockResolvedValue([loadedState]) });
+      const service = makeService(filmRepo, makeFilmTagRepo(), makeFilmStateRepo(), stateRepo);
+
+      await service.findAll({ from: '2025-01-01' });
+
+      expect(filmRepo.findWithFilters).toHaveBeenCalledWith({
+        loadedStateId: loadedState.id,
+        loadedDateFrom: new Date('2025-01-01T00:00:00.000Z'),
+      });
+    });
+
+    it('filters by to date, passing loadedStateId and loadedDateTo', async () => {
+      const loadedState = makeTransitionState({ name: 'Loaded' });
+      const film = makeFilm();
+      const filmRepo = makeFilmRepo({ findWithFilters: jest.fn().mockResolvedValue([film]) });
+      const stateRepo = makeStateRepo({ findAll: jest.fn().mockResolvedValue([loadedState]) });
+      const service = makeService(filmRepo, makeFilmTagRepo(), makeFilmStateRepo(), stateRepo);
+
+      await service.findAll({ to: '2025-03-31' });
+
+      expect(filmRepo.findWithFilters).toHaveBeenCalledWith({
+        loadedStateId: loadedState.id,
+        loadedDateTo: new Date('2025-03-31T23:59:59.999Z'),
+      });
+    });
+
+    it('filters by full date range, combining from and to', async () => {
+      const loadedState = makeTransitionState({ name: 'Loaded' });
+      const film = makeFilm();
+      const filmRepo = makeFilmRepo({ findWithFilters: jest.fn().mockResolvedValue([film]) });
+      const stateRepo = makeStateRepo({ findAll: jest.fn().mockResolvedValue([loadedState]) });
+      const service = makeService(filmRepo, makeFilmTagRepo(), makeFilmStateRepo(), stateRepo);
+
+      await service.findAll({ from: '2025-01-01', to: '2025-03-31' });
+
+      expect(filmRepo.findWithFilters).toHaveBeenCalledWith({
+        loadedStateId: loadedState.id,
+        loadedDateFrom: new Date('2025-01-01T00:00:00.000Z'),
+        loadedDateTo: new Date('2025-03-31T23:59:59.999Z'),
+      });
+    });
+
+    it('ignores date filter when Loaded state does not exist', async () => {
+      const filmRepo = makeFilmRepo({ findAll: jest.fn().mockResolvedValue([]) });
+      const stateRepo = makeStateRepo({ findAll: jest.fn().mockResolvedValue([]) });
+      const service = makeService(filmRepo, makeFilmTagRepo(), makeFilmStateRepo(), stateRepo);
+
+      await service.findAll({ from: '2025-01-01' });
+
+      expect(filmRepo.findAll).toHaveBeenCalled();
+      expect(filmRepo.findWithFilters).not.toHaveBeenCalled();
+    });
+
+    it('combines date range with other filters', async () => {
+      const loadedState = makeTransitionState({ name: 'Loaded' });
+      const emulsionId = randomId();
+      const film = makeFilm();
+      const filmRepo = makeFilmRepo({ findWithFilters: jest.fn().mockResolvedValue([film]) });
+      const stateRepo = makeStateRepo({ findAll: jest.fn().mockResolvedValue([loadedState]) });
+      const service = makeService(filmRepo, makeFilmTagRepo(), makeFilmStateRepo(), stateRepo);
+
+      await service.findAll({ emulsionId, from: '2025-01-01', to: '2025-03-31' });
+
+      expect(filmRepo.findWithFilters).toHaveBeenCalledWith({
+        emulsionId,
+        loadedStateId: loadedState.id,
+        loadedDateFrom: new Date('2025-01-01T00:00:00.000Z'),
+        loadedDateTo: new Date('2025-03-31T23:59:59.999Z'),
+      });
+    });
   });
 
   describe('findById', () => {

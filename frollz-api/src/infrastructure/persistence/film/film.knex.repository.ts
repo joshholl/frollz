@@ -32,9 +32,8 @@ export class FilmKnexRepository implements IFilmRepository {
         this.knex('film_state as fs2')
           .select('fs2.film_id')
           .whereIn('fs2.state_id', filters.stateIds)
-          .where(
-            'fs2.date',
-            this.knex('film_state as fs3').max('fs3.date').where('fs3.film_id', this.knex.ref('fs2.film_id')),
+          .whereRaw(
+            'fs2.id = (SELECT fs3.id FROM film_state fs3 WHERE fs3.film_id = fs2.film_id ORDER BY fs3.date DESC, fs3.id DESC LIMIT 1)',
           ),
       );
     }
@@ -55,6 +54,13 @@ export class FilmKnexRepository implements IFilmRepository {
         'id',
         this.knex('film_tag').select('film_id').whereIn('tag_id', filters.tagIds),
       );
+    }
+
+    if (filters.loadedStateId !== undefined && (filters.loadedDateFrom || filters.loadedDateTo)) {
+      let sub = this.knex('film_state as fsd').select('fsd.film_id').where('fsd.state_id', filters.loadedStateId);
+      if (filters.loadedDateFrom) sub = sub.where('fsd.date', '>=', filters.loadedDateFrom);
+      if (filters.loadedDateTo) sub = sub.where('fsd.date', '<=', filters.loadedDateTo);
+      query = query.whereIn('id', sub);
     }
 
     const rows = await query.select('*');
@@ -128,7 +134,7 @@ export class FilmKnexRepository implements IFilmRepository {
     const rows = await this.knex('film_state as fs')
       .join('transition_state as ts', 'ts.id', 'fs.state_id')
       .where('fs.film_id', filmId)
-      .orderBy('fs.date', 'desc')
+      .orderBy([{ column: 'fs.date', order: 'desc' }, { column: 'fs.id', order: 'desc' }])
       .select('fs.id', 'fs.film_id', 'fs.state_id', 'fs.date', 'fs.note', 'ts.name as state_name');
     return rows.map((r) =>
       FilmState.create({
