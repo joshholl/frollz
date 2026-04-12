@@ -14,13 +14,12 @@ services:
     container_name: frollz-api
     environment:
       - NODE_ENV=development
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
       - PORT=3000
-      - DISABLE_DEFAULT_DATA_IMPORT=false
     ports:
       - "3000:3000"
     depends_on:
@@ -74,9 +73,9 @@ services:
     image: postgres:18-alpine
     container_name: frollz-postgres
     environment:
-      - POSTGRES_DB=${POSTGRES_DATABASE}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -90,8 +89,8 @@ services:
     container_name: pgadmin
     user: root
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${POSTGRES_USER}@localhost.com
-      PGADMIN_DEFAULT_PASSWORD: ${POSTGRES_PASSWORD}
+      PGADMIN_DEFAULT_EMAIL: ${DATABASE_USER}@localhost.com
+      PGADMIN_DEFAULT_PASSWORD: ${DATABASE_PASSWORD}
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
       PGADMIN_DISABLE_POSTFIX: "True"
       PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"

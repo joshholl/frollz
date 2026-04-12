@@ -42,7 +42,7 @@ cd frollz
 cp .env.example .env
 ```
 
-Open `.env` and set values for `POSTGRES_DATABASE`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`. The defaults in `.env.example` work for a local test but **change the password** before exposing the instance to the internet.
+Open `.env` and set values for `DATABASE_NAME`, `DATABASE_USER`, and `DATABASE_PASSWORD`. The defaults in `.env.example` work for a local test but **change the password** before exposing the instance to the internet.
 
 **3. Start the stack**
 
@@ -69,13 +69,12 @@ Database migrations run automatically on startup — no manual steps needed.
 
 | Variable | Default | Description |
 |---|---|---|
-| `POSTGRES_HOST` | `postgres` | PostgreSQL hostname (matches the Compose service name) |
-| `POSTGRES_PORT` | `5432` | PostgreSQL port |
-| `POSTGRES_DATABASE` | — | Database name |
-| `POSTGRES_USER` | — | Database user |
-| `POSTGRES_PASSWORD` | — | Database password |
+| `DATABASE_HOST` | `postgres` | PostgreSQL hostname (matches the Compose service name) |
+| `DATABASE_PORT` | `5432` | PostgreSQL port |
+| `DATABASE_NAME` | — | Database name |
+| `DATABASE_USER` | — | Database user |
+| `DATABASE_PASSWORD` | — | Database password |
 | `PORT` | `3000` | Port the application listens on |
-| `DISABLE_DEFAULT_DATA_IMPORT` | unset | Set to `true` to skip importing default film stocks, formats, and tags on startup |
 
 ## Documentation
 

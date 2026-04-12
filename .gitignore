@@ -8,8 +8,14 @@ yarn-error.log*
 frollz-api/dist/
 frollz-ui/dist/
 
+# ── SQLite development database ───────────────────────────────────────────────
+frollz-api/dev.db
+
 # ── TypeScript ────────────────────────────────────────────────────────────────
 *.tsbuildinfo
+# Prevent tsc composite-mode from committing emitted files into src/
+frollz-ui/src/**/*.js
+frollz-ui/src/**/*.d.ts
 
 # ── Environment variables ─────────────────────────────────────────────────────
 .env
@@ -31,6 +37,6 @@ frollz-ui/dist/
 Thumbs.db
 
 # ── Claude Code local settings (personal overrides, not for version control) ──
-.claude/settings.local.json
+.claude/
 frollz-api/coverage
 frollz-ui/coverage

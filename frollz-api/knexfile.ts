@@ -1,18 +1,24 @@
 import type { Knex } from "knex";
-import * as path from "path";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 const config: Knex.Config = {
   client: "pg",
   connection: {
-    host: process.env.POSTGRES_HOST ?? "localhost",
-    port: Number(process.env.POSTGRES_PORT ?? "5432"),
-    database: process.env.POSTGRES_DATABASE ?? "frollz",
-    user: process.env.POSTGRES_USER ?? "frollz",
-    password: process.env.POSTGRES_PASSWORD ?? "frollz",
+    host: process.env.DATABASE_HOST ?? "localhost",
+    port: parseInt(process.env.DATABASE_PORT ?? "5432"),
+    database: process.env.DATABASE_NAME ?? "frollz",
+    user: process.env.DATABASE_USER ?? "frollz",
+    password: process.env.DATABASE_PASSWORD ?? "",
   },
   migrations: {
-    directory: path.join(__dirname, "migrations"),
-    loadExtensions: [".ts", ".js"],
+    directory: "./migrations",
+    loadExtensions: ['.ts']
+  },
+  seeds: {
+    directory: "./seeds",
+    loadExtensions: ['.ts']
   },
 };
 

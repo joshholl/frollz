@@ -26,8 +26,8 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'dashboard', component: { template: '<div/>' } },
     { path: '/formats', name: 'formats', component: { template: '<div/>' } },
-    { path: '/stocks', name: 'stocks', component: { template: '<div/>' } },
-    { path: '/rolls', name: 'rolls', component: { template: '<div/>' } },
+    { path: '/emulsions', name: 'emulsions', component: { template: '<div/>' } },
+    { path: '/films', name: 'films', component: { template: '<div/>' } },
     { path: '/tags', name: 'tags', component: { template: '<div/>' } },
   ],
 })
@@ -159,8 +159,8 @@ describe('NavBar', () => {
     const labels = drawerLinks.map((l) => l.text())
     expect(labels).toContain('Dashboard')
     expect(labels).toContain('Film Formats')
-    expect(labels).toContain('Stocks')
-    expect(labels).toContain('Rolls')
+    expect(labels).toContain('Emulsions')
+    expect(labels).toContain('Films')
     expect(labels).toContain('Tags')
     wrapper.unmount()
   })

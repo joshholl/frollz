@@ -4,7 +4,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { axe } from 'vitest-axe'
 import TagsView from '@/views/TagsView.vue'
-import { tagApi, stockTagApi } from '@/services/api-client'
+import { tagApi } from '@/services/api-client'
 
 const axeOptions = {
   runOnly: { type: 'tag' as const, values: ['wcag2a', 'wcag2aa', 'wcag21aa'] },
@@ -16,24 +16,41 @@ vi.mock('@/services/api-client', () => ({
     update: vi.fn(),
     delete: vi.fn(),
   },
-  stockTagApi: {
-    getAll: vi.fn(),
-    delete: vi.fn(),
-  },
 }))
 
 describe('TagsView', () => {
   const mockTags = [
-    { _key: 'tag1', value: 'Color', color: '#ff0000', isRollScoped: true, isStockScoped: true, createdAt: new Date('2024-01-01') },
-    { _key: 'tag2', value: 'BW', color: '#000000', isRollScoped: false, isStockScoped: true, createdAt: new Date('2024-02-01') },
-    { _key: 'tag3', value: 'Slide', color: '#0000ff', isRollScoped: true, isStockScoped: false, createdAt: new Date('2024-03-01') },
+    { id: 'tag1', name: 'Color', colorCode: '#ff0000' },
+    { id: 'tag2', name: 'BW', colorCode: '#000000' },
+    { id: 'tag3', name: 'Slide', colorCode: '#0000ff' },
   ]
 
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
     vi.mocked(tagApi.getAll).mockResolvedValue({ data: mockTags } as any)
-    vi.mocked(stockTagApi.getAll).mockResolvedValue({ data: [] } as any)
+  })
+
+  describe('accessibility', () => {
+    it('renders the tag list without a11y violations', async () => {
+      const wrapper = mount(TagsView)
+      await flushPromises()
+
+      const results = await axe(wrapper.element, axeOptions)
+      expect(results).toHaveNoViolations()
+    })
+
+    it('renders the tag list with inline edit active without a11y violations', async () => {
+      const wrapper = mount(TagsView)
+      await flushPromises()
+
+      const vm = wrapper.vm as any
+      vm.startEdit(mockTags[0])
+      await wrapper.vm.$nextTick()
+
+      const results = await axe(wrapper.element, axeOptions)
+      expect(results).toHaveNoViolations()
+    })
   })
 
   describe('accessibility', () => {
@@ -79,7 +96,7 @@ describe('TagsView', () => {
   })
 
   describe('inline editing', () => {
-    it('should enter edit mode when pencil button is clicked', async () => {
+    it('should enter edit mode when edit button is clicked', async () => {
       const wrapper = mount(TagsView)
       await flushPromises()
 
@@ -87,9 +104,9 @@ describe('TagsView', () => {
       vm.startEdit(mockTags[0])
       await wrapper.vm.$nextTick()
 
-      expect(vm.editingKey).toBe('tag1')
-      expect(vm.editForm.value).toBe('Color')
-      expect(vm.editForm.color).toBe('#ff0000')
+      expect(vm.editingId).toBe('tag1')
+      expect(vm.editForm.name).toBe('Color')
+      expect(vm.editForm.colorCode).toBe('#ff0000')
     })
 
     it('should show text inputs when in edit mode', async () => {
@@ -126,44 +143,16 @@ describe('TagsView', () => {
 
       const vm = wrapper.vm as any
       vm.startEdit(mockTags[0])
-      vm.editForm.value = 'Updated'
-      vm.editForm.color = '#123456'
+      vm.editForm.name = 'Updated'
+      vm.editForm.colorCode = '#123456'
 
       await vm.saveEdit('tag1')
 
       expect(tagApi.update).toHaveBeenCalledWith('tag1', {
-        value: 'Updated',
-        color: '#123456',
-        isRollScoped: true,
-        isStockScoped: true,
+        name: 'Updated',
+        colorCode: '#123456',
+        description: undefined,
       })
-    })
-
-    it('should populate editForm with tag scope values on startEdit', async () => {
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[1]) // BW: isRollScoped=false, isStockScoped=true
-      await wrapper.vm.$nextTick()
-
-      expect(vm.editForm.isRollScoped).toBe(false)
-      expect(vm.editForm.isStockScoped).toBe(true)
-    })
-
-    it('should include isRollScoped and isStockScoped in save payload', async () => {
-      vi.mocked(tagApi.update).mockResolvedValue({ data: {} } as any)
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[2]) // Slide: isRollScoped=true, isStockScoped=false
-      await vm.saveEdit('tag3')
-
-      expect(tagApi.update).toHaveBeenCalledWith('tag3', expect.objectContaining({
-        isRollScoped: true,
-        isStockScoped: false,
-      }))
     })
 
     it('should exit edit mode after saving', async () => {
@@ -176,7 +165,7 @@ describe('TagsView', () => {
       await vm.saveEdit('tag1')
       await flushPromises()
 
-      expect(vm.editingKey).toBeNull()
+      expect(vm.editingId).toBeNull()
     })
 
     it('should exit edit mode and discard changes on cancel', async () => {
@@ -185,220 +174,76 @@ describe('TagsView', () => {
 
       const vm = wrapper.vm as any
       vm.startEdit(mockTags[0])
-      vm.editForm.value = 'Changed'
+      vm.editForm.name = 'Changed'
       vm.cancelEdit()
       await wrapper.vm.$nextTick()
 
-      expect(vm.editingKey).toBeNull()
+      expect(vm.editingId).toBeNull()
     })
   })
 
   describe('delete flow', () => {
-    it('should fetch stock-tag count and open confirmation modal on delete click', async () => {
-      vi.mocked(stockTagApi.getAll).mockResolvedValue({
-        data: [
-          { _key: 'st1', stockKey: 'stock1', tagKey: 'tag1' },
-          { _key: 'st2', stockKey: 'stock2', tagKey: 'tag1' },
-        ],
-      } as any)
-
+    it('should open confirmation modal and set deleteTarget on delete click', async () => {
       const wrapper = mount(TagsView)
       await flushPromises()
 
       const vm = wrapper.vm as any
-      await vm.confirmDelete(mockTags[0])
+      vm.confirmDelete(mockTags[0])
       await wrapper.vm.$nextTick()
 
-      expect(stockTagApi.getAll).toHaveBeenCalledWith({ tagKey: 'tag1' })
       expect(vm.deleteTarget).toEqual(mockTags[0])
-      expect(vm.deleteStockTagCount).toBe(2)
     })
 
-    it('should display the association count in the confirmation modal', async () => {
-      vi.mocked(stockTagApi.getAll).mockResolvedValue({
-        data: [{ _key: 'st1', stockKey: 'stock1', tagKey: 'tag1' }],
-      } as any)
-
+    it('should display the tag name in the confirmation modal', async () => {
       const wrapper = mount(TagsView)
       await flushPromises()
 
       const vm = wrapper.vm as any
-      await vm.confirmDelete(mockTags[0])
+      vm.confirmDelete(mockTags[0])
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('1')
       expect(wrapper.text()).toContain('Color')
     })
 
-    it('should delete all stock-tags and then the tag on confirm', async () => {
-      const mockStockTags = [
-        { _key: 'st1', stockKey: 'stock1', tagKey: 'tag1' },
-        { _key: 'st2', stockKey: 'stock2', tagKey: 'tag1' },
-      ]
-      vi.mocked(stockTagApi.getAll).mockResolvedValue({ data: mockStockTags } as any)
-      vi.mocked(stockTagApi.delete).mockResolvedValue({} as any)
+    it('should call tagApi.delete and reload on confirm', async () => {
       vi.mocked(tagApi.delete).mockResolvedValue({} as any)
 
       const wrapper = mount(TagsView)
       await flushPromises()
 
       const vm = wrapper.vm as any
-      await vm.confirmDelete(mockTags[0])
+      vm.confirmDelete(mockTags[0])
       await vm.executeDelete()
       await flushPromises()
 
-      expect(stockTagApi.delete).toHaveBeenCalledWith('st1')
-      expect(stockTagApi.delete).toHaveBeenCalledWith('st2')
       expect(tagApi.delete).toHaveBeenCalledWith('tag1')
+      expect(tagApi.getAll).toHaveBeenCalledTimes(2)
     })
 
-    it('should clear deleteTarget and reload tags after delete', async () => {
-      vi.mocked(stockTagApi.getAll).mockResolvedValue({ data: [] } as any)
+    it('should clear deleteTarget after delete', async () => {
       vi.mocked(tagApi.delete).mockResolvedValue({} as any)
 
       const wrapper = mount(TagsView)
       await flushPromises()
 
       const vm = wrapper.vm as any
-      await vm.confirmDelete(mockTags[0])
+      vm.confirmDelete(mockTags[0])
       await vm.executeDelete()
       await flushPromises()
 
       expect(vm.deleteTarget).toBeNull()
-      // getAll should have been called again after delete
-      expect(tagApi.getAll).toHaveBeenCalledTimes(2)
     })
 
-    it('should close modal without deleting when cancel is pressed', async () => {
-      vi.mocked(stockTagApi.getAll).mockResolvedValue({ data: [] } as any)
-
+    it('should not delete when cancel is pressed', async () => {
       const wrapper = mount(TagsView)
       await flushPromises()
 
       const vm = wrapper.vm as any
-      await vm.confirmDelete(mockTags[0])
+      vm.confirmDelete(mockTags[0])
       vm.deleteTarget = null
       await wrapper.vm.$nextTick()
 
       expect(tagApi.delete).not.toHaveBeenCalled()
-      expect(vm.deleteTarget).toBeNull()
-    })
-  })
-
-  describe('stock scope change warning', () => {
-    it('should show warning modal when isStockScoped changes from true to false', async () => {
-      vi.mocked(stockTagApi.getAll).mockResolvedValue({
-        data: [
-          { _key: 'st1', stockKey: 'stock1', tagKey: 'tag1' },
-          { _key: 'st2', stockKey: 'stock2', tagKey: 'tag1' },
-        ],
-      } as any)
-
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[0]) // tag1: isStockScoped=true
-      vm.editForm.isStockScoped = false
-
-      await vm.saveEdit('tag1')
-      await flushPromises()
-
-      expect(vm.scopeChangeWarning).toEqual({ tagKey: 'tag1', count: 2 })
-      expect(tagApi.update).not.toHaveBeenCalled()
-    })
-
-    it('should display stock count in the warning modal', async () => {
-      vi.mocked(stockTagApi.getAll).mockResolvedValue({
-        data: [{ _key: 'st1', stockKey: 'stock1', tagKey: 'tag1' }],
-      } as any)
-
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[0])
-      vm.editForm.isStockScoped = false
-      await vm.saveEdit('tag1')
-      await wrapper.vm.$nextTick()
-
-      expect(wrapper.text()).toContain('1')
-      expect(wrapper.text()).toContain('Remove Stock Scope')
-    })
-
-    it('should not show warning when isStockScoped was already false', async () => {
-      vi.mocked(tagApi.update).mockResolvedValue({ data: {} } as any)
-
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[2]) // tag3: isStockScoped=false
-      await vm.saveEdit('tag3')
-      await flushPromises()
-
-      expect(vm.scopeChangeWarning).toBeNull()
-      expect(tagApi.update).toHaveBeenCalled()
-    })
-
-    it('should not show warning when isStockScoped changes from false to true', async () => {
-      vi.mocked(tagApi.update).mockResolvedValue({ data: {} } as any)
-
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[2]) // tag3: isStockScoped=false
-      vm.editForm.isStockScoped = true
-      await vm.saveEdit('tag3')
-      await flushPromises()
-
-      expect(vm.scopeChangeWarning).toBeNull()
-      expect(tagApi.update).toHaveBeenCalled()
-    })
-
-    it('should update tag and remove all stock-tags on confirmScopeChange', async () => {
-      const mockStockTags = [
-        { _key: 'st1', stockKey: 'stock1', tagKey: 'tag1' },
-        { _key: 'st2', stockKey: 'stock2', tagKey: 'tag1' },
-      ]
-      vi.mocked(stockTagApi.getAll).mockResolvedValue({ data: mockStockTags } as any)
-      vi.mocked(stockTagApi.delete).mockResolvedValue({} as any)
-      vi.mocked(tagApi.update).mockResolvedValue({ data: {} } as any)
-
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[0])
-      vm.editForm.isStockScoped = false
-      vm.scopeChangeWarning = { tagKey: 'tag1', count: 2 }
-
-      await vm.confirmScopeChange()
-      await flushPromises()
-
-      expect(tagApi.update).toHaveBeenCalledWith('tag1', expect.objectContaining({ isStockScoped: false }))
-      expect(stockTagApi.delete).toHaveBeenCalledWith('st1')
-      expect(stockTagApi.delete).toHaveBeenCalledWith('st2')
-      expect(vm.scopeChangeWarning).toBeNull()
-      expect(vm.editingKey).toBeNull()
-    })
-
-    it('should revert isStockScoped to true and clear warning on cancelScopeChange', async () => {
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[0])
-      vm.editForm.isStockScoped = false
-      vm.scopeChangeWarning = { tagKey: 'tag1', count: 3 }
-
-      vm.cancelScopeChange()
-      await wrapper.vm.$nextTick()
-
-      expect(vm.editForm.isStockScoped).toBe(true)
-      expect(vm.scopeChangeWarning).toBeNull()
-      expect(vm.editingKey).toBe('tag1') // still in edit mode
     })
   })
 
@@ -413,10 +258,9 @@ describe('TagsView', () => {
 
     it('should show pagination when tags exceed page size', async () => {
       const manyTags = Array.from({ length: 12 }, (_, i) => ({
-        _key: `tag${i}`,
-        value: `Tag ${i}`,
-        color: '#aabbcc',
-        createdAt: new Date(),
+        id: `tag${i}`,
+        name: `Tag ${i}`,
+        colorCode: '#aabbcc',
       }))
       vi.mocked(tagApi.getAll).mockResolvedValue({ data: manyTags } as any)
 
@@ -430,10 +274,9 @@ describe('TagsView', () => {
 
     it('should advance page and show next set of tags', async () => {
       const manyTags = Array.from({ length: 12 }, (_, i) => ({
-        _key: `tag${i}`,
-        value: `Tag ${i}`,
-        color: '#aabbcc',
-        createdAt: new Date(),
+        id: `tag${i}`,
+        name: `Tag ${i}`,
+        colorCode: '#aabbcc',
       }))
       vi.mocked(tagApi.getAll).mockResolvedValue({ data: manyTags } as any)
 
