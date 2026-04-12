@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -28,19 +29,31 @@ export class FilmController {
   @ApiQuery({ name: 'emulsionId', required: false, type: Number, description: 'Filter by emulsion ID' })
   @ApiQuery({ name: 'formatId', required: false, type: Number, description: 'Filter by format ID (via emulsion)' })
   @ApiQuery({ name: 'tagId', required: false, isArray: true, type: Number, description: 'Filter by tag ID(s) — OR semantics' })
+  @ApiQuery({ name: 'from', required: false, type: String, description: 'Filter by loaded date — start (YYYY-MM-DD, inclusive)' })
+  @ApiQuery({ name: 'to', required: false, type: String, description: 'Filter by loaded date — end (YYYY-MM-DD, inclusive)' })
   findAll(
     @Query('state') state?: string | string[],
     @Query('emulsionId') rawEmulsionId?: string,
     @Query('formatId') rawFormatId?: string,
     @Query('tagId') tagId?: string | string[],
+    @Query('from') rawFrom?: string,
+    @Query('to') rawTo?: string,
   ) {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (rawFrom && !dateRegex.test(rawFrom)) {
+      throw new BadRequestException('from must be a valid date in YYYY-MM-DD format');
+    }
+    if (rawTo && !dateRegex.test(rawTo)) {
+      throw new BadRequestException('to must be a valid date in YYYY-MM-DD format');
+    }
+
     const stateNames = state ? (Array.isArray(state) ? state : [state]) : undefined;
     const emulsionId = rawEmulsionId !== undefined ? parseInt(rawEmulsionId, 10) : undefined;
     const formatId = rawFormatId !== undefined ? parseInt(rawFormatId, 10) : undefined;
     const tagIds = tagId
       ? (Array.isArray(tagId) ? tagId : [tagId]).map((t) => parseInt(t, 10)).filter((n) => !isNaN(n))
       : undefined;
-    return this.filmService.findAll({ stateNames, emulsionId, formatId, tagIds });
+    return this.filmService.findAll({ stateNames, emulsionId, formatId, tagIds, from: rawFrom, to: rawTo });
   }
 
   @Get(':id')
