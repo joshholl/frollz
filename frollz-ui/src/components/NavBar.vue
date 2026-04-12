@@ -114,8 +114,8 @@ const themeStore = useThemeStore()
 const navLinks = [
   { to: '/', name: 'dashboard', label: 'Dashboard' },
   { to: '/formats', name: 'formats', label: 'Film Formats' },
-  { to: '/stocks', name: 'stocks', label: 'Stocks' },
-  { to: '/rolls', name: 'rolls', label: 'Rolls' },
+  { to: '/emulsions', name: 'emulsions', label: 'Emulsions' },
+  { to: '/films', name: 'films', label: 'Films' },
   { to: '/tags', name: 'tags', label: 'Tags' },
 ] as const
 

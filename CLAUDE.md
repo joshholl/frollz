@@ -7,20 +7,13 @@ This file provides guidance to Claude Code when working with code in this reposi
 Frollz is a full-stack film photography tracking application — a self-hosted monorepo that ships as a single combined container (NestJS API + Vue SPA) backed by PostgreSQL 18.
 
 - **Production**: one `frollz` container (port 3000) + `postgres`. NestJS serves `/api/*` and the built Vue SPA. Place a reverse proxy (NPM, Traefik, Caddy) in front for HTTPS.
-- **Development**: separate `frollz-api` (port 3000, watch mode) + `frollz-ui` (port 5173, Vite HMR) + `postgres`. The Vite dev server proxies `/api` to the API container — no nginx needed.
+- **Development**: run API and UI locally — no Docker required. The API uses SQLite automatically when `NODE_ENV=development`. The Vite dev server proxies `/api` to `localhost:3000`.
 
 Always use `docker compose` (plugin), never `docker-compose` (legacy). `docker-compose` will fail.
 
-### Docker
+### Docker (Production only)
 
 > **IMPORTANT**: This environment uses `docker compose` (the plugin), **not** `docker-compose` (the legacy standalone binary). Always use the two-word form. `docker-compose` will fail with "command not found".
-
-**Development** (hot reloading, separate containers):
-```bash
-docker compose -f docker-compose.dev.yml up -d    # Start API + UI + PostgreSQL
-docker compose -f docker-compose.dev.yml down      # Stop all services
-docker compose -f docker-compose.dev.yml logs -f   # Tail logs
-```
 
 **Production** (combined container, what self-hosters run):
 ```bash
@@ -34,38 +27,50 @@ To build the production image locally:
 docker build -t frollz:local .
 ```
 
-After code changes in dev: rebuild and restart the relevant container(s).
-
-Use `codebase-memory-mcp` tools for all structural questions. Do NOT reach for Grep/Glob/Bash find.
-
-- `get_architecture` — orientation
-- `search_graph` — find functions/classes by name
-- `trace_path` — callers / callees
-- `detect_changes` — blast radius from git diff
-- `get_code_snippet` — read source with context
-- `search_code` — text search (replaces grep)
-
-Fall back to Read/Grep only for raw file content (config values, line ranges).
-
-## GitHub issue workflow
-
-**Before any new work — no exceptions:**
+### Backend (frollz-api)
 
 ```bash
-git checkout development && git fetch origin && git pull origin development
-git checkout -b feature/{issue-number}-{issue-title-slug}
+npm run start:dev       # Watch mode dev server (SQLite, no DB setup needed)
+npm run build           # Compile TypeScript to dist/
+npm run clean           # Remove dist/ and dev.db
+npm run lint            # ESLint with auto-fix
+npm run format          # Prettier format
+npm test                # Run unit tests (Jest)
+npm run test:watch      # Jest watch mode
+npm run test:cov        # Coverage report
+npm run test:integration  # Integration tests (SQLite in-memory)
+npm run migrate         # Run Knex migrations (production PostgreSQL via knexfile.ts)
+npm run migrate:rollback  # Rollback last migration batch
+npm run seed            # Run seeds manually (production PostgreSQL via knexfile.ts)
 ```
 
 Use the `/feature-dev` skill to run the full workflow.
 
-## Rules
+```bash
+npm run dev             # Vite dev server (port 5173, proxies /api → localhost:3000)
+npm run build           # Production build
+npm run clean           # Remove dist/ and node_modules
+npm run type-check      # Vue TSC type validation
+npm run lint            # ESLint with auto-fix
+npm run format          # Prettier format
+npm run test            # Vitest unit tests
+```
 
-1. **Never work directly on `main`.**
-2. **Wait for user approval before submitting or merging a PR** — do not auto-merge.
-3. Target branch for PRs is always `development`.
-4. `docs/adr/architecture.md` must be updated for any architectural change.
-5. Use `/clear` between unrelated tasks to keep context clean.
-6. Use subagents for codebase investigation — keeps file reads out of main context.
+### Local Development Startup
+
+No Docker or environment variables needed for development:
+
+```bash
+# Terminal 1 — API (SQLite auto-selected, dev.db created in frollz-api/)
+cd frollz-api && npm run start:dev
+
+# Terminal 2 — UI (proxies /api to localhost:3000)
+cd frollz-ui && npm run dev
+```
+
+Browse to `http://localhost:5173`.
+
+## Codebase Memory MCP
 
 The `codebase-memory-mcp` server is installed, connected, and **must be used** for all structural code exploration. The graph is automatically kept up-to-date after every file edit.
 
@@ -99,39 +104,71 @@ The graph is always current — no need to run `index_repository` manually.
 
 ## Architecture
 
-### Backend (NestJS + PostgreSQL)
+### Backend (NestJS)
 
-Each domain (film-format, stock, roll, tag, roll-state, stock-tag, transition) is a self-contained NestJS feature module with the structure: `controller / service / module / dto / entities`. The `transition` module exposes the DB-driven state machine graph (valid transitions, metadata fields) consumed by the UI. A `common/` directory holds shared cross-cutting code: `HttpExceptionFilter` and per-endpoint throttle limits.
+The API is organized into five NestJS feature modules registered in `AppModule`:
 
-`DatabaseService` is the single point of PostgreSQL access — all modules depend on it. It wraps Knex, exposes a `query<T>(sql, params)` method and `execute(sql, params)` method used by all feature services. Schema is managed via Knex migrations in `frollz-api/migrations/`; `DatabaseService.onModuleInit` runs `knex.migrate.latest()` on startup.
+| Module | Responsibility |
+|--------|---------------|
+| `DatabaseModule` | Provides `KNEX_CONNECTION` token (SQLite in dev/test, PostgreSQL in prod) and runs migrations + seeds via `MigrationRunnerService` on startup |
+| `EmulsionModule` | Film stocks (emulsions) — CRUD + filtering |
+| `FilmModule` | Film rolls — CRUD, filtering by emulsion/format/tag, bulk canisters, instant film |
+| `FilmStateModule` | Roll lifecycle state machine — transitions, history |
+| `TransitionModule` | Exposes valid transition graph to the UI |
+| `SharedModule` | Cross-domain resources: film formats, packages, processes, tags |
 
-Default seed data is embedded in Knex migrations and loaded into `*_default` shadow tables on first run. Two tiers: **system data** (e.g. auto-managed tags: `expired`, `pushed`, `pulled`, `cross-processed`) is always copied to main tables on startup; **convenience data** (film formats, stocks, tags, stock-tags) is only copied when `DISABLE_DEFAULT_DATA_IMPORT` is not set.
+Each module follows the pattern: `controller / service / module / dto`. Domain entities and repository interfaces live under `src/domain/`; infrastructure implementations under `src/infrastructure/`.
 
-In the combined production container, `ServeStaticModule` (registered conditionally based on whether `/app/public` exists) serves the Vue SPA for all non-`/api` routes. Security headers are applied by `helmet` in `main.ts`.
+**Database access**: `KnexProvider` (token: `KNEX_CONNECTION`) selects the database at startup:
+- `NODE_ENV=test` → SQLite in-memory (`better-sqlite3`)
+- `NODE_ENV=development` → SQLite file (`dev.db` in `frollz-api/`)
+- anything else → PostgreSQL (env vars required)
 
-A `ValidationPipe` with `transform: true`, `whitelist: true`, `forbidNonWhitelisted: true` is applied globally. Swagger docs auto-generated at `/api/docs`.
+`MigrationRunnerService.onModuleInit` runs both `knex.migrate.latest()` and `knex.seed.run()` automatically on every startup. Migrations live in `frollz-api/migrations/`; seeds in `frollz-api/seeds/`.
 
-**Bulk rolls (canisters)**: A roll with `transitionProfile: "bulk"` acts as a canister parent. Child rolls are created with `parentRollId` and inherit stock, process, and expiration from the parent. A parent must be a bulk roll to accept children; child rolls cannot change their stock.
+Default seed data is loaded on first run. Two tiers: **system data** (auto-managed tags: `expired`, `pushed`, `pulled`, `cross-processed`) is always synced; **convenience data** (film formats, stocks, tags) is only copied when `DISABLE_DEFAULT_DATA_IMPORT` is not set.
 
-**Instant film**: Rolls with `transitionProfile: "instant"` skip the lab workflow states (SENT_FOR_DEVELOPMENT, DEVELOPED, RECEIVED). The profile is auto-set when a child roll's parent stock process is `"Instant"`.
+In the combined production container, `ServeStaticModule` (registered conditionally when `/app/public` exists) serves the Vue SPA for all non-`/api` routes. Security headers applied by `helmet` in `main.ts`.
+
+A `ValidationPipe` with `transform: true`, `whitelist: true`, `forbidNonWhitelisted: true` is applied globally. Swagger docs at `/api/docs`.
+
+**Bulk films (canisters)**: A film with `transitionProfile: "bulk"` acts as a canister parent. Child films are created with `parentFilmId` and inherit emulsion, process, and expiration from the parent.
+
+**Instant film**: Films with `transitionProfile: "instant"` skip the lab workflow states. The profile is auto-set when the parent emulsion's process is `"Instant"`.
 
 ### Frontend (Vue 3 + Vite + Pinia + Tailwind)
 
-All HTTP calls go through `src/services/api-client.ts` (Axios-based). Views never call fetch directly. `VITE_API_URL` defaults to `/api` (relative), which works in both production (same-origin) and development (Vite dev server proxies `/api` to the API container).
+All HTTP calls go through `src/services/api-client.ts` (Axios-based). Views never call fetch directly. `VITE_API_URL` defaults to `/api` (relative), which works in both production (same-origin) and development (Vite proxies `/api` → `localhost:3000`).
 
-Five routes map to domain views: `/` (dashboard), `/stocks`, `/rolls`, `/formats`, `/tags`. Shared components in `src/components/` include `TypeaheadInput.vue`, `SpeedTypeaheadInput.vue`, and `NavBar.vue`.
+Six routes map to domain views:
+
+| Route | View | Notes |
+|-------|------|-------|
+| `/` | `Dashboard.vue` | Stats overview |
+| `/stocks` | `StocksView.vue` | Emulsion catalog |
+| `/rolls` | `RollsView.vue` | Film list with emulsion/format/tag filters |
+| `/rolls/:key` | `RollDetailView.vue` | Roll detail + state transitions |
+| `/formats` | `FilmFormatsView.vue` | Film formats |
+| `/tags` | `TagsView.vue` | Tags |
+
+Shared components in `src/components/`: `TypeaheadInput.vue`, `SpeedTypeaheadInput.vue`, `NavBar.vue`, `BaseModal.vue`, `StatCard.vue`, `AppAnnouncer.vue`.
 
 ### Environment Variables
 
+Only needed for **production** (PostgreSQL). Development uses SQLite with no env vars.
+
 | Variable | Service | Default |
 |----------|---------|---------|
-| `DATABASE_HOST` | API | `postgres` |
-| `DATABASE_PORT` | API | `5432` |
-| `DATABASE_NAME` | API | `frollz` |
-| `DATABASE_USER` | API | `frollz` |
-| `DATABASE_PASSWORD` | API | `frollz` |
+| `DATABASE_HOST` | API (prod) | `postgres` |
+| `DATABASE_PORT` | API (prod) | `5432` |
+| `DATABASE_NAME` | API (prod) | `frollz` |
+| `DATABASE_USER` | API (prod) | `frollz` |
+| `DATABASE_PASSWORD` | API (prod) | `frollz` |
 | `PORT` | API | `3000` |
-| `VITE_API_URL` | UI | `/api` (Docker) or `http://localhost:3000` (local) |
+| `VITE_API_URL` | UI | `/api` |
+| `API_PROXY_TARGET` | UI dev server | `http://localhost:3000/` |
+
+For production deployment: copy `.env.example` to `.env` and fill in values before running `docker compose up`.
 
 ## Skills
 
@@ -154,11 +191,11 @@ Available Claude Code skills that improve workflow efficiency in this project:
 
 ```bash
 git config core.hooksPath .githooks
+cd frollz-api && npm install
+cd ../frollz-ui && npm install
 ```
 
-This activates the pre-commit hook at `.githooks/pre-commit`, which runs UI lint, UI type-check, UI tests, API lint, API tests, and Semgrep SAST before every commit. This mirrors CI exactly — if the hook passes, CI will pass.
-
-Before starting the stack, copy `.env.example` to `.env` and fill in values. `docker-compose.yml` does not supply defaults — startup will fail if these variables are not set.
+The pre-commit hook at `.githooks/pre-commit` runs UI lint, UI type-check, UI tests, API lint, API tests, and Semgrep SAST before every commit. This mirrors CI exactly.
 
 ### GitHub Issues
 
@@ -177,9 +214,8 @@ Branch naming rules:
 - Use `fix/` prefix only for pure bug fixes unrelated to a feature issue
 
 Additional rules:
-1. After changes: build components and restart containers. If successful, commit and push all changed files.
-2. **Wait for approval before submitting a PR** — do not auto-merge or auto-create PRs.
-3. Prefer `gh` CLI for git operations.
+1. **Wait for approval before submitting a PR** — do not auto-merge or auto-create PRs.
+2. Prefer `gh` CLI for git operations.
 
 ### Review Checklist (after every code change)
 
@@ -187,16 +223,16 @@ Additional rules:
 - All modified code has unit tests and all tests pass
 - All code passes linting rules (`npm run lint`)
 - Code has been simplified with readability in mind
-- `docs/adr/architecture.md` is updated to reflect any architectural changes, so context can be quickly rebuilt in future sessions
+- `docs/adr/architecture.md` is updated to reflect any architectural changes
 
 ### Architectural Decision-Making
 
-When choosing between approaches, **always pursue the architecturally cleaner solution** unless there is a concrete, articulable reason not to. The simpler path is only acceptable when you can explain clearly why the cleaner approach would add complexity without proportional benefit.
+When choosing between approaches, **always pursue the architecturally cleaner solution** unless there is a concrete, articulable reason not to.
 
 Guidelines:
-- Follow established patterns in the codebase (NestJS feature modules, centralized `DatabaseService`, centralized `api-client.ts`)
+- Follow established patterns: NestJS feature modules, `KNEX_CONNECTION` injection, centralized `api-client.ts`
 - Prefer explicit over implicit — don't hide behavior in middleware or base classes without a clear reason
-- When a simpler path is genuinely better (e.g., a one-liner utility vs. a new class), state the reason: "A shared module here would add indirection without reuse benefit because X"
+- When a simpler path is genuinely better, state the reason explicitly
 - If uncertain between clean and simple, describe both options and the trade-off before proceeding
 
 ### Context Preservation

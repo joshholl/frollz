@@ -49,6 +49,7 @@ const makeTransitionRule = (overrides: Partial<Parameters<typeof TransitionRule.
 const makeFilmRepo = (overrides: Partial<IFilmRepository> = {}): IFilmRepository => ({
   findAll: jest.fn().mockResolvedValue([]),
   findById: jest.fn().mockResolvedValue(null),
+  findWithFilters: jest.fn().mockResolvedValue([]),
   findByEmulsionId: jest.fn().mockResolvedValue([]),
   findChildren: jest.fn().mockResolvedValue([]),
   findByCurrentStateIds: jest.fn().mockResolvedValue([]),
@@ -107,7 +108,7 @@ const makeService = (
 
 describe('FilmService', () => {
   describe('findAll', () => {
-    it('returns all films when no state filter given', async () => {
+    it('returns all films when no filters given', async () => {
       const film = makeFilm();
       const service = makeService(makeFilmRepo({ findAll: jest.fn().mockResolvedValue([film]) }));
 
@@ -117,20 +118,69 @@ describe('FilmService', () => {
     it('filters by state name, resolving names to ids', async () => {
       const addedState = makeTransitionState({ name: 'Added' });
       const film = makeFilm();
-      const filmRepo = makeFilmRepo({ findByCurrentStateIds: jest.fn().mockResolvedValue([film]) });
+      const filmRepo = makeFilmRepo({ findWithFilters: jest.fn().mockResolvedValue([film]) });
       const stateRepo = makeStateRepo({ findAll: jest.fn().mockResolvedValue([addedState]) });
       const service = makeService(filmRepo, makeFilmTagRepo(), makeFilmStateRepo(), stateRepo);
 
-      const result = await service.findAll(['Added']);
+      const result = await service.findAll({ stateNames: ['Added'] });
 
-      expect(filmRepo.findByCurrentStateIds).toHaveBeenCalledWith([addedState.id]);
+      expect(filmRepo.findWithFilters).toHaveBeenCalledWith({ stateIds: [addedState.id] });
       expect(result).toEqual([film]);
     });
 
     it('returns empty array when state name does not match any known state', async () => {
       const service = makeService();
 
-      await expect(service.findAll(['Unknown'])).resolves.toEqual([]);
+      await expect(service.findAll({ stateNames: ['Unknown'] })).resolves.toEqual([]);
+    });
+
+    it('filters by emulsionId', async () => {
+      const film = makeFilm();
+      const emulsionId = randomId();
+      const filmRepo = makeFilmRepo({ findWithFilters: jest.fn().mockResolvedValue([film]) });
+      const service = makeService(filmRepo);
+
+      const result = await service.findAll({ emulsionId });
+
+      expect(filmRepo.findWithFilters).toHaveBeenCalledWith({ emulsionId });
+      expect(result).toEqual([film]);
+    });
+
+    it('filters by formatId', async () => {
+      const film = makeFilm();
+      const formatId = randomId();
+      const filmRepo = makeFilmRepo({ findWithFilters: jest.fn().mockResolvedValue([film]) });
+      const service = makeService(filmRepo);
+
+      const result = await service.findAll({ formatId });
+
+      expect(filmRepo.findWithFilters).toHaveBeenCalledWith({ formatId });
+      expect(result).toEqual([film]);
+    });
+
+    it('filters by tagIds', async () => {
+      const film = makeFilm();
+      const tagIds = [randomId(), randomId()];
+      const filmRepo = makeFilmRepo({ findWithFilters: jest.fn().mockResolvedValue([film]) });
+      const service = makeService(filmRepo);
+
+      const result = await service.findAll({ tagIds });
+
+      expect(filmRepo.findWithFilters).toHaveBeenCalledWith({ tagIds });
+      expect(result).toEqual([film]);
+    });
+
+    it('combines multiple filters', async () => {
+      const addedState = makeTransitionState({ name: 'Added' });
+      const film = makeFilm();
+      const emulsionId = randomId();
+      const filmRepo = makeFilmRepo({ findWithFilters: jest.fn().mockResolvedValue([film]) });
+      const stateRepo = makeStateRepo({ findAll: jest.fn().mockResolvedValue([addedState]) });
+      const service = makeService(filmRepo, makeFilmTagRepo(), makeFilmStateRepo(), stateRepo);
+
+      await service.findAll({ stateNames: ['Added'], emulsionId });
+
+      expect(filmRepo.findWithFilters).toHaveBeenCalledWith({ stateIds: [addedState.id], emulsionId });
     });
   });
 
@@ -150,10 +200,13 @@ describe('FilmService', () => {
   });
 
   describe('create', () => {
-    it('saves and returns a new film with a generated uuid', async () => {
+    it('saves the film and inserts an initial Added state', async () => {
       const savedFilm = makeFilm({ name: 'Roll 001' });
+      const addedState = makeTransitionState({ name: 'Added' });
       const filmRepo = makeFilmRepo({ findById: jest.fn().mockResolvedValue(savedFilm) });
-      const service = makeService(filmRepo);
+      const filmStateRepo = makeFilmStateRepo();
+      const stateRepo = makeStateRepo({ findByName: jest.fn().mockResolvedValue(addedState) });
+      const service = makeService(filmRepo, makeFilmTagRepo(), filmStateRepo, stateRepo);
 
       const result = await service.create({
         name: 'Roll 001',
@@ -164,6 +217,24 @@ describe('FilmService', () => {
 
       expect(result.name).toBe('Roll 001');
       expect(filmRepo.save).toHaveBeenCalledWith(expect.objectContaining({ name: 'Roll 001' }));
+      expect(filmStateRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ stateId: addedState.id }),
+      );
+    });
+
+    it('throws NotFoundException when the Added state is missing from the database', async () => {
+      const filmRepo = makeFilmRepo();
+      const stateRepo = makeStateRepo({ findByName: jest.fn().mockResolvedValue(null) });
+      const service = makeService(filmRepo, makeFilmTagRepo(), makeFilmStateRepo(), stateRepo);
+
+      await expect(
+        service.create({
+          name: 'Roll 001',
+          emulsionId: randomId(),
+          expirationDate: '2026-12-31',
+          transitionProfileId: randomId(),
+        }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
