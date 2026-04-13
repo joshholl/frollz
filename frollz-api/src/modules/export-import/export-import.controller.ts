@@ -4,6 +4,8 @@ import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ExportService } from './application/export.service';
 import { ImportResult, ImportService } from './application/import.service';
+import { LibraryImportResult, LibraryImportService } from './application/library-import.service';
+import { FilmsJsonImportResult, FilmsJsonImportService } from './application/films-json-import.service';
 
 @ApiTags('Export / Import')
 @Controller()
@@ -11,6 +13,8 @@ export class ExportImportController {
   constructor(
     private readonly exportService: ExportService,
     private readonly importService: ImportService,
+    private readonly libraryImportService: LibraryImportService,
+    private readonly filmsJsonImportService: FilmsJsonImportService,
   ) {}
 
   @Get('export/films.json')
@@ -54,5 +58,25 @@ export class ExportImportController {
       throw new BadRequestException(`Unsupported file type: ${file.mimetype}`);
     }
     return this.importService.importFilms(file.buffer);
+  }
+
+  @Post('import/library')
+  @ApiOperation({ summary: 'Import reference data (tags, formats, emulsions) from a library.json export' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', properties: { library: { type: 'string', format: 'binary' } } } })
+  @UseInterceptors(FileInterceptor('library'))
+  async importLibrary(@UploadedFile() file: Express.Multer.File): Promise<LibraryImportResult> {
+    if (!file) throw new BadRequestException('No file uploaded');
+    return this.libraryImportService.importLibrary(file.buffer);
+  }
+
+  @Post('import/films/json')
+  @ApiOperation({ summary: 'Import films with full state history from a films.json export' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', properties: { films: { type: 'string', format: 'binary' } } } })
+  @UseInterceptors(FileInterceptor('films'))
+  async importFilmsJson(@UploadedFile() file: Express.Multer.File): Promise<FilmsJsonImportResult> {
+    if (!file) throw new BadRequestException('No file uploaded');
+    return this.filmsJsonImportService.importFilmsJson(file.buffer);
   }
 }

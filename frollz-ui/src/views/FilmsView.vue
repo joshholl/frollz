@@ -25,17 +25,33 @@
           {{ importingCsv ? 'Importing…' : 'Import CSV' }}
         </button>
         <input ref="csvInput" type="file" accept=".csv,text/csv" class="hidden" aria-label="Select CSV file to import" @change="onCsvSelected" />
+        <button
+          @click="libraryInput?.click()"
+          :disabled="importingLibrary"
+          class="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 px-4 py-2 min-h-[44px] rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium disabled:opacity-50"
+        >
+          {{ importingLibrary ? 'Importing…' : 'Import Library' }}
+        </button>
+        <input ref="libraryInput" type="file" accept=".json,application/json" class="hidden" aria-label="Select library.json file to import" @change="onLibrarySelected" />
+        <button
+          @click="filmsJsonInput?.click()"
+          :disabled="importingFilmsJson"
+          class="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 px-4 py-2 min-h-[44px] rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium disabled:opacity-50"
+        >
+          {{ importingFilmsJson ? 'Importing…' : 'Import Films JSON' }}
+        </button>
+        <input ref="filmsJsonInput" type="file" accept=".json,application/json" class="hidden" aria-label="Select films.json file to import" @change="onFilmsJsonSelected" />
         <button @click="openAddFilm()" class="bg-primary-600 text-white px-4 py-2 min-h-[44px] rounded-md hover:bg-primary-700 font-medium">
           Add Film
         </button>
       </div>
     </div>
 
-    <!-- Import results -->
+    <!-- Import results (CSV) -->
     <div v-if="importResult" class="mb-4 rounded-md border p-4 text-sm" :class="importResult.errors.length ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700' : 'border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-700'">
       <div class="flex items-center justify-between mb-1">
         <span class="font-medium text-gray-800 dark:text-gray-200">
-          Import complete — {{ importResult.imported }} imported, {{ importResult.skipped }} skipped
+          CSV import complete — {{ importResult.imported }} imported, {{ importResult.skipped }} skipped
         </span>
         <button @click="importResult = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg leading-none">&times;</button>
       </div>
@@ -45,6 +61,35 @@
       <p v-if="!importResult.errors.length" class="text-green-800 dark:text-green-200 mt-1">
         All rows imported successfully. <a :href="importApi.templateUrl" class="underline">Download template</a> for next time.
       </p>
+    </div>
+
+    <!-- Import results (Library JSON) -->
+    <div v-if="libraryImportResult" class="mb-4 rounded-md border p-4 text-sm" :class="libraryImportResult.errors.length ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700' : 'border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-700'">
+      <div class="flex items-center justify-between mb-1">
+        <span class="font-medium text-gray-800 dark:text-gray-200">
+          Library import complete —
+          {{ libraryImportResult.tags.imported }} tags,
+          {{ libraryImportResult.formats.imported }} formats,
+          {{ libraryImportResult.emulsions.imported }} emulsions imported
+        </span>
+        <button @click="libraryImportResult = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg leading-none">&times;</button>
+      </div>
+      <ul v-if="libraryImportResult.errors.length" class="mt-2 space-y-1 text-yellow-800 dark:text-yellow-200">
+        <li v-for="err in libraryImportResult.errors" :key="`${err.entity}-${err.index}`">{{ err.entity }} #{{ err.index }}: {{ err.reason }}</li>
+      </ul>
+    </div>
+
+    <!-- Import results (Films JSON) -->
+    <div v-if="filmsJsonImportResult" class="mb-4 rounded-md border p-4 text-sm" :class="filmsJsonImportResult.errors.length ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700' : 'border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-700'">
+      <div class="flex items-center justify-between mb-1">
+        <span class="font-medium text-gray-800 dark:text-gray-200">
+          Films JSON import complete — {{ filmsJsonImportResult.imported }} imported, {{ filmsJsonImportResult.skipped }} skipped
+        </span>
+        <button @click="filmsJsonImportResult = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg leading-none">&times;</button>
+      </div>
+      <ul v-if="filmsJsonImportResult.errors.length" class="mt-2 space-y-1 text-yellow-800 dark:text-yellow-200">
+        <li v-for="err in filmsJsonImportResult.errors" :key="err.index">Film "{{ err.name }}": {{ err.reason }}</li>
+      </ul>
     </div>
 
     <!-- Search + Filters toggle row -->
@@ -501,6 +546,14 @@ const exportingLibrary = ref(false)
 const importingCsv = ref(false)
 const csvInput = ref<HTMLInputElement | null>(null)
 const importResult = ref<{ imported: number; skipped: number; errors: { row: number; reason: string }[] } | null>(null)
+
+const importingLibrary = ref(false)
+const libraryInput = ref<HTMLInputElement | null>(null)
+const libraryImportResult = ref<{ tags: { imported: number; skipped: number }; formats: { imported: number; skipped: number }; emulsions: { imported: number; skipped: number }; errors: { entity: string; index: number; reason: string }[] } | null>(null)
+
+const importingFilmsJson = ref(false)
+const filmsJsonInput = ref<HTMLInputElement | null>(null)
+const filmsJsonImportResult = ref<{ imported: number; skipped: number; errors: { index: number; name: string; reason: string }[] } | null>(null)
 const showModal = ref(false)
 
 const searchQuery = ref('')
@@ -724,6 +777,39 @@ const onCsvSelected = async (event: Event) => {
   } finally {
     importingCsv.value = false
     if (csvInput.value) csvInput.value.value = ''
+  }
+}
+
+const onLibrarySelected = async (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  importingLibrary.value = true
+  libraryImportResult.value = null
+  try {
+    const res = await importApi.importLibrary(file)
+    libraryImportResult.value = res.data
+  } catch (err) {
+    console.error('Library import failed:', err)
+  } finally {
+    importingLibrary.value = false
+    if (libraryInput.value) libraryInput.value.value = ''
+  }
+}
+
+const onFilmsJsonSelected = async (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  importingFilmsJson.value = true
+  filmsJsonImportResult.value = null
+  try {
+    const res = await importApi.importFilmsJson(file)
+    filmsJsonImportResult.value = res.data
+    await loadFilms()
+  } catch (err) {
+    console.error('Films JSON import failed:', err)
+  } finally {
+    importingFilmsJson.value = false
+    if (filmsJsonInput.value) filmsJsonInput.value.value = ''
   }
 }
 

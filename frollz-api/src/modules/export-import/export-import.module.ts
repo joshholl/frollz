@@ -18,6 +18,8 @@ import { TRANSITION_PROFILE_REPOSITORY } from '../../domain/transition/repositor
 import { TransitionProfileKnexRepository } from '../../infrastructure/persistence/transition/transition-profile.knex.repository';
 import { ExportService } from './application/export.service';
 import { ImportService } from './application/import.service';
+import { LibraryImportService } from './application/library-import.service';
+import { FilmsJsonImportService } from './application/films-json-import.service';
 import { ExportImportController } from './export-import.controller';
 
 @Module({
@@ -33,6 +35,8 @@ import { ExportImportController } from './export-import.controller';
     { provide: TRANSITION_PROFILE_REPOSITORY, useClass: TransitionProfileKnexRepository },
     ExportService,
     ImportService,
+    LibraryImportService,
+    FilmsJsonImportService,
   ],
   controllers: [ExportImportController],
 })
