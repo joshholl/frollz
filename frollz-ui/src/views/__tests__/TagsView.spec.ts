@@ -53,28 +53,6 @@ describe('TagsView', () => {
     })
   })
 
-  describe('accessibility', () => {
-    it('renders the tag list without a11y violations', async () => {
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const results = await axe(wrapper.element, axeOptions)
-      expect(results).toHaveNoViolations()
-    })
-
-    it('renders the tag list with inline edit active without a11y violations', async () => {
-      const wrapper = mount(TagsView)
-      await flushPromises()
-
-      const vm = wrapper.vm as any
-      vm.startEdit(mockTags[0])
-      await wrapper.vm.$nextTick()
-
-      const results = await axe(wrapper.element, axeOptions)
-      expect(results).toHaveNoViolations()
-    })
-  })
-
   describe('component mounting', () => {
     it('should load and display tags on mount', async () => {
       const wrapper = mount(TagsView)

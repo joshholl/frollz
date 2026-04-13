@@ -218,6 +218,9 @@ describe('Film', () => {
     expect(film.transitionProfileId).toBe(standardProfileId);
     expect(film.states).toHaveLength(1);
     expect(film.currentState?.state?.name).toBe('Added');
+    expect(film.emulsion).toBeDefined();
+    expect(film.emulsion?.brand).toBe('Kodak');
+    expect(film.emulsion?.speed).toBe(160);
   });
 
   it('tags a film and verifies the tag is returned', async () => {
@@ -379,5 +382,38 @@ describe('findAll with state filter', () => {
 
     expect(addedIds).toContain(filmA.id);
     expect(addedIds).not.toContain(filmB.id);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Imported transition state
+// ---------------------------------------------------------------------------
+
+describe('Imported transition state', () => {
+  it('exists in transition_state', async () => {
+    const row = await knex('transition_state').where({ name: 'Imported' }).first();
+    expect(row).toBeDefined();
+  });
+
+  it('has rules to every other state for each profile', async () => {
+    const importedId = await stateId(knex, 'Imported');
+    const profiles = await knex('transition_profile').select('id', 'name');
+    const otherStates = await knex('transition_state').whereNot({ name: 'Imported' }).select('id');
+
+    for (const profile of profiles) {
+      const rules = await knex('transition_rule')
+        .where({ from_state_id: importedId, profile_id: profile.id })
+        .select('to_state_id');
+      const toIds = rules.map((r: { to_state_id: number }) => r.to_state_id);
+      for (const state of otherStates) {
+        expect(toIds).toContain(state.id);
+      }
+    }
+  });
+
+  it('has no rules pointing TO Imported', async () => {
+    const importedId = await stateId(knex, 'Imported');
+    const count = await knex('transition_rule').where({ to_state_id: importedId }).count('id as n').first();
+    expect(Number(count?.n)).toBe(0);
   });
 });

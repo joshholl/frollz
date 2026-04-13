@@ -90,6 +90,44 @@ export const filmStateApi = {
     api.get<FilmState[]>('/film-states', { params: { filmId } }),
 }
 
+// Export API
+export const exportApi = {
+  filmsJsonPath: '/export/films.json',
+  libraryJsonPath: '/export/library.json',
+}
+
+// Import API
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+export const importApi = {
+  templateUrl: `${API_BASE_URL}/import/films/template`,
+  importFilms: (file: File) => {
+    const form = new FormData()
+    form.append('csv', file)
+    return api.post<{ imported: number; skipped: number; errors: { row: number; reason: string }[] }>(
+      '/import/films',
+      form,
+    )
+  },
+  importLibrary: (file: File) => {
+    const form = new FormData()
+    form.append('library', file)
+    return api.post<{
+      tags: { imported: number; skipped: number }
+      formats: { imported: number; skipped: number }
+      emulsions: { imported: number; skipped: number }
+      errors: { entity: string; index: number; reason: string }[]
+    }>('/import/library', form)
+  },
+  importFilmsJson: (file: File) => {
+    const form = new FormData()
+    form.append('films', file)
+    return api.post<{ imported: number; skipped: number; errors: { index: number; name: string; reason: string }[] }>(
+      '/import/films/json',
+      form,
+    )
+  },
+}
+
 // Transition API
 export const transitionApi = {
   getProfiles: () => api.get<TransitionProfile[]>('/transitions/profiles'),
