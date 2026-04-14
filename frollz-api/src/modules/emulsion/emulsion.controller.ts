@@ -21,7 +21,7 @@ import { ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { EmulsionService } from './application/emulsion.service';
 import { CreateEmulsionDto } from './dto/create-emulsion.dto';
-import { CreateEmulsionMultipleFormatsDto } from './dto/create-emulsion-multiple-formats.dto';
+import { AddTagDto } from '../shared/dto/add-tag.dto';
 import { UpdateEmulsionDto } from './dto/update-emulsion.dto';
 
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
@@ -92,8 +92,8 @@ export class EmulsionController {
   @Post(':id/tags')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Associate a tag with an emulsion' })
-  addTag(@Param('id', ParseIntPipe) id: number, @Body('tagId') tagId: number) {
-    return this.emulsionService.addTag(id, tagId);
+  addTag(@Param('id', ParseIntPipe) id: number, @Body() dto: AddTagDto) {
+    return this.emulsionService.addTag(id, dto.tagId);
   }
 
   @Delete(':id/tags/:tagId')

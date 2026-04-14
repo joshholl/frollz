@@ -16,7 +16,7 @@ import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { FilmService } from './application/film.service';
 import { CreateFilmDto } from './dto/create-film.dto';
 import { UpdateFilmDto } from './dto/update-film.dto';
-import { TransitionFilmDto } from './dto/transition-film.dto';
+import { AddTagDto } from '../shared/dto/add-tag.dto';
 
 @ApiTags('Films')
 @Controller('films')
@@ -92,8 +92,8 @@ export class FilmController {
   @Post(':id/tags')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Associate a tag with a film' })
-  addTag(@Param('id', ParseIntPipe) id: number, @Body('tagId') tagId: number) {
-    return this.filmService.addTag(id, tagId);
+  addTag(@Param('id', ParseIntPipe) id: number, @Body() dto: AddTagDto) {
+    return this.filmService.addTag(id, dto.tagId);
   }
 
   @Delete(':id/tags/:tagId')

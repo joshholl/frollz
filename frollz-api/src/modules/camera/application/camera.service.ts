@@ -42,7 +42,7 @@ export class CameraService {
       status: dto.status ?? existing.status,
       serialNumber: dto.serial_number ?? existing.serialNumber,
       purchasePrice: dto.purchase_price ?? existing.purchasePrice,
-      acquiredAt: dto.acquired_at ?? existing.acquiredAt,
+      acquiredAt: dto.acquired_at ? new Date(dto.acquired_at) : existing.acquiredAt,
     });
     await this.cameraRepo.update(updated)
     if (dto.notes) {
