@@ -23,6 +23,7 @@ import { EmulsionService } from './application/emulsion.service';
 import { CreateEmulsionDto } from './dto/create-emulsion.dto';
 import { AddTagDto } from '../shared/dto/add-tag.dto';
 import { UpdateEmulsionDto } from './dto/update-emulsion.dto';
+import { CreateEmulsionMultipleFormatsDto } from './dto/create-emulsion-multiple-formats.dto';
 
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 

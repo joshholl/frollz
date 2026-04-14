@@ -1,29 +1,26 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { Knex } from 'knex';
+import { Injectable } from '@nestjs/common';
 import { Note, EntityType } from '../../../domain/shared/entities/note.entity';
 import { INoteRepository } from '../../../domain/shared/repositories/note.repository.interface';
-import { KNEX_CONNECTION } from '../knex.provider';
 import { NoteRow } from '../types/db.types';
+import { BaseKnexRepository } from '../base.knex.repository';
 
 @Injectable()
-export class NoteKnexRepository implements INoteRepository {
-
-  constructor(@Inject(KNEX_CONNECTION) private readonly knex: Knex) {}
+export class NoteKnexRepository extends BaseKnexRepository implements INoteRepository {
 
   async findById(id: number): Promise<Note | null> {
-    const row = await this.knex<NoteRow>('note').where({ id }).first();
+    const row = await this.db<NoteRow>('note').where({ id }).first();
     return row ? this.toDomain(row) : null;
   }
   async findAll(): Promise<Note[]> {
-    const rows = await this.knex<NoteRow>('note').select('*').orderBy('created_at', 'desc');
+    const rows = await this.db<NoteRow>('note').select('*').orderBy('created_at', 'desc');
     return rows.map((r) => this.toDomain(r));
   }
   async findByEntityId(entityId: number): Promise<Note[]> {
-    const rows = await this.knex<NoteRow>('note').where({ entity_id: entityId }).orderBy('created_at', 'desc');
+    const rows = await this.db<NoteRow>('note').where({ entity_id: entityId }).orderBy('created_at', 'desc');
     return rows.map((r) => this.toDomain(r));
   }
   async save(note: Note): Promise<number> {
-    const [generatedId] = await this.knex('note').insert({
+    const [generatedId] = await this.db('note').insert({
           entity_id: note.entity_id,
           entity_type: note.entity_type,
           text: note.text,

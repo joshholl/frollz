@@ -1,5 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { Knex } from 'knex';
+import { Injectable } from '@nestjs/common';
 import {
   EmulsionCount,
   IFilmStatsRepository,
@@ -7,16 +6,15 @@ import {
   StateCount,
   TransitionDuration,
 } from '../../../domain/film-stats/repositories/film-stats.repository.interface';
-import { KNEX_CONNECTION } from '../knex.provider';
+import { BaseKnexRepository } from '../base.knex.repository';
 
 @Injectable()
-export class FilmStatsKnexRepository implements IFilmStatsRepository {
-  constructor(@Inject(KNEX_CONNECTION) private readonly knex: Knex) { }
+export class FilmStatsKnexRepository extends BaseKnexRepository implements IFilmStatsRepository {
 
   async countByCurrentState(): Promise<StateCount[]> {
-    const rows = await this.knex('transition_state as ts')
+    const rows = await this.db('transition_state as ts')
       .leftJoin(
-        this.knex('film_state as fs')
+        this.db('film_state as fs')
           .select('fs.film_id', 'fs.state_id')
           .whereRaw('fs.id = (SELECT MAX(id) FROM film_state fs2 WHERE fs2.film_id = fs.film_id)')
           .as('sub'),
@@ -25,7 +23,7 @@ export class FilmStatsKnexRepository implements IFilmStatsRepository {
       )
       .groupBy('ts.id', 'ts.name')
       .orderBy('ts.name')
-      .select('ts.name as state', this.knex.raw('COUNT(sub.film_id) as count'));
+      .select('ts.name as state', this.db.raw('COUNT(sub.film_id) as count'));
 
     return rows.map((r: { state: string; count: string | number }) => ({
       state: r.state,
@@ -38,17 +36,17 @@ export class FilmStatsKnexRepository implements IFilmStatsRepository {
     const monthExpr = isPostgres ? `to_char(first_date, 'YYYY-MM')` : `strftime('%Y-%m', first_date)`;
     const safeMonths = Math.floor(Math.abs(months));
     const cutoff = isPostgres
-      ? this.knex.raw(`NOW() - (? * INTERVAL '1 month')`, [safeMonths])
-      : this.knex.raw(`datetime('now', ? || ' months')`, [`-${safeMonths}`]);
+      ? this.db.raw(`NOW() - (? * INTERVAL '1 month')`, [safeMonths])
+      : this.db.raw(`datetime('now', ? || ' months')`, [`-${safeMonths}`]);
 
-    const rows = await this.knex
+    const rows = await this.db
       .from(
-        this.knex('film_state').select('film_id').min('date as first_date').groupBy('film_id').as('first_states'),
+        this.db('film_state').select('film_id').min('date as first_date').groupBy('film_id').as('first_states'),
       )
       .where('first_date', '>=', cutoff)
       .groupByRaw(monthExpr)
       .orderBy('month')
-      .select(this.knex.raw(`${monthExpr} as month`), this.knex.raw('COUNT(*) as count'));
+      .select(this.db.raw(`${monthExpr} as month`), this.db.raw('COUNT(*) as count'));
 
     return rows.map((r: { month: string; count: string | number }) => ({
       month: r.month,
@@ -57,11 +55,11 @@ export class FilmStatsKnexRepository implements IFilmStatsRepository {
   }
 
   async countByEmulsion(): Promise<EmulsionCount[]> {
-    const rows = await this.knex('film as f')
+    const rows = await this.db('film as f')
       .join('emulsion as e', 'e.id', 'f.emulsion_id')
       .groupBy('e.id', 'e.brand')
       .orderByRaw('COUNT(f.id) DESC')
-      .select(this.knex.raw(`e.brand as emulsion_name`), this.knex.raw('COUNT(f.id) as count'));
+      .select(this.db.raw(`e.brand as emulsion_name`), this.db.raw('COUNT(f.id) as count'));
 
     return rows.map((r: { emulsion_name: string; count: string | number }) => ({
       emulsionName: r.emulsion_name,
@@ -74,7 +72,7 @@ export class FilmStatsKnexRepository implements IFilmStatsRepository {
       ? `EXTRACT(EPOCH FROM (CAST(fs2.date AS TIMESTAMP) - CAST(fs1.date AS TIMESTAMP))) / 86400`
       : `(julianday(fs2.date) - julianday(fs1.date))`;
 
-    const raw = await this.knex.raw<{ rows?: RawDurationRow[];[0]: RawDurationRow[] }>(`
+    const raw = await this.db.raw<{ rows?: RawDurationRow[];[0]: RawDurationRow[] }>(`
       SELECT
         ts1.name || ' → ' || ts2.name AS transition,
         CASE WHEN COUNT(*) >= 2 THEN AVG(day_diff) ELSE NULL END AS avg_days
@@ -106,7 +104,7 @@ export class FilmStatsKnexRepository implements IFilmStatsRepository {
   }
 
   private isPostgres(): boolean {
-    return this.knex.client?.config?.client === 'pg';
+    return this.db.client?.config?.client === 'pg';
   }
 }
 

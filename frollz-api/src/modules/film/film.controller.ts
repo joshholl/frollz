@@ -17,6 +17,7 @@ import { FilmService } from './application/film.service';
 import { CreateFilmDto } from './dto/create-film.dto';
 import { UpdateFilmDto } from './dto/update-film.dto';
 import { AddTagDto } from '../shared/dto/add-tag.dto';
+import { TransitionFilmDto } from './dto/transition-film.dto';
 
 @ApiTags('Films')
 @Controller('films')
