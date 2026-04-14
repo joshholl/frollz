@@ -171,10 +171,12 @@ export class FilmKnexRepository implements IFilmRepository {
   private async loadStates(filmId: number): Promise<FilmState[]> {
     const rows = await this.knex('film_state as fs')
       .join('transition_state as ts', 'ts.id', 'fs.state_id')
-      .join('note as n', 'n.entity_id', 'fs.id')
+      .leftJoin('note as n', function () {
+        this.on('n.entity_id', '=', 'fs.id').andOnVal('n.entity_type', '=', 'film_state');
+      })
       .where('fs.film_id', filmId)
       .orderBy('fs.id', 'desc')
-      .select('fs.id', 'fs.film_id', 'fs.state_id', 'fs.date', 'n.note', 'ts.name as state_name');
+      .select('fs.id', 'fs.film_id', 'fs.state_id', 'fs.date', 'n.text', 'ts.name as state_name');
 
     const metadataMap = await this.loadMetadataForStates(rows.map((r) => r.id));
 
@@ -184,7 +186,7 @@ export class FilmKnexRepository implements IFilmRepository {
         filmId: r.film_id,
         stateId: r.state_id,
         date: new Date(r.date),
-        note: r.note,
+        note: r.text,
         state: TransitionState.create({ id: r.state_id, name: r.state_name }),
         metadata: metadataMap.get(r.id) ?? [],
       }),
