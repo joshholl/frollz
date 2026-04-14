@@ -23,7 +23,9 @@ export class ProcessKnexRepository extends BaseKnexRepository implements IProces
   }
 
   async save(process: Process): Promise<void> {
-    await this.db('process').insert({ id: process.id, name: process.name });
+    const payload: Record<string, unknown> = { name: process.name };
+    if (process.id) payload.id = process.id;
+    await this.db('process').insert(payload);
   }
 
   async update(process: Process): Promise<void> {

@@ -177,5 +177,146 @@ describe('EmulsionService', () => {
       expect(result).toEqual(['Kodak', 'Ilford']);
       expect(repo.findBrands).toHaveBeenCalledWith('Ko');
     });
+
+    it('delegates findBrands without query to repository', async () => {
+      const repo = makeRepo({ findBrands: jest.fn().mockResolvedValue(['Kodak', 'Ilford', 'Fuji']) });
+      const service = new EmulsionService(repo, makeTagRepo());
+
+      const result = await service.findBrands();
+
+      expect(result).toEqual(['Kodak', 'Ilford', 'Fuji']);
+      expect(repo.findBrands).toHaveBeenCalledWith(undefined);
+    });
+
+    it('delegates findManufacturers with query to repository', async () => {
+      const repo = makeRepo({ findManufacturers: jest.fn().mockResolvedValue(['Kodak']) });
+      const service = new EmulsionService(repo, makeTagRepo());
+
+      const result = await service.findManufacturers('Ko');
+
+      expect(result).toEqual(['Kodak']);
+      expect(repo.findManufacturers).toHaveBeenCalledWith('Ko');
+    });
+
+    it('delegates findManufacturers without query to repository', async () => {
+      const repo = makeRepo({ findManufacturers: jest.fn().mockResolvedValue(['Kodak', 'Ilford']) });
+      const service = new EmulsionService(repo, makeTagRepo());
+
+      await service.findManufacturers();
+
+      expect(repo.findManufacturers).toHaveBeenCalledWith(undefined);
+    });
+
+    it('delegates findSpeeds with query to repository', async () => {
+      const repo = makeRepo({ findSpeeds: jest.fn().mockResolvedValue([400]) });
+      const service = new EmulsionService(repo, makeTagRepo());
+
+      const result = await service.findSpeeds('4');
+
+      expect(result).toEqual([400]);
+      expect(repo.findSpeeds).toHaveBeenCalledWith('4');
+    });
+
+    it('delegates findSpeeds without query to repository', async () => {
+      const repo = makeRepo({ findSpeeds: jest.fn().mockResolvedValue([100, 200, 400]) });
+      const service = new EmulsionService(repo, makeTagRepo());
+
+      await service.findSpeeds();
+
+      expect(repo.findSpeeds).toHaveBeenCalledWith(undefined);
+    });
+  });
+
+  describe('findAll', () => {
+    it('returns all emulsions from the repository', async () => {
+      const emulsions = [makeEmulsion(), makeEmulsion({ brand: 'Ilford HP5' })];
+      const repo = makeRepo({ findAll: jest.fn().mockResolvedValue(emulsions) });
+      const service = new EmulsionService(repo, makeTagRepo());
+
+      const result = await service.findAll();
+
+      expect(result).toEqual(emulsions);
+    });
+
+    it('returns empty array when no emulsions exist', async () => {
+      const service = new EmulsionService(makeRepo(), makeTagRepo());
+      await expect(service.findAll()).resolves.toEqual([]);
+    });
+  });
+
+  describe('delete', () => {
+    it('deletes an existing emulsion', async () => {
+      const emulsion = makeEmulsion();
+      const repo = makeRepo({ findById: jest.fn().mockResolvedValue(emulsion) });
+      const service = new EmulsionService(repo, makeTagRepo());
+
+      await service.delete(emulsion.id);
+
+      expect(repo.delete).toHaveBeenCalledWith(emulsion.id);
+    });
+
+    it('throws NotFoundException when emulsion does not exist', async () => {
+      const service = new EmulsionService(makeRepo(), makeTagRepo());
+
+      await expect(service.delete(randomId())).rejects.toThrow(NotFoundException);
+    });
+
+    it('does not call delete when emulsion is not found', async () => {
+      const repo = makeRepo();
+      const service = new EmulsionService(repo, makeTagRepo());
+
+      await expect(service.delete(randomId())).rejects.toThrow(NotFoundException);
+      expect(repo.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('uploadBoxImage / getBoxImage', () => {
+    it('uploads a box image for an existing emulsion', async () => {
+      const emulsion = makeEmulsion();
+      const repo = makeRepo({ findById: jest.fn().mockResolvedValue(emulsion) });
+      const service = new EmulsionService(repo, makeTagRepo());
+      const buf = Buffer.from('fake-image');
+
+      await service.uploadBoxImage(emulsion.id, buf, 'image/jpeg');
+
+      expect(repo.updateBoxImage).toHaveBeenCalledWith(emulsion.id, buf, 'image/jpeg');
+    });
+
+    it('throws NotFoundException when uploading image for missing emulsion', async () => {
+      const service = new EmulsionService(makeRepo(), makeTagRepo());
+
+      await expect(service.uploadBoxImage(randomId(), Buffer.from('x'), 'image/jpeg')).rejects.toThrow(NotFoundException);
+    });
+
+    it('returns box image data for an existing emulsion', async () => {
+      const emulsion = makeEmulsion();
+      const imageData = { data: Buffer.from('img'), mimeType: 'image/jpeg' };
+      const repo = makeRepo({
+        findById: jest.fn().mockResolvedValue(emulsion),
+        getBoxImage: jest.fn().mockResolvedValue(imageData),
+      });
+      const service = new EmulsionService(repo, makeTagRepo());
+
+      const result = await service.getBoxImage(emulsion.id);
+
+      expect(result).toEqual(imageData);
+    });
+
+    it('throws NotFoundException when no box image has been set', async () => {
+      const emulsion = makeEmulsion();
+      const repo = makeRepo({
+        findById: jest.fn().mockResolvedValue(emulsion),
+        getBoxImage: jest.fn().mockResolvedValue(null),
+      });
+      const service = new EmulsionService(repo, makeTagRepo());
+
+      await expect(service.getBoxImage(emulsion.id)).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws NotFoundException when emulsion does not exist for getBoxImage', async () => {
+      const service = new EmulsionService(makeRepo(), makeTagRepo());
+
+      await expect(service.getBoxImage(randomId())).rejects.toThrow(NotFoundException);
+    });
   });
 });

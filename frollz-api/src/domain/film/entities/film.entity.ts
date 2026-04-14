@@ -7,7 +7,7 @@ export class Film {
     public readonly id: number,
     public readonly name: string,
     public readonly emulsionId: number,
-    public readonly expirationDate: Date,
+    public readonly expirationDate: Date | null,
     public readonly parentId: number | null,
     public readonly transitionProfileId: number,
     public readonly emulsion?: Emulsion,
@@ -20,7 +20,7 @@ export class Film {
     id?: number;
     name: string;
     emulsionId: number;
-    expirationDate: Date;
+    expirationDate?: Date | null;
     parentId?: number | null;
     transitionProfileId: number;
     emulsion?: Emulsion;
@@ -32,7 +32,7 @@ export class Film {
       props.id ?? 0,
       props.name,
       props.emulsionId,
-      props.expirationDate,
+      props.expirationDate ?? null,
       props.parentId ?? null,
       props.transitionProfileId,
       props.emulsion,

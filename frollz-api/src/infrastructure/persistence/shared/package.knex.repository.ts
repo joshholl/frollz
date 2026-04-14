@@ -24,7 +24,9 @@ export class PackageKnexRepository extends BaseKnexRepository implements IPackag
   }
 
   async save(pkg: Package): Promise<void> {
-    await this.db('package').insert({ id: pkg.id, name: pkg.name });
+    const payload: Record<string, unknown> = { name: pkg.name };
+    if (pkg.id) payload.id = pkg.id;
+    await this.db('package').insert(payload);
   }
 
   async update(pkg: Package): Promise<void> {

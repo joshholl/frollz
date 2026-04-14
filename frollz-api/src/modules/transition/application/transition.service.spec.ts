@@ -75,6 +75,28 @@ const makeService = (
 ) => new TransitionService(ruleRepo, stateRepo, profileRepo, fieldRepo);
 
 describe('TransitionService', () => {
+  describe('listProfiles', () => {
+    it('returns all profiles as id/name pairs', async () => {
+      const profiles = [makeProfile('standard'), makeProfile('instant')];
+      const service = makeService(
+        makeRuleRepo(),
+        makeStateRepo(),
+        makeProfileRepo({ findAll: jest.fn().mockResolvedValue(profiles) }),
+      );
+
+      const result = await service.listProfiles();
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({ id: profiles[0].id, name: 'standard' });
+      expect(result[1]).toEqual({ id: profiles[1].id, name: 'instant' });
+    });
+
+    it('returns empty array when no profiles exist', async () => {
+      const service = makeService();
+      await expect(service.listProfiles()).resolves.toEqual([]);
+    });
+  });
+
   describe('getGraph', () => {
     it('throws NotFoundException when profile does not exist', async () => {
       const service = makeService();
@@ -105,6 +127,26 @@ describe('TransitionService', () => {
         toState: 'Loaded',
         metadata: [],
       });
+    });
+
+    it('returns only state names referenced by rules', async () => {
+      const profile = makeProfile('standard');
+      const added = makeState('Added');
+      const loaded = makeState('Loaded');
+      const orphan = makeState('Orphan'); // exists in DB but not referenced by any rule
+      const rule = makeRule(added.id, loaded.id, profile.id);
+
+      const service = makeService(
+        makeRuleRepo({ findByProfileId: jest.fn().mockResolvedValue([rule]) }),
+        makeStateRepo({ findAll: jest.fn().mockResolvedValue([added, loaded, orphan]) }),
+        makeProfileRepo({ findByName: jest.fn().mockResolvedValue(profile) }),
+      );
+
+      const graph = await service.getGraph('standard');
+
+      expect(graph.states).toContain('Added');
+      expect(graph.states).toContain('Loaded');
+      expect(graph.states).not.toContain('Orphan');
     });
 
     it('resolves metadata fields on the destination state', async () => {
