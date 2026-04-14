@@ -36,9 +36,10 @@ export class FilmStatsKnexRepository implements IFilmStatsRepository {
   async countByFirstStateMonth(months: number): Promise<MonthCount[]> {
     const isPostgres = this.isPostgres();
     const monthExpr = isPostgres ? `to_char(first_date, 'YYYY-MM')` : `strftime('%Y-%m', first_date)`;
+    const safeMonths = Math.floor(Math.abs(months));
     const cutoff = isPostgres
-      ? this.knex.raw(`NOW() - INTERVAL '${months} months'`)
-      : this.knex.raw(`datetime('now', '-${months} months')`);
+      ? this.knex.raw(`NOW() - (? * INTERVAL '1 month')`, [safeMonths])
+      : this.knex.raw(`datetime('now', ? || ' months')`, [`-${safeMonths}`]);
 
     const rows = await this.knex
       .from(

@@ -36,7 +36,7 @@ export class CameraKnexRepository implements ICameraRepository {
     }
     if (criteria.formatId) {
       query = query
-        .join('camera_accepted_formats as caf', 'camera.id', 'caf.camera_id')
+        .join('camera_accepted_format as caf', 'camera.id', 'caf.camera_id')
         .where('caf.format_id', criteria.formatId);
     }
     if (criteria.unloaded) {
@@ -57,30 +57,28 @@ export class CameraKnexRepository implements ICameraRepository {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...data } = CameraMapper.toPersistence(camera);
 
-    //verify all formatIds exist
-    if (formatIds.length > 0) {
-
-      const existingFormats = await this.knex('format').whereIn('id', formatIds).select('id');
-      const existingFormatIds = existingFormats.map(f => f.id);
-      const missingFormatIds = formatIds.filter(id => !existingFormatIds.includes(id));
-      if (missingFormatIds.length > 0) {
-        throw new Error(`Formats with IDs ${missingFormatIds.join(', ')} do not exist`);
+    return this.knex.transaction(async (trx) => {
+      if (formatIds.length > 0) {
+        const existingFormats = await trx('format').whereIn('id', formatIds).select('id');
+        const existingFormatIds = existingFormats.map((f: { id: number }) => f.id);
+        const missingFormatIds = formatIds.filter(fid => !existingFormatIds.includes(fid));
+        if (missingFormatIds.length > 0) {
+          throw new Error(`Formats with IDs ${missingFormatIds.join(', ')} do not exist`);
+        }
       }
-    }
 
-    const [generatedId] = await this.knex('camera').insert(data);
+      const [generatedId] = await trx('camera').insert(data);
 
-    if (formatIds.length > 0) {
-      Logger.debug(`Saving accepted formats for camera ${generatedId}: ${formatIds.join(', ')}`);
-      await this.saveAcceptedFormats(generatedId, formatIds);
-    }
-    return generatedId;
-
+      if (formatIds.length > 0) {
+        Logger.debug(`Saving accepted formats for camera ${generatedId}: ${formatIds.join(', ')}`);
+        await this.saveAcceptedFormats(generatedId, formatIds, trx);
+      }
+      return generatedId;
+    });
   }
   async update(camera: Camera): Promise<void> {
     const row = CameraMapper.toPersistence(camera);
     await this.knex('camera').where({ id: camera.id }).update(row);
-    await this.knex('camera').where({ id: camera.id })
   }
   async delete(id: number): Promise<void> {
     await this.knex('camera').where({ id }).delete();
@@ -103,20 +101,24 @@ export class CameraKnexRepository implements ICameraRepository {
 
   }
 
-  private async saveAcceptedFormats(cameraId: number, formatIds: number[]): Promise<CameraFormatJoinRow[]> {
-    const existingFormats: number[] = await this.knex('camera_accepted_format').where({ camera_id: cameraId }).select('format_id');
-    const noLongerAccepted = existingFormats.filter(f => !formatIds.includes(f));
-    const newlyAccepted = formatIds.filter(f => !existingFormats.includes(f));
+  private async saveAcceptedFormats(cameraId: number, formatIds: number[], trx?: Knex.Transaction): Promise<CameraFormatJoinRow[]> {
+    const db = trx ?? this.knex;
+    const existingFormatIds: number[] = await db('camera_accepted_format')
+      .where({ camera_id: cameraId })
+      .pluck('format_id');
+
+    const noLongerAccepted = existingFormatIds.filter(f => !formatIds.includes(f));
+    const newlyAccepted = formatIds.filter(f => !existingFormatIds.includes(f));
 
     if (noLongerAccepted.length > 0) {
-      await this.knex('camera_accepted_format')
+      await db('camera_accepted_format')
         .where({ camera_id: cameraId })
         .whereIn('format_id', noLongerAccepted)
         .delete();
     }
     if (newlyAccepted.length > 0) {
       const rows = newlyAccepted.map(formatId => ({ camera_id: cameraId, format_id: formatId }));
-      await this.knex('camera_accepted_format').insert(rows);
+      await db('camera_accepted_format').insert(rows);
     }
     return this.findAcceptedFormats(cameraId);
   }
