@@ -4,14 +4,27 @@ import { CreateCameraDto } from '../dto/CreateCameraDto';
 import { UpdateCameraDto } from '../dto/UpdateCameraDto';
 import { FilterCameraDto } from '../dto/FilterCameraDto';
 import { Camera } from '../../../domain/camera/entities/camera.entity';
+import { INoteRepository, NOTE_REPOSITORY } from '../../../domain/shared/repositories/note.repository.interface';
+import { Note } from '../../../domain/shared/entities/note.entity';
 
 @Injectable()
 export class CameraService {
   constructor(
     @Inject(CAMERA_REPOSITORY) private readonly cameraRepo: ICameraRepository,
+    @Inject(NOTE_REPOSITORY) private readonly noteRepository: INoteRepository,
   ) { }
+
   async findAll(filter: FilterCameraDto): Promise<Camera[]> {
-    return this.cameraRepo.findAll({ ...filter });
+    const cameras = await this.cameraRepo.findAll({ ...filter });
+    const results = await Promise.all(cameras.map(async (c) => {
+      const notes = await this.noteRepository.findByEntityId(c.id);
+      if (notes.length > 0) {
+        return Camera.create({ ...c, notes: notes[0].text });
+      }
+      return c;
+    }));
+
+    return results;
   }
   async delete(id: number): Promise<void> {
     return this.cameraRepo.delete(id);
@@ -27,12 +40,14 @@ export class CameraService {
       brand: dto.brand ?? existing.brand,
       model: dto.model ?? existing.model,
       status: dto.status ?? existing.status,
-      notes: dto.notes ?? existing.notes,
       serialNumber: dto.serial_number ?? existing.serialNumber,
       purchasePrice: dto.purchase_price ?? existing.purchasePrice,
       acquiredAt: dto.acquired_at ?? existing.acquiredAt,
     });
     await this.cameraRepo.update(updated)
+    if (dto.notes) {
+      await this.addNote(id, dto.notes, new Date());
+    }
     return this.findById(id);
   }
 
@@ -45,9 +60,13 @@ export class CameraService {
         notes: dto.notes,
         serialNumber: dto.serial_number,
         purchasePrice: dto.purchase_price,
-        acquiredAt: dto.acquired_at,
-      })
+        acquiredAt: dto.acquired_at ? new Date(dto.acquired_at) : undefined,
+      }), dto.supported_format_ids ?? []
     );
+
+    if (dto.notes) {
+      await this.addNote(cameraId, dto.notes, new Date());
+    }
     return this.findById(cameraId);
 
   }
@@ -56,6 +75,22 @@ export class CameraService {
     if (!camera) {
       throw new NotFoundException(`Camera with ID ${id} not found`);
     }
+    const [notes] = await this.noteRepository.findByEntityId(id);
+    if (notes) {
+      return Camera.create({ ...camera, notes: notes.text });
+    }
+
     return camera;
   }
+
+  private async addNote(entityId: number, text: string, createdAt: Date): Promise<void> {
+    await this.noteRepository.save(Note.create({
+      entity_id: entityId,
+      entity_type: 'camera',
+      text: text,
+      created_at: createdAt,
+    }));
+  }
+
+
 }

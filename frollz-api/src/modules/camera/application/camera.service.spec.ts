@@ -1,25 +1,37 @@
 import { NotFoundException } from '@nestjs/common';
 import { CameraService } from './camera.service';
-import { CAMERA_REPOSITORY, ICameraRepository } from '../../../domain/camera/repositories/camera.repository.interface';
+import { ICameraRepository } from '../../../domain/camera/repositories/camera.repository.interface';
 import { CreateCameraDto } from '../dto/CreateCameraDto';
 import { UpdateCameraDto } from '../dto/UpdateCameraDto';
 import { FilterCameraDto } from '../dto/FilterCameraDto';
 import { Camera } from '../../../domain/camera/entities/camera.entity';
+import { INoteRepository } from '../../../domain/shared/repositories/note.repository.interface';
 
 describe('CameraService', () => {
   let service: CameraService;
   let mockCameraRepo: jest.Mocked<ICameraRepository>;
+  let mockNoteRepo: jest.Mocked<INoteRepository>;
+
+  const makeMockNoteRepo = (): jest.Mocked<INoteRepository> => ({
+    findById: jest.fn(),
+    findAll: jest.fn(),
+    findByEntityId: jest.fn(),
+    save: jest.fn(),
+  })
+
+  const makeMockCameraRepo = (): jest.Mocked<ICameraRepository> => ({
+    findAll: jest.fn(),
+    findById: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  });
 
   beforeEach(async () => {
     service = new CameraService(
-      mockCameraRepo = {
-        findAll: jest.fn(),
-        findById: jest.fn(),
-        save: jest.fn(),
-        update: jest.fn(),
-        delete: jest.fn(),
-      }
-    );
+      mockCameraRepo = makeMockCameraRepo(),
+      mockNoteRepo = makeMockNoteRepo(),
+    )
   });
 
   it('should be defined', () => {
@@ -31,6 +43,7 @@ describe('CameraService', () => {
       const filter: FilterCameraDto = {};
       const cameras: Camera[] = [Camera.create({ brand: 'Canon', model: 'EOS R', status: 'active' })];
       mockCameraRepo.findAll.mockResolvedValue(cameras);
+      mockNoteRepo.findByEntityId.mockResolvedValue([]);
 
       const result = await service.findAll(filter);
 
@@ -59,6 +72,7 @@ describe('CameraService', () => {
       mockCameraRepo.findById.mockResolvedValue(existing);
       mockCameraRepo.update.mockResolvedValue(undefined);
       mockCameraRepo.findById.mockResolvedValue(updated);
+      mockNoteRepo.findByEntityId.mockResolvedValue([]);
 
       const result = await service.update(id, dto);
 
@@ -78,15 +92,17 @@ describe('CameraService', () => {
 
   describe('create', () => {
     it('should create and return the camera', async () => {
-      const dto: CreateCameraDto = { brand: 'Canon', model: 'EOS R', status: 'active' };
+      const dto: CreateCameraDto = { brand: 'Canon', model: 'EOS R', status: 'active', notes: 'Great camera', supported_format_ids: [1, 2] };
       const cameraId = 1;
       const camera = Camera.create({ id: cameraId, brand: 'Canon', model: 'EOS R', status: 'active' });
       mockCameraRepo.save.mockResolvedValue(cameraId);
       mockCameraRepo.findById.mockResolvedValue(camera);
+      mockNoteRepo.findByEntityId.mockResolvedValue([]);
 
       const result = await service.create(dto);
 
-      expect(mockCameraRepo.save).toHaveBeenCalledWith(Camera.create(dto));
+      expect(mockCameraRepo.save).toHaveBeenCalledWith(Camera.create(dto), dto.supported_format_ids ?? []);
+      expect(mockNoteRepo.save).toHaveBeenCalledWith(expect.objectContaining({ text: dto.notes, entity_type: 'camera', entity_id: cameraId }));
       expect(mockCameraRepo.findById).toHaveBeenCalledWith(cameraId);
       expect(result).toEqual(camera);
     });
@@ -97,6 +113,7 @@ describe('CameraService', () => {
       const id = 1;
       const camera = Camera.create({ id, brand: 'Canon', model: 'EOS R', status: 'active' });
       mockCameraRepo.findById.mockResolvedValue(camera);
+      mockNoteRepo.findByEntityId.mockResolvedValue([]);
 
       const result = await service.findById(id);
 

@@ -9,6 +9,20 @@ export class CameraAcceptedFormats {
     public readonly formatId: number,
     public readonly format?: Format,
   ) { }
+
+  static create(props: {
+    id?: number;
+    cameraId: number;
+    formatId: number;
+    format?: Format;
+  }): CameraAcceptedFormats {
+    return new CameraAcceptedFormats(
+      props.id ?? 0,
+      props.cameraId,
+      props.formatId,
+      props.format,
+    );
+  }
 }
 
 
