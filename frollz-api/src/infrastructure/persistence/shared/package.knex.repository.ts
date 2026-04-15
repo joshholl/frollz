@@ -3,24 +3,24 @@ import { Package } from '../../../domain/shared/entities/package.entity';
 import { IPackageRepository } from '../../../domain/shared/repositories/package.repository.interface';
 import { PackageRow } from '../types/db.types';
 import { BaseKnexRepository } from '../base.knex.repository';
+import { PackageMapper } from './package.mapper';
 
 @Injectable()
 export class PackageKnexRepository extends BaseKnexRepository implements IPackageRepository {
 
-
   async findById(id: number): Promise<Package | null> {
     const row = await this.db<PackageRow>('package').where({ id }).first();
-    return row ? this.toDomain(row) : null;
+    return row ? PackageMapper.toDomain(row) : null;
   }
 
   async findAll(): Promise<Package[]> {
     const rows = await this.db<PackageRow>('package').select('*').orderBy('name');
-    return rows.map(this.toDomain);
+    return rows.map((r) => PackageMapper.toDomain(r));
   }
 
   async findByName(name: string): Promise<Package | null> {
     const row = await this.db<PackageRow>('package').where({ name }).first();
-    return row ? this.toDomain(row) : null;
+    return row ? PackageMapper.toDomain(row) : null;
   }
 
   async save(pkg: Package): Promise<void> {
@@ -35,9 +35,5 @@ export class PackageKnexRepository extends BaseKnexRepository implements IPackag
 
   async delete(id: number): Promise<void> {
     await this.db('package').where({ id }).delete();
-  }
-
-  private toDomain(row: PackageRow): Package {
-    return Package.create({ id: row.id, name: row.name });
   }
 }

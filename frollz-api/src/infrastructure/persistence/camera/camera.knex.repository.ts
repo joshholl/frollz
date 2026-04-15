@@ -16,8 +16,8 @@ export class CameraKnexRepository extends BaseKnexRepository implements ICameraR
       return null;
     }
 
-    const accptedFormats = await this.findAcceptedFormats(id);
-    return CameraMapper.toDomain(row, accptedFormats);
+    const acceptedFormats = await this.findAcceptedFormats(id);
+    return CameraMapper.toDomain(row, acceptedFormats);
   }
 
   async findAll(criteria: { brand?: string; model?: string; status?: CameraStatus; formatId?: number; unloaded?: boolean; }): Promise<Camera[]> {

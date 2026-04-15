@@ -3,24 +3,24 @@ import { Tag } from '../../../domain/shared/entities/tag.entity';
 import { ITagRepository } from '../../../domain/shared/repositories/tag.repository.interface';
 import { TagRow } from '../types/db.types';
 import { BaseKnexRepository } from '../base.knex.repository';
+import { TagMapper } from './tag.mapper';
 
 @Injectable()
 export class TagKnexRepository extends BaseKnexRepository implements ITagRepository {
-  
 
   async findById(id: number): Promise<Tag | null> {
     const row = await this.db<TagRow>('tag').where({ id }).first();
-    return row ? this.toDomain(row) : null;
+    return row ? TagMapper.toDomain(row) : null;
   }
 
   async findAll(): Promise<Tag[]> {
     const rows = await this.db<TagRow>('tag').select('*').orderBy('name');
-    return rows.map(this.toDomain);
+    return rows.map((r) => TagMapper.toDomain(r));
   }
 
   async findByName(name: string): Promise<Tag | null> {
     const row = await this.db<TagRow>('tag').where({ name }).first();
-    return row ? this.toDomain(row) : null;
+    return row ? TagMapper.toDomain(row) : null;
   }
 
   async save(tag: Tag): Promise<number> {
@@ -42,14 +42,5 @@ export class TagKnexRepository extends BaseKnexRepository implements ITagReposit
 
   async delete(id: number): Promise<void> {
     await this.db('tag').where({ id }).delete();
-  }
-
-  private toDomain(row: TagRow): Tag {
-    return Tag.create({
-      id: row.id,
-      name: row.name,
-      colorCode: row.color_code,
-      description: row.description,
-    });
   }
 }
