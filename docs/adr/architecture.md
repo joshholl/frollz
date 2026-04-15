@@ -92,8 +92,13 @@ Structured fields captured at specific states are declared in `transition_metada
 ### Repository pattern
 Every persistence operation goes through a typed interface (`IXxxRepository`) defined in the domain layer. The Knex implementation lives in infrastructure. Services inject via NestJS token and never touch Knex directly. Mapper classes handle all row-to-domain translation.
 
+Every domain that has a Knex repository has a companion `xxx.mapper.ts` in the same infrastructure folder. Mappers are plain static classes — no framework deps, no injection — so they can be tested in isolation and reused across repositories. Repositories call `XxxMapper.toDomain(row)` and never construct domain entities inline.
+
 ### Tags (shared pool)
 All tags live in a single `tags` table. Association to films and emulsions is managed via join operations through the respective service (`addTag` / `removeTag`). There are no separate tag namespaces per entity type.
+
+### Shared module (reference data)
+`format`, `tag`, `package`, and `process` are simple lookup entities with no business logic. They are intentionally bundled into a single `shared` NestJS module (`SharedModule`) rather than four separate modules to avoid boilerplate overhead for entities that are unlikely to grow in complexity. Each entity still has its own controller, service, repository interface, and mapper.
 
 ### Centralized API client (frontend)
 The Vue SPA uses a single `api-client.ts`; views never call HTTP directly.
@@ -103,6 +108,51 @@ The Vue SPA uses a single `api-client.ts`; views never call HTTP directly.
 
 ### Transition date handling (frontend)
 Date inputs return a bare `YYYY-MM-DD` string. To avoid UTC midnight parse issues the UI combines the date with the current wall-clock time using local timezone components (`new Date(year, month-1, day, h, m, s).toISOString()`), then sends the ISO string to the API.
+
+### Import / Export formats
+
+The `ExportImportModule` exposes three import paths and two export paths:
+
+#### CSV film import (`POST /import/films`)
+Handled by `ImportService`. Expects a UTF-8 CSV file with the header:
+```
+name,emulsion,tags,notes
+```
+| Column | Required | Notes |
+|---|---|---|
+| `name` | Yes | Roll name (e.g. `Roll 001`) |
+| `emulsion` | Yes | Emulsion name to match against existing emulsions |
+| `tags` | No | Pipe-separated tag names (e.g. `landscape\|expired`) |
+| `notes` | No | Free-text note attached to the import state |
+
+Films are imported into the `Imported` transition state using the `standard` profile. Rows with an unresolvable emulsion are skipped with a per-row error. A CSV template is available via `GET /import/films/template`.
+
+#### JSON film import (`POST /import/films/json`)
+Handled by `FilmsJsonImportService`. Expects a JSON body with the envelope:
+```json
+{ "version": "1", "films": [ { ... } ] }
+```
+Each film object:
+```json
+{
+  "name": "Roll 001",
+  "emulsion": { "brand": "Kodak", "name": "Portra 400" },
+  "expirationDate": "2025-01-01",
+  "tags": [{ "name": "landscape" }],
+  "states": [{ "stateId": 1, "date": "2024-06-01T12:00:00.000Z", "note": "optional" }]
+}
+```
+
+#### JSON library import (`POST /import/library`)
+Handled by `LibraryImportService`. Imports reference-data (tags, formats, emulsions). Envelope:
+```json
+{ "version": "1", "tags": [...], "formats": [...], "emulsions": [...] }
+```
+Each array member maps directly to the corresponding domain entity fields.
+
+#### JSON exports
+- `GET /export/films/json` — exports all films in the `FilmsEnvelope` format above.
+- `GET /export/library/json` — exports all tags, formats, and emulsions in the `LibraryEnvelope` format above.
 
 ## TRADEOFFS
 - **PostgreSQL over document DB**: Relational model fits the well-defined film metadata domain. Knex used as a lightweight query builder and migration runner — enough structure without full-ORM weight.

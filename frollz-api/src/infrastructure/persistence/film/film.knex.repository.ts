@@ -1,8 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { Knex } from 'knex';
+import { Injectable } from '@nestjs/common';
 import { Film } from '../../../domain/film/entities/film.entity';
 import { FilmFilters, IFilmRepository } from '../../../domain/film/repositories/film.repository.interface';
-import { KNEX_CONNECTION } from '../knex.provider';
 import { EmulsionRow, FilmRow, FilmTagRow, TagRow } from '../types/db.types';
 import { FilmMapper } from './film.mapper';
 import { EmulsionMapper } from '../emulsion/emulsion.mapper';
@@ -13,6 +11,7 @@ import { FilmStateMetadata } from '../../../domain/film-state/entities/film-stat
 import { TransitionState } from '../../../domain/transition/entities/transition-state.entity';
 import { TransitionStateMetadata } from '../../../domain/transition/entities/transition-state-metadata.entity';
 import { TransitionMetadataField } from '../../../domain/transition/entities/transition-metadata-field.entity';
+import { BaseKnexRepository } from '../base.knex.repository';
 
 interface MetadataJoinRow {
   fsm_id: number;
@@ -30,26 +29,25 @@ interface MetadataJoinRow {
 }
 
 @Injectable()
-export class FilmKnexRepository implements IFilmRepository {
-  constructor(@Inject(KNEX_CONNECTION) private readonly knex: Knex) { }
+export class FilmKnexRepository extends BaseKnexRepository implements IFilmRepository {
 
   async findById(id: number): Promise<Film | null> {
-    const row = await this.knex<FilmRow>('film').where({ id }).first();
+    const row = await this.db<FilmRow>('film').where({ id }).first();
     return row ? this.hydrate(row) : null;
   }
 
   async findAll(): Promise<Film[]> {
-    const rows = await this.knex<FilmRow>('film').select('*');
+    const rows = await this.db<FilmRow>('film').select('*');
     return Promise.all(rows.map((row) => this.hydrate(row)));
   }
 
   async findWithFilters(filters: FilmFilters): Promise<Film[]> {
-    let query = this.knex<FilmRow>('film');
+    let query = this.db<FilmRow>('film');
 
     if (filters.stateIds?.length) {
       query = query.whereIn(
         'id',
-        this.knex('film_state as fs2')
+        this.db('film_state as fs2')
           .select('fs2.film_id')
           .whereIn('fs2.state_id', filters.stateIds)
           .whereRaw(
@@ -65,19 +63,19 @@ export class FilmKnexRepository implements IFilmRepository {
     if (filters.formatId !== undefined) {
       query = query.whereIn(
         'emulsion_id',
-        this.knex('emulsion').select('id').where('format_id', filters.formatId),
+        this.db('emulsion').select('id').where('format_id', filters.formatId),
       );
     }
 
     if (filters.tagIds?.length) {
       query = query.whereIn(
         'id',
-        this.knex('film_tag').select('film_id').whereIn('tag_id', filters.tagIds),
+        this.db('film_tag').select('film_id').whereIn('tag_id', filters.tagIds),
       );
     }
 
     if (filters.loadedStateId !== undefined && (filters.loadedDateFrom || filters.loadedDateTo)) {
-      let sub = this.knex('film_state as fsd').select('fsd.film_id').where('fsd.state_id', filters.loadedStateId);
+      let sub = this.db('film_state as fsd').select('fsd.film_id').where('fsd.state_id', filters.loadedStateId);
       if (filters.loadedDateFrom) sub = sub.where('fsd.date', '>=', filters.loadedDateFrom);
       if (filters.loadedDateTo) sub = sub.where('fsd.date', '<=', filters.loadedDateTo);
       query = query.whereIn('id', sub);
@@ -88,7 +86,7 @@ export class FilmKnexRepository implements IFilmRepository {
       query = query.where((builder) => {
         builder
           .whereILike('name', pattern)
-          .orWhereIn('id', this.knex('note').select('entity_id').where('entity_type', 'film').whereILike('text', pattern))
+          .orWhereIn('id', this.db('note').select('entity_id').where('entity_type', 'film').whereILike('text', pattern))
       });
     }
 
@@ -97,42 +95,42 @@ export class FilmKnexRepository implements IFilmRepository {
   }
 
   async findByEmulsionId(emulsionId: number): Promise<Film[]> {
-    const rows = await this.knex<FilmRow>('film').where({ emulsion_id: emulsionId });
+    const rows = await this.db<FilmRow>('film').where({ emulsion_id: emulsionId });
     return Promise.all(rows.map((row) => this.hydrate(row)));
   }
 
   async findChildren(parentId: number): Promise<Film[]> {
-    const rows = await this.knex<FilmRow>('film').where({ parent_id: parentId });
+    const rows = await this.db<FilmRow>('film').where({ parent_id: parentId });
     return Promise.all(rows.map((row) => this.hydrate(row)));
   }
 
   async findByCurrentStateIds(stateIds: number[]): Promise<Film[]> {
-    const latestStateSubquery = this.knex('film_state as fs2')
+    const latestStateSubquery = this.db('film_state as fs2')
       .select('fs2.film_id')
       .whereIn('fs2.state_id', stateIds)
       .where(
         'fs2.date',
-        this.knex('film_state as fs3').max('fs3.date').where('fs3.film_id', this.knex.ref('fs2.film_id')),
+        this.db('film_state as fs3').max('fs3.date').where('fs3.film_id', this.db.ref('fs2.film_id')),
       );
 
-    const rows = await this.knex<FilmRow>('film').whereIn('id', latestStateSubquery);
+    const rows = await this.db<FilmRow>('film').whereIn('id', latestStateSubquery);
     return Promise.all(rows.map((row) => this.hydrate(row)));
   }
 
   async save(film: Film): Promise<number> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...data } = FilmMapper.toPersistence(film);
-    const [generatedId] = await this.knex('film').insert(data);
+    const [generatedId] = await this.db('film').insert(data);
     return generatedId;
   }
 
   async update(film: Film): Promise<void> {
     const { id, ...data } = FilmMapper.toPersistence(film);
-    await this.knex('film').where({ id }).update(data);
+    await this.db('film').where({ id }).update(data);
   }
 
   async delete(id: number): Promise<void> {
-    await this.knex('film').where({ id }).delete();
+    await this.db('film').where({ id }).delete();
   }
 
   private async hydrate(row: FilmRow): Promise<Film> {
@@ -146,7 +144,7 @@ export class FilmKnexRepository implements IFilmRepository {
   }
 
   private async loadEmulsion(emulsionId: number): Promise<Emulsion | undefined> {
-    const row = await this.knex<EmulsionRow>('emulsion')
+    const row = await this.db<EmulsionRow>('emulsion')
       .select('id', 'parent_id', 'process_id', 'format_id', 'brand', 'manufacturer', 'speed', 'box_image_mime_type')
       .where({ id: emulsionId })
       .first();
@@ -154,7 +152,7 @@ export class FilmKnexRepository implements IFilmRepository {
   }
 
   private async loadTags(filmId: number): Promise<Tag[]> {
-    const rows = await this.knex<TagRow>('tag')
+    const rows = await this.db<TagRow>('tag')
       .join<FilmTagRow>('film_tag', 'tag.id', 'film_tag.tag_id')
       .where('film_tag.film_id', filmId)
       .select('tag.*');
@@ -169,7 +167,7 @@ export class FilmKnexRepository implements IFilmRepository {
   }
 
   private async loadStates(filmId: number): Promise<FilmState[]> {
-    const rows = await this.knex('film_state as fs')
+    const rows = await this.db('film_state as fs')
       .join('transition_state as ts', 'ts.id', 'fs.state_id')
       .leftJoin('note as n', function () {
         this.on('n.entity_id', '=', 'fs.id').andOnVal('n.entity_type', '=', 'film_state');
@@ -196,7 +194,7 @@ export class FilmKnexRepository implements IFilmRepository {
   private async loadMetadataForStates(filmStateIds: number[]): Promise<Map<number, FilmStateMetadata[]>> {
     if (filmStateIds.length === 0) return new Map();
 
-    const rows = await this.knex('film_state_metadata as fsm')
+    const rows = await this.db('film_state_metadata as fsm')
       .join('transition_state_metadata as tsm', 'tsm.id', 'fsm.transition_state_metadata_id')
       .join('transition_metadata_field as tmf', 'tmf.id', 'tsm.field_id')
       .whereIn('fsm.film_state_id', filmStateIds)

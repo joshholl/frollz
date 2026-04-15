@@ -3,7 +3,7 @@ export interface FilmRow {
   name: string;
   parent_id: number | null;
   emulsion_id: number;
-  expiration_date: Date;
+  expiration_date: Date | null;
   transition_profile_id: number;
 }
 

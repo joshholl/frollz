@@ -7,7 +7,7 @@ export class FilmMapper {
       id: row.id,
       name: row.name,
       emulsionId: row.emulsion_id,
-      expirationDate: new Date(row.expiration_date),
+      expirationDate: row.expiration_date ? new Date(row.expiration_date) : null,
       parentId: row.parent_id,
       transitionProfileId: row.transition_profile_id,
     });

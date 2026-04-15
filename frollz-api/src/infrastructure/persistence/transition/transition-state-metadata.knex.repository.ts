@@ -1,33 +1,32 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { Knex } from 'knex';
+import { Injectable } from '@nestjs/common';
 import { TransitionStateMetadata } from '../../../domain/transition/entities/transition-state-metadata.entity';
 import { ITransitionStateMetadataRepository } from '../../../domain/transition/repositories/transition-state-metadata.repository.interface';
-import { KNEX_CONNECTION } from '../knex.provider';
 import { TransitionStateMetadataRow } from '../types/db.types';
+import { BaseKnexRepository } from '../base.knex.repository';
+import { TransitionStateMetadataMapper } from './transition-state-metadata.mapper';
 
 @Injectable()
-export class TransitionStateMetadataKnexRepository implements ITransitionStateMetadataRepository {
-  constructor(@Inject(KNEX_CONNECTION) private readonly knex: Knex) {}
+export class TransitionStateMetadataKnexRepository extends BaseKnexRepository implements ITransitionStateMetadataRepository {
 
   async findById(id: number): Promise<TransitionStateMetadata | null> {
-    const row = await this.knex<TransitionStateMetadataRow>('transition_state_metadata').where({ id }).first();
-    return row ? this.toDomain(row) : null;
+    const row = await this.db<TransitionStateMetadataRow>('transition_state_metadata').where({ id }).first();
+    return row ? TransitionStateMetadataMapper.toDomain(row) : null;
   }
 
   async findAll(): Promise<TransitionStateMetadata[]> {
-    const rows = await this.knex<TransitionStateMetadataRow>('transition_state_metadata').select('*');
-    return rows.map(this.toDomain);
+    const rows = await this.db<TransitionStateMetadataRow>('transition_state_metadata').select('*');
+    return rows.map((r) => TransitionStateMetadataMapper.toDomain(r));
   }
 
   async findByTransitionStateId(transitionStateId: number): Promise<TransitionStateMetadata[]> {
-    const rows = await this.knex<TransitionStateMetadataRow>('transition_state_metadata').where({
+    const rows = await this.db<TransitionStateMetadataRow>('transition_state_metadata').where({
       transition_state_id: transitionStateId,
     });
-    return rows.map(this.toDomain);
+    return rows.map((r) => TransitionStateMetadataMapper.toDomain(r));
   }
 
   async save(metadata: TransitionStateMetadata): Promise<void> {
-    await this.knex('transition_state_metadata').insert({
+    await this.db('transition_state_metadata').insert({
       id: metadata.id,
       field_id: metadata.fieldId,
       transition_state_id: metadata.transitionStateId,
@@ -36,7 +35,7 @@ export class TransitionStateMetadataKnexRepository implements ITransitionStateMe
   }
 
   async update(metadata: TransitionStateMetadata): Promise<void> {
-    await this.knex('transition_state_metadata').where({ id: metadata.id }).update({
+    await this.db('transition_state_metadata').where({ id: metadata.id }).update({
       field_id: metadata.fieldId,
       transition_state_id: metadata.transitionStateId,
       default_value: metadata.defaultValue,
@@ -44,15 +43,6 @@ export class TransitionStateMetadataKnexRepository implements ITransitionStateMe
   }
 
   async delete(id: number): Promise<void> {
-    await this.knex('transition_state_metadata').where({ id }).delete();
-  }
-
-  private toDomain(row: TransitionStateMetadataRow): TransitionStateMetadata {
-    return TransitionStateMetadata.create({
-      id: row.id,
-      fieldId: row.field_id,
-      transitionStateId: row.transition_state_id,
-      defaultValue: row.default_value,
-    });
+    await this.db('transition_state_metadata').where({ id }).delete();
   }
 }

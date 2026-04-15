@@ -31,6 +31,8 @@ import { TagKnexRepository } from '../../src/infrastructure/persistence/shared/t
 import { EmulsionService } from '../../src/modules/emulsion/application/emulsion.service';
 import { FilmService } from '../../src/modules/film/application/film.service';
 import { NoteKnexRepository } from '../../src/infrastructure/persistence/shared/note.knex.repository';
+import { AppLogger } from '../../src/common/utils/app-logger';
+import { TransactionManager } from '../../src/common/utils/transaction-manager';
 
 // ---------------------------------------------------------------------------
 // Shared DB + repos across all tests in this file
@@ -49,6 +51,7 @@ let transitionStateMetadataRepo: TransitionStateMetadataKnexRepository;
 let transitionMetadataFieldRepo: TransitionMetadataFieldKnexRepository;
 let tagRepo: TagKnexRepository;
 let noteRepo: NoteKnexRepository;
+let txManager: TransactionManager;
 
 let emulsionService: EmulsionService;
 let filmService: FilmService;
@@ -61,19 +64,20 @@ let standardProfileId: number;
 
 beforeAll(async () => {
   knex = await createTestDb();
+  txManager = new TransactionManager(knex, new AppLogger());
 
   // Repositories — constructed directly; NestJS DI decorators are no-ops at runtime
-  emulsionRepo = new EmulsionKnexRepository(knex);
-  emulsionTagRepo = new EmulsionTagKnexRepository(knex);
-  filmRepo = new FilmKnexRepository(knex);
-  filmTagRepo = new FilmTagKnexRepository(knex);
-  filmStateRepo = new FilmStateKnexRepository(knex);
-  transitionStateRepo = new TransitionStateKnexRepository(knex);
-  transitionRuleRepo = new TransitionRuleKnexRepository(knex);
-  transitionStateMetadataRepo = new TransitionStateMetadataKnexRepository(knex);
-  transitionMetadataFieldRepo = new TransitionMetadataFieldKnexRepository(knex);
-  noteRepo = new NoteKnexRepository(knex);
-  tagRepo = new TagKnexRepository(knex);
+  emulsionRepo = new EmulsionKnexRepository(knex, txManager);
+  emulsionTagRepo = new EmulsionTagKnexRepository(knex, txManager);
+  filmRepo = new FilmKnexRepository(knex, new TransactionManager(knex, new AppLogger()));
+  filmTagRepo = new FilmTagKnexRepository(knex, txManager);
+  filmStateRepo = new FilmStateKnexRepository(knex, txManager);
+  transitionStateRepo = new TransitionStateKnexRepository(knex, txManager);
+  transitionRuleRepo = new TransitionRuleKnexRepository(knex, txManager);
+  transitionStateMetadataRepo = new TransitionStateMetadataKnexRepository(knex, txManager);
+  transitionMetadataFieldRepo = new TransitionMetadataFieldKnexRepository(knex, txManager);
+  noteRepo = new NoteKnexRepository(knex, txManager);
+  tagRepo = new TagKnexRepository(knex, txManager);
 
   // Services
   emulsionService = new EmulsionService(emulsionRepo, emulsionTagRepo);
@@ -289,7 +293,7 @@ describe('Film lifecycle (standard profile)', () => {
 
   const transitionAndAssert = async (targetStateName: string) => {
     const date = nextDate();
-    const film = await filmService.transition(filmId, { targetStateName, date:  date });
+    const film = await filmService.transition(filmId, { targetStateName, date: date });
     expect(film.currentState).not.toBeNull();
     expect(film.currentState!.state!.name).toBe(targetStateName);
     expect(film.currentState!.date.toISOString()).toBe(date);

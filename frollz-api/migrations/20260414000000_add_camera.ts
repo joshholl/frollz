@@ -22,6 +22,6 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-  await knex.schema.dropTable("camera");
   await knex.schema.dropTable("camera_accepted_format");
+  await knex.schema.dropTable("camera");
 }

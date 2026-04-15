@@ -1,31 +1,30 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { Knex } from 'knex';
+import { Injectable } from '@nestjs/common';
 import { TransitionMetadataField } from '../../../domain/transition/entities/transition-metadata-field.entity';
 import { ITransitionMetadataFieldRepository } from '../../../domain/transition/repositories/transition-metadata-field.repository.interface';
-import { KNEX_CONNECTION } from '../knex.provider';
 import { TransitionMetadataFieldRow } from '../types/db.types';
+import { BaseKnexRepository } from '../base.knex.repository';
+import { TransitionMetadataFieldMapper } from './transition-metadata-field.mapper';
 
 @Injectable()
-export class TransitionMetadataFieldKnexRepository implements ITransitionMetadataFieldRepository {
-  constructor(@Inject(KNEX_CONNECTION) private readonly knex: Knex) {}
+export class TransitionMetadataFieldKnexRepository extends BaseKnexRepository implements ITransitionMetadataFieldRepository {
 
   async findById(id: number): Promise<TransitionMetadataField | null> {
-    const row = await this.knex<TransitionMetadataFieldRow>('transition_metadata_field').where({ id }).first();
-    return row ? this.toDomain(row) : null;
+    const row = await this.db<TransitionMetadataFieldRow>('transition_metadata_field').where({ id }).first();
+    return row ? TransitionMetadataFieldMapper.toDomain(row) : null;
   }
 
   async findAll(): Promise<TransitionMetadataField[]> {
-    const rows = await this.knex<TransitionMetadataFieldRow>('transition_metadata_field').select('*').orderBy('name');
-    return rows.map(this.toDomain);
+    const rows = await this.db<TransitionMetadataFieldRow>('transition_metadata_field').select('*').orderBy('name');
+    return rows.map((r) => TransitionMetadataFieldMapper.toDomain(r));
   }
 
   async findByName(name: string): Promise<TransitionMetadataField | null> {
-    const row = await this.knex<TransitionMetadataFieldRow>('transition_metadata_field').where({ name }).first();
-    return row ? this.toDomain(row) : null;
+    const row = await this.db<TransitionMetadataFieldRow>('transition_metadata_field').where({ name }).first();
+    return row ? TransitionMetadataFieldMapper.toDomain(row) : null;
   }
 
   async save(field: TransitionMetadataField): Promise<void> {
-    await this.knex('transition_metadata_field').insert({
+    await this.db('transition_metadata_field').insert({
       id: field.id,
       name: field.name,
       field_type: field.fieldType,
@@ -34,7 +33,7 @@ export class TransitionMetadataFieldKnexRepository implements ITransitionMetadat
   }
 
   async update(field: TransitionMetadataField): Promise<void> {
-    await this.knex('transition_metadata_field').where({ id: field.id }).update({
+    await this.db('transition_metadata_field').where({ id: field.id }).update({
       name: field.name,
       field_type: field.fieldType,
       allow_multiple: field.allowMultiple,
@@ -42,15 +41,6 @@ export class TransitionMetadataFieldKnexRepository implements ITransitionMetadat
   }
 
   async delete(id: number): Promise<void> {
-    await this.knex('transition_metadata_field').where({ id }).delete();
-  }
-
-  private toDomain(row: TransitionMetadataFieldRow): TransitionMetadataField {
-    return TransitionMetadataField.create({
-      id: row.id,
-      name: row.name,
-      fieldType: row.field_type,
-      allowMultiple: Boolean(row.allow_multiple),
-    });
+    await this.db('transition_metadata_field').where({ id }).delete();
   }
 }

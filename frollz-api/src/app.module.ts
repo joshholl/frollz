@@ -10,6 +10,7 @@ import { TransitionModule } from './modules/transition/transition.module';
 import { ExportImportModule } from './modules/export-import/export-import.module';
 import { FilmStatsModule } from './modules/film-stats/film-stats.module';
 import { CameraModule } from './modules/camera/camera.module';
+import { TransactionInterceptor } from './common/utils/transaction-interceptor';
 @Module({
   imports: [
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 200 }]),
@@ -23,6 +24,11 @@ import { CameraModule } from './modules/camera/camera.module';
     FilmStatsModule,
     CameraModule
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    {
+      provide: APP_GUARD, useClass: ThrottlerGuard
+    },
+    TransactionInterceptor,
+  ],
 })
 export class AppModule { }

@@ -33,7 +33,7 @@ export class CameraService {
   async update(id: number, dto: UpdateCameraDto) {
     const existing = await this.findById(id);
     if (!existing) {
-      throw new NotFoundException(`Camera with ID ${id} not found`);
+      throw new NotFoundException(`Camera '${id}' not found`);
     }
     const updated = Camera.create({
       id: existing.id,
@@ -42,7 +42,7 @@ export class CameraService {
       status: dto.status ?? existing.status,
       serialNumber: dto.serial_number ?? existing.serialNumber,
       purchasePrice: dto.purchase_price ?? existing.purchasePrice,
-      acquiredAt: dto.acquired_at ?? existing.acquiredAt,
+      acquiredAt: dto.acquired_at ? new Date(dto.acquired_at) : existing.acquiredAt,
     });
     await this.cameraRepo.update(updated)
     if (dto.notes) {
@@ -73,7 +73,7 @@ export class CameraService {
   async findById(id: number): Promise<Camera> {
     const camera = await this.cameraRepo.findById(id);
     if (!camera) {
-      throw new NotFoundException(`Camera with ID ${id} not found`);
+      throw new NotFoundException(`Camera '${id}' not found`);
     }
     const [notes] = await this.noteRepository.findByEntityId(id);
     if (notes) {

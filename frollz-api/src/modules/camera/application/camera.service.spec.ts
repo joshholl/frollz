@@ -6,6 +6,7 @@ import { UpdateCameraDto } from '../dto/UpdateCameraDto';
 import { FilterCameraDto } from '../dto/FilterCameraDto';
 import { Camera } from '../../../domain/camera/entities/camera.entity';
 import { INoteRepository } from '../../../domain/shared/repositories/note.repository.interface';
+import { Note } from '../../../domain/shared/entities/note.entity';
 
 describe('CameraService', () => {
   let service: CameraService;
@@ -57,6 +58,28 @@ describe('CameraService', () => {
       expect(mockCameraRepo.findAll).toHaveBeenCalledWith(filter);
       expect(result).toEqual(cameras);
     });
+
+    it('should attach the note text to a camera that has a note', async () => {
+      const camera = Camera.create({ id: 5, brand: 'Nikon', model: 'FM2', status: 'active' });
+      mockCameraRepo.findAll.mockResolvedValue([camera]);
+      mockNoteRepo.findByEntityId.mockResolvedValue([
+        Note.create({ id: 1, entity_id: 5, entity_type: 'camera', text: 'Needs repair', created_at: new Date() }),
+      ]);
+
+      const result = await service.findAll({});
+
+      expect(result[0].notes).toBe('Needs repair');
+    });
+
+    it('should return camera unchanged when it has no notes', async () => {
+      const camera = Camera.create({ id: 7, brand: 'Leica', model: 'M6', status: 'active' });
+      mockCameraRepo.findAll.mockResolvedValue([camera]);
+      mockNoteRepo.findByEntityId.mockResolvedValue([]);
+
+      const result = await service.findAll({});
+
+      expect(result[0].notes).toBeUndefined();
+    });
   });
 
   describe('delete', () => {
@@ -67,6 +90,12 @@ describe('CameraService', () => {
       await service.delete(id);
 
       expect(mockCameraRepo.delete).toHaveBeenCalledWith(id);
+    });
+
+    it('should pass through errors from the repository', async () => {
+      mockCameraRepo.delete.mockRejectedValue(new Error('FK violation'));
+
+      await expect(service.delete(999)).rejects.toThrow('FK violation');
     });
   });
 
@@ -95,6 +124,36 @@ describe('CameraService', () => {
 
       await expect(service.update(id, dto)).rejects.toThrow(NotFoundException);
     });
+
+    it('should save a note when dto.notes is provided on update', async () => {
+      const id = 2;
+      const dto: UpdateCameraDto = { brand: 'Pentax', model: 'K1000', status: 'active', notes: 'Minor scratch' };
+      const existing = Camera.create({ id, brand: 'Pentax', model: 'K1000', status: 'active' });
+      mockCameraRepo.findById
+        .mockResolvedValueOnce(existing)  // findById inside update()
+        .mockResolvedValueOnce(existing); // findById inside final findById()
+      mockCameraRepo.update.mockResolvedValue(undefined);
+      mockNoteRepo.findByEntityId.mockResolvedValue([]);
+
+      await service.update(id, dto);
+
+      expect(mockNoteRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ entity_id: id, entity_type: 'camera', text: 'Minor scratch' }),
+      );
+    });
+
+    it('should not save a note when dto.notes is absent on update', async () => {
+      const id = 3;
+      const dto: UpdateCameraDto = { brand: 'Nikon', model: 'FM', status: 'active' };
+      const existing = Camera.create({ id, brand: 'Nikon', model: 'FM', status: 'active' });
+      mockCameraRepo.findById.mockResolvedValue(existing);
+      mockCameraRepo.update.mockResolvedValue(undefined);
+      mockNoteRepo.findByEntityId.mockResolvedValue([]);
+
+      await service.update(id, dto);
+
+      expect(mockNoteRepo.save).not.toHaveBeenCalled();
+    });
   });
 
   describe('create', () => {
@@ -115,6 +174,32 @@ describe('CameraService', () => {
       expect(mockNoteRepo.save).toHaveBeenCalledWith(expect.objectContaining({ text: dto.notes, entity_type: 'camera', entity_id: cameraId }));
       expect(mockCameraRepo.findById).toHaveBeenCalledWith(cameraId);
       expect(result).toEqual(camera);
+    });
+
+    it('should not save a note when dto.notes is absent', async () => {
+      const dto: CreateCameraDto = { brand: 'Olympus', model: 'OM-1', status: 'active' };
+      const cameraId = 2;
+      const camera = Camera.create({ id: cameraId, brand: 'Olympus', model: 'OM-1', status: 'active' });
+      mockCameraRepo.save.mockResolvedValue(cameraId);
+      mockCameraRepo.findById.mockResolvedValue(camera);
+      mockNoteRepo.findByEntityId.mockResolvedValue([]);
+
+      await service.create(dto);
+
+      expect(mockNoteRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should use empty array for format ids when supported_format_ids is not provided', async () => {
+      const dto: CreateCameraDto = { brand: 'Minolta', model: 'X-700', status: 'active' };
+      const cameraId = 3;
+      const camera = Camera.create({ id: cameraId, brand: 'Minolta', model: 'X-700', status: 'active' });
+      mockCameraRepo.save.mockResolvedValue(cameraId);
+      mockCameraRepo.findById.mockResolvedValue(camera);
+      mockNoteRepo.findByEntityId.mockResolvedValue([]);
+
+      await service.create(dto);
+
+      expect(mockCameraRepo.save).toHaveBeenCalledWith(expect.any(Object), []);
     });
   });
 

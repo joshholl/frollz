@@ -143,6 +143,8 @@ export class FilmService {
     if (!targetState) throw new NotFoundException(`State '${dto.targetStateName}' not found`);
 
     const currentState = film.currentState;
+    // A film with no state history has no currentState yet — any target is
+    // valid as the first transition, so rule validation is skipped.
     if (currentState) {
       const rules = await this.transitionRuleRepo.findByFromStateAndProfile(
         currentState.stateId,
@@ -159,6 +161,7 @@ export class FilmService {
     const newState = FilmState.create({
       filmId: film.id,
       stateId: targetState.id,
+      // Default to wall-clock now so callers can omit the date for immediate transitions.
       date: dto.date ? new Date(dto.date) : new Date(),
     });
     const newStateId = await this.filmStateRepo.save(newState);
@@ -196,6 +199,8 @@ export class FilmService {
           await this.filmStateRepo.saveMetadataValue(filmStateId, tsm.id, v);
         }
       } else {
+        // Coerce to scalar: if the caller sent an array for a single-value field,
+        // take the first element rather than rejecting — tolerates lenient clients.
         const scalar = Array.isArray(inputValue) ? inputValue[0] : inputValue;
         await this.filmStateRepo.saveMetadataValue(filmStateId, tsm.id, scalar);
       }

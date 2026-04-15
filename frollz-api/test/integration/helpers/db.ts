@@ -14,6 +14,8 @@ export async function createTestDb(): Promise<KnexType> {
     useNullAsDefault: true,
   });
 
+  await knex.raw('PRAGMA foreign_keys = ON');
+
   await knex.migrate.latest({
     directory: MIGRATIONS_DIR,
     loadExtensions: ['.ts', '.js'],
