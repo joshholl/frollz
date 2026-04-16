@@ -8,7 +8,7 @@
         "test": "turbo run test",
         "lint": "turbo run lint",
         "check-types": "turbo run check-types",
-        "format": ""
+        "format": "turbo run format"
     },
     "devDependencies": {
         "turbo": "~2.9.6",

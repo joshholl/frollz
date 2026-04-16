@@ -21,6 +21,7 @@
             "dependsOn": ["^check-types"]
         },
         "format":{
+            "dependsOn": ["^format"],
             "cache":false
         }
     }
