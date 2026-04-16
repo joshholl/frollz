@@ -1,0 +1,17 @@
+{
+    "extends": "@frollz/typescript-config/base.json",
+    "compilerOptions": {
+        "module": "node16",
+        "moduleResolution": "node16",
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "sourceMap": true,
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}

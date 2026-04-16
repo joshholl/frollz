@@ -1,0 +1,9 @@
+{
+    "name": "@frollz/typescript-config",
+    "version": "0.2.4",
+    "private": true,
+    "license": "MIT",
+    "dependencies": {
+        "@vue/tsconfig": "^0.9.1"
+    }
+}

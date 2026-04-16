@@ -1,14 +1,13 @@
-/// <reference types="vitest" />
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import { fileURLToPath, URL } from 'node:url'
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import { resolve } from 'path'
 
 
 export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': resolve(__dirname, './src')
     }
   },
   server: {
@@ -19,15 +18,9 @@ export default defineConfig({
       // API without CORS issues. API_PROXY_TARGET is set by docker-compose.dev.yml;
       // falls back to localhost for running outside Docker.
       '/api': {
-        target: process.env.API_PROXY_TARGET || 'http://localhost:3000/',
+        target: 'http://localhost:3000/',
         changeOrigin: true,
       },
     },
   },
-  envPrefix: 'VITE_',
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./src/test-setup.ts'],
-  },
-})
+});

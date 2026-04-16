@@ -1,0 +1,23 @@
+{
+    "extends": "@frollz/typescript-config/vue.json",
+    "compilerOptions": {
+        "types": [
+            "vite/client"
+        ],
+        "paths": {
+            "@/*": [
+                "./src"
+            ],
+            "@frollz/shared": [
+                "../../packages/shared/dist/index.d.ts"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*",
+        "src/**/*.vue"
+    ],
+    "exclude": [
+        "src/**/__tests__/*"
+    ]
+}
