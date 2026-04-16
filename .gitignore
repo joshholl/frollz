@@ -43,3 +43,4 @@ Thumbs.db
 frollz-api/coverage
 frollz-ui/coverage
 frollz-api/dev.db
+.turbo/**
