@@ -14,6 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@frollz/shared": "workspace:*",
     "@heroicons/vue": "^2.2.0",
     "@tailwindcss/postcss": "^4.2.2",
     "eslint-config-prettier": "^10.1.8",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@frollz/vitest-config": "workspace:*",
+    "@frollz/typescript-config": "workspace:*",
     "@eslint-community/eslint-utils": "^4.9.1",
     "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^10.0.1",

@@ -76,6 +76,7 @@ export const TransitionStateMetadata = z.strictObject({
   fieldId: z.int().nonnegative(),
   transitionStateId: z.int().nonnegative(),
   defaultValue: z.string().nullable(),
+  field: FilmStateMetadataField.optional(),
 })
 
 export type TransitionStateMetadata = z.infer<typeof TransitionStateMetadata>
@@ -89,7 +90,7 @@ export const FilmStateMetadata = z.strictObject({
     z.array(z.string()),
   ]).nullable(),
 
-  transitionStateMetadata: TransitionStateMetadata,
+  transitionStateMetadata: TransitionStateMetadata.optional(),
 })
 
 export type FilmStateMetadata = z.infer<typeof FilmStateMetadata>
@@ -100,7 +101,13 @@ export const FilmState = z.strictObject({
   stateId: z.int().nonnegative(),
   date: z.iso.date(),
   note: z.string().nonempty().nullable(),
+  metadata: FilmStateMetadata.array(),
+  state: z.strictObject({
+    id: z.int().nonnegative(),
+    name: z.string().nonempty(),
+  }).optional(),
 })
+
 export type FilmState = z.infer<typeof FilmState>
 
 // Film (replaces Roll)
@@ -117,6 +124,7 @@ export const Film = z.strictObject({
 })
 
 export type Film = z.infer<typeof Film>
+
 // Transition profile
 export const TransitionProfile = z.strictObject({
   id: z.int().nonnegative(),

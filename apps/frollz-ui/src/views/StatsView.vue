@@ -296,7 +296,7 @@ import type {
   MonthCount,
   EmulsionCount,
   TransitionDuration,
-} from "@/types";
+} from "@frollz/shared";
 
 // --- State counts (#145) ---
 const loadingStates = ref(true);

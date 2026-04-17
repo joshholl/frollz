@@ -7,7 +7,7 @@ export function toTitleCase(str: string): string {
     .split(" ")
     .map((word) =>
       word.length > 0
-        ? word[0].toUpperCase() + word.slice(1).toLowerCase()
+        ? word[0]?.toUpperCase() + word.slice(1).toLowerCase()
         : word,
     )
     .join(" ");

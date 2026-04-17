@@ -488,7 +488,7 @@ import type {
   TransitionGraph,
   TransitionProfile,
   TransitionMetadataField,
-} from "@/types";
+} from "@frollz/shared";
 import { currentStateName } from "@/types";
 import { useNotificationStore } from "@/stores/notification";
 import { getStateColor } from "@/utils/stateColors";
@@ -742,8 +742,11 @@ const reload = async () => {
 watch(
   sortedStates,
   (entries) => {
-    if (entries.length && entryHasDetails(entries[0])) {
-      expandedEntries.value.add(entries[0].id);
+    if (
+      entries.length &&
+      entryHasDetails(entries[0] as { note?: string; metadata?: unknown[] })
+    ) {
+      expandedEntries.value.add(entries[0]?.id ?? -1);
     }
   },
   { immediate: true },

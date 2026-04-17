@@ -6,7 +6,7 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 function getCookie(): string | null {
   const match = document.cookie.match(/(?:^|; )frollz-theme=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  return match ? decodeURIComponent(match[1] ?? "") : null;
 }
 
 function setCookie(name: string, value: string): void {

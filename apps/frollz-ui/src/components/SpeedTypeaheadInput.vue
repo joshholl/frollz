@@ -154,7 +154,7 @@ const selectHighlighted = () => {
     highlightedIndex.value >= 0 &&
     highlightedIndex.value < suggestions.value.length
   ) {
-    select(suggestions.value[highlightedIndex.value]);
+    select(suggestions?.value[highlightedIndex?.value] ?? -1);
   }
 };
 </script>
