@@ -11,13 +11,18 @@ import {
   Patch,
   Post,
   Query,
+  UsePipes,
 } from "@nestjs/common";
 import { ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import {
+  AddTagInput,
+  CreateFilmInput,
+  TransitionFilmInput,
+  UpdateFilmInput,
+} from "@frollz/shared";
+import { ApiZodBody } from "../../common/swagger/zod-swagger";
+import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { FilmService } from "./application/film.service";
-import { CreateFilmDto } from "./dto/create-film.dto";
-import { UpdateFilmDto } from "./dto/update-film.dto";
-import { AddTagDto } from "../shared/dto/add-tag.dto";
-import { TransitionFilmDto } from "./dto/transition-film.dto";
 
 @ApiTags("Films")
 @Controller("films")
@@ -130,13 +135,19 @@ export class FilmController {
 
   @Post()
   @ApiOperation({ summary: "Create a film" })
-  create(@Body() dto: CreateFilmDto) {
+  @ApiZodBody(CreateFilmInput)
+  @UsePipes(new ZodValidationPipe(CreateFilmInput))
+  create(@Body() dto: CreateFilmInput) {
     return this.filmService.create(dto);
   }
 
   @Patch(":id")
   @ApiOperation({ summary: "Update a film" })
-  update(@Param("id", ParseIntPipe) id: number, @Body() dto: UpdateFilmDto) {
+  @ApiZodBody(UpdateFilmInput)
+  update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body(new ZodValidationPipe(UpdateFilmInput)) dto: UpdateFilmInput,
+  ) {
     return this.filmService.update(id, dto);
   }
 
@@ -150,7 +161,11 @@ export class FilmController {
   @Post(":id/tags")
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: "Associate a tag with a film" })
-  addTag(@Param("id", ParseIntPipe) id: number, @Body() dto: AddTagDto) {
+  @ApiZodBody(AddTagInput)
+  addTag(
+    @Param("id", ParseIntPipe) id: number,
+    @Body(new ZodValidationPipe(AddTagInput)) dto: AddTagInput,
+  ) {
     return this.filmService.addTag(id, dto.tagId);
   }
 
@@ -166,9 +181,10 @@ export class FilmController {
 
   @Post(":id/transition")
   @ApiOperation({ summary: "Transition a film to a new state" })
+  @ApiZodBody(TransitionFilmInput)
   transition(
     @Param("id", ParseIntPipe) id: number,
-    @Body() dto: TransitionFilmDto,
+    @Body(new ZodValidationPipe(TransitionFilmInput)) dto: TransitionFilmInput,
   ) {
     return this.filmService.transition(id, dto);
   }

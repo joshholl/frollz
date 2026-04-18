@@ -37,7 +37,7 @@ export class Camera {
     public readonly notes?: string,
     public readonly serialNumber?: string,
     public readonly purchasePrice?: number,
-    public readonly acquiredAt?: Date,
+    public readonly acquiredAt?: string,
   ) {}
 
   static create(props: {
@@ -51,7 +51,7 @@ export class Camera {
     notes?: string;
     serialNumber?: string;
     purchasePrice?: number;
-    acquiredAt?: Date;
+    acquiredAt?: string;
   }): Camera {
     const now = new Date();
     return new Camera(

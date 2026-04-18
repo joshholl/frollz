@@ -5,6 +5,9 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [vue()],
+  optimizeDeps: {
+    include: ['@frollz/shared'],
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, './src')

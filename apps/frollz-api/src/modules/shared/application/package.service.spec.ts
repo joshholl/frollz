@@ -8,12 +8,12 @@ const makePkg = (id: number, name: string): Package =>
 const makeRepo = (
   overrides: Partial<IPackageRepository> = {},
 ): IPackageRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -22,7 +22,7 @@ describe("PackageService", () => {
     it("returns all packages from the repository", async () => {
       const packages = [makePkg(1, "Roll"), makePkg(2, "Sheet")];
       const service = new PackageService(
-        makeRepo({ findAll: jest.fn().mockResolvedValue(packages) }),
+        makeRepo({ findAll: vi.fn().mockResolvedValue(packages) }),
       );
 
       const result = await service.findAll();

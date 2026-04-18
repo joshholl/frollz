@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import { BadRequestException } from "@nestjs/common";
 import { randomInt } from "crypto";
 import { ImportService } from "./import.service";
@@ -38,68 +39,68 @@ const makeTransitionProfile = (name = "standard"): TransitionProfile =>
 const makeFilmRepo = (
   overrides: Partial<IFilmRepository> = {},
 ): IFilmRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findWithFilters: jest.fn().mockResolvedValue([]),
-  findByEmulsionId: jest.fn().mockResolvedValue([]),
-  findChildren: jest.fn().mockResolvedValue([]),
-  findByCurrentStateIds: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findWithFilters: vi.fn().mockResolvedValue([]),
+  findByEmulsionId: vi.fn().mockResolvedValue([]),
+  findChildren: vi.fn().mockResolvedValue([]),
+  findByCurrentStateIds: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeFilmStateRepo = (
   overrides: Partial<IFilmStateRepository> = {},
 ): IFilmStateRepository => ({
-  findById: jest.fn().mockResolvedValue(null),
-  findByFilmId: jest.fn().mockResolvedValue([]),
-  findLatestByFilmId: jest.fn().mockResolvedValue(null),
-  findFilmIdsByCurrentState: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
-  saveMetadataValue: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findById: vi.fn().mockResolvedValue(null),
+  findByFilmId: vi.fn().mockResolvedValue([]),
+  findLatestByFilmId: vi.fn().mockResolvedValue(null),
+  findFilmIdsByCurrentState: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
+  saveMetadataValue: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeFilmTagRepo = (
   overrides: Partial<IFilmTagRepository> = {},
 ): IFilmTagRepository => ({
-  add: jest.fn().mockResolvedValue(undefined),
-  remove: jest.fn().mockResolvedValue(undefined),
+  add: vi.fn().mockResolvedValue(undefined),
+  remove: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeEmulsionRepo = (
   overrides: Partial<IEmulsionRepository> = {},
 ): IEmulsionRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByBrand: jest.fn().mockResolvedValue(null),
-  findByProcessId: jest.fn().mockResolvedValue([]),
-  findByFormatId: jest.fn().mockResolvedValue([]),
-  findBrands: jest.fn().mockResolvedValue([]),
-  findManufacturers: jest.fn().mockResolvedValue([]),
-  findSpeeds: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
-  updateBoxImage: jest.fn().mockResolvedValue(undefined),
-  getBoxImage: jest.fn().mockResolvedValue(null),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByBrand: vi.fn().mockResolvedValue(null),
+  findByProcessId: vi.fn().mockResolvedValue([]),
+  findByFormatId: vi.fn().mockResolvedValue([]),
+  findBrands: vi.fn().mockResolvedValue([]),
+  findManufacturers: vi.fn().mockResolvedValue([]),
+  findSpeeds: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
+  updateBoxImage: vi.fn().mockResolvedValue(undefined),
+  getBoxImage: vi.fn().mockResolvedValue(null),
   ...overrides,
 });
 
 const makeTagRepo = (
   overrides: Partial<ITagRepository> = {},
 ): ITagRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -107,12 +108,12 @@ const makeTransitionStateRepo = (
   state: TransitionState,
   overrides: Partial<ITransitionStateRepository> = {},
 ): ITransitionStateRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(state),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(state),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -120,22 +121,22 @@ const makeTransitionProfileRepo = (
   profile: TransitionProfile,
   overrides: Partial<ITransitionProfileRepository> = {},
 ): ITransitionProfileRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(profile),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(profile),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeNoteRepo = (
   overrides: Partial<INoteRepository> = {},
 ): INoteRepository => ({
-  findById: jest.fn().mockResolvedValue(null),
-  findAll: jest.fn().mockResolvedValue([]),
-  findByEntityId: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
+  findById: vi.fn().mockResolvedValue(null),
+  findAll: vi.fn().mockResolvedValue([]),
+  findByEntityId: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
   ...overrides,
 });
 
@@ -144,34 +145,34 @@ const csv = (rows: string[]) =>
 
 describe("ImportService", () => {
   let service: ImportService;
-  let filmRepo: jest.Mocked<IFilmRepository>;
-  let filmStateRepo: jest.Mocked<IFilmStateRepository>;
-  let filmTagRepo: jest.Mocked<IFilmTagRepository>;
-  let emulsionRepo: jest.Mocked<IEmulsionRepository>;
-  let tagRepo: jest.Mocked<ITagRepository>;
-  let transitionStateRepo: jest.Mocked<ITransitionStateRepository>;
-  let transitionProfileRepo: jest.Mocked<ITransitionProfileRepository>;
-  let noteRepo: jest.Mocked<INoteRepository>;
+  let filmRepo: Mocked<IFilmRepository>;
+  let filmStateRepo: Mocked<IFilmStateRepository>;
+  let filmTagRepo: Mocked<IFilmTagRepository>;
+  let emulsionRepo: Mocked<IEmulsionRepository>;
+  let tagRepo: Mocked<ITagRepository>;
+  let transitionStateRepo: Mocked<ITransitionStateRepository>;
+  let transitionProfileRepo: Mocked<ITransitionProfileRepository>;
+  let noteRepo: Mocked<INoteRepository>;
 
   const importedState = makeTransitionState("Imported");
   const standardProfile = makeTransitionProfile("standard");
   const portra = makeEmulsion("Kodak Portra 400");
 
   beforeEach(() => {
-    filmRepo = makeFilmRepo() as jest.Mocked<IFilmRepository>;
-    filmStateRepo = makeFilmStateRepo() as jest.Mocked<IFilmStateRepository>;
-    filmTagRepo = makeFilmTagRepo() as jest.Mocked<IFilmTagRepository>;
+    filmRepo = makeFilmRepo() as Mocked<IFilmRepository>;
+    filmStateRepo = makeFilmStateRepo() as Mocked<IFilmStateRepository>;
+    filmTagRepo = makeFilmTagRepo() as Mocked<IFilmTagRepository>;
     emulsionRepo = makeEmulsionRepo({
-      findByBrand: jest.fn().mockResolvedValue(portra),
-    }) as jest.Mocked<IEmulsionRepository>;
-    tagRepo = makeTagRepo() as jest.Mocked<ITagRepository>;
+      findByBrand: vi.fn().mockResolvedValue(portra),
+    }) as Mocked<IEmulsionRepository>;
+    tagRepo = makeTagRepo() as Mocked<ITagRepository>;
     transitionStateRepo = makeTransitionStateRepo(
       importedState,
-    ) as jest.Mocked<ITransitionStateRepository>;
+    ) as Mocked<ITransitionStateRepository>;
     transitionProfileRepo = makeTransitionProfileRepo(
       standardProfile,
-    ) as jest.Mocked<ITransitionProfileRepository>;
-    noteRepo = makeNoteRepo() as jest.Mocked<INoteRepository>;
+    ) as Mocked<ITransitionProfileRepository>;
+    noteRepo = makeNoteRepo() as Mocked<INoteRepository>;
 
     service = new ImportService(
       filmRepo,
@@ -196,14 +197,14 @@ describe("ImportService", () => {
 
   describe("importFilms", () => {
     it("throws BadRequestException when Imported state is not seeded", async () => {
-      transitionStateRepo.findByName = jest.fn().mockResolvedValue(null);
+      transitionStateRepo.findByName = vi.fn().mockResolvedValue(null);
       await expect(
         service.importFilms(csv(["Roll 001,Kodak Portra 400,,"])),
       ).rejects.toThrow(BadRequestException);
     });
 
     it("throws BadRequestException when standard profile is not seeded", async () => {
-      transitionProfileRepo.findByName = jest.fn().mockResolvedValue(null);
+      transitionProfileRepo.findByName = vi.fn().mockResolvedValue(null);
       await expect(
         service.importFilms(csv(["Roll 001,Kodak Portra 400,,"])),
       ).rejects.toThrow(BadRequestException);
@@ -241,7 +242,7 @@ describe("ImportService", () => {
     });
 
     it("skips a row where the emulsion name is not found", async () => {
-      emulsionRepo.findByBrand = jest.fn().mockResolvedValue(null);
+      emulsionRepo.findByBrand = vi.fn().mockResolvedValue(null);
       const result = await service.importFilms(
         csv(["Roll 001,Unknown Emulsion,,"]),
       );
@@ -253,9 +254,9 @@ describe("ImportService", () => {
     it("creates tags that do not already exist with default color", async () => {
       const newTagId = randomId();
       const newTag = makeTag("nature");
-      tagRepo.findByName = jest.fn().mockResolvedValue(null);
-      tagRepo.save = jest.fn().mockResolvedValue(newTagId);
-      tagRepo.findById = jest.fn().mockResolvedValue(newTag);
+      tagRepo.findByName = vi.fn().mockResolvedValue(null);
+      tagRepo.save = vi.fn().mockResolvedValue(newTagId);
+      tagRepo.findById = vi.fn().mockResolvedValue(newTag);
 
       await service.importFilms(csv(["Roll 001,Kodak Portra 400,nature,"]));
 
@@ -267,7 +268,7 @@ describe("ImportService", () => {
 
     it("reuses existing tags without creating duplicates", async () => {
       const existingTag = makeTag("landscape");
-      tagRepo.findByName = jest.fn().mockResolvedValue(existingTag);
+      tagRepo.findByName = vi.fn().mockResolvedValue(existingTag);
 
       await service.importFilms(csv(["Roll 001,Kodak Portra 400,landscape,"]));
 
@@ -296,7 +297,7 @@ describe("ImportService", () => {
     it("handles pipe-separated tags correctly", async () => {
       const tag1 = makeTag("landscape");
       const tag2 = makeTag("expired");
-      tagRepo.findByName = jest
+      tagRepo.findByName = vi
         .fn()
         .mockResolvedValueOnce(tag1)
         .mockResolvedValueOnce(tag2);
@@ -309,7 +310,7 @@ describe("ImportService", () => {
     });
 
     it("continues processing remaining rows after a skipped row", async () => {
-      emulsionRepo.findByBrand = jest
+      emulsionRepo.findByBrand = vi
         .fn()
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(portra);
@@ -325,7 +326,7 @@ describe("ImportService", () => {
 
     it("returns correct counts for a mixed batch", async () => {
       // Row 1: valid; Row 2: missing name (skipped before emulsion lookup); Row 3: valid
-      emulsionRepo.findByBrand = jest.fn().mockResolvedValue(portra);
+      emulsionRepo.findByBrand = vi.fn().mockResolvedValue(portra);
 
       const result = await service.importFilms(
         csv([

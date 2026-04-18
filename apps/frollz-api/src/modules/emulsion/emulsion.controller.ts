@@ -19,11 +19,15 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiConsumes, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { Response } from "express";
+import {
+  AddTagInput,
+  CreateEmulsionInput,
+  CreateEmulsionMultipleFormatsInput,
+  UpdateEmulsionInput,
+} from "@frollz/shared";
+import { ApiZodBody } from "../../common/swagger/zod-swagger";
+import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { EmulsionService } from "./application/emulsion.service";
-import { CreateEmulsionDto } from "./dto/create-emulsion.dto";
-import { AddTagDto } from "../shared/dto/add-tag.dto";
-import { UpdateEmulsionDto } from "./dto/update-emulsion.dto";
-import { CreateEmulsionMultipleFormatsDto } from "./dto/create-emulsion-multiple-formats.dto";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
@@ -72,7 +76,10 @@ export class EmulsionController {
 
   @Post()
   @ApiOperation({ summary: "Create an emulsion" })
-  create(@Body() dto: CreateEmulsionDto) {
+  @ApiZodBody(CreateEmulsionInput)
+  create(
+    @Body(new ZodValidationPipe(CreateEmulsionInput)) dto: CreateEmulsionInput,
+  ) {
     return this.emulsionService.create(dto);
   }
 
@@ -80,15 +87,20 @@ export class EmulsionController {
   @ApiOperation({
     summary: "Create one emulsion per format from a single set of properties",
   })
-  createMultipleFormats(@Body() dto: CreateEmulsionMultipleFormatsDto) {
+  @ApiZodBody(CreateEmulsionMultipleFormatsInput)
+  createMultipleFormats(
+    @Body(new ZodValidationPipe(CreateEmulsionMultipleFormatsInput))
+    dto: CreateEmulsionMultipleFormatsInput,
+  ) {
     return this.emulsionService.createMultipleFormats(dto);
   }
 
   @Patch(":id")
   @ApiOperation({ summary: "Update an emulsion" })
+  @ApiZodBody(UpdateEmulsionInput)
   update(
     @Param("id", ParseIntPipe) id: number,
-    @Body() dto: UpdateEmulsionDto,
+    @Body(new ZodValidationPipe(UpdateEmulsionInput)) dto: UpdateEmulsionInput,
   ) {
     return this.emulsionService.update(id, dto);
   }
@@ -103,7 +115,11 @@ export class EmulsionController {
   @Post(":id/tags")
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: "Associate a tag with an emulsion" })
-  addTag(@Param("id", ParseIntPipe) id: number, @Body() dto: AddTagDto) {
+  @ApiZodBody(AddTagInput)
+  addTag(
+    @Param("id", ParseIntPipe) id: number,
+    @Body(new ZodValidationPipe(AddTagInput)) dto: AddTagInput,
+  ) {
     return this.emulsionService.addTag(id, dto.tagId);
   }
 

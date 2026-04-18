@@ -8,9 +8,11 @@ import {
   IEmulsionTagRepository,
   EMULSION_TAG_REPOSITORY,
 } from "../../../domain/emulsion-tag/repositories/emulsion-tag.repository.interface";
-import { CreateEmulsionDto } from "../dto/create-emulsion.dto";
-import { CreateEmulsionMultipleFormatsDto } from "../dto/create-emulsion-multiple-formats.dto";
-import { UpdateEmulsionDto } from "../dto/update-emulsion.dto";
+import {
+  CreateEmulsionInput,
+  CreateEmulsionMultipleFormatsInput,
+  UpdateEmulsionInput,
+} from "@frollz/shared";
 
 @Injectable()
 export class EmulsionService {
@@ -31,7 +33,7 @@ export class EmulsionService {
     return emulsion;
   }
 
-  async create(dto: CreateEmulsionDto): Promise<Emulsion> {
+  async create(dto: CreateEmulsionInput): Promise<Emulsion> {
     const emulsion = Emulsion.create({
       ...dto,
       parentId: dto.parentId ?? null,
@@ -41,7 +43,7 @@ export class EmulsionService {
   }
 
   async createMultipleFormats(
-    dto: CreateEmulsionMultipleFormatsDto,
+    dto: CreateEmulsionMultipleFormatsInput,
   ): Promise<Emulsion[]> {
     const emulsions = dto.formatIds.map((formatId) =>
       Emulsion.create({
@@ -66,7 +68,7 @@ export class EmulsionService {
     );
   }
 
-  async update(id: number, dto: UpdateEmulsionDto): Promise<Emulsion> {
+  async update(id: number, dto: UpdateEmulsionInput): Promise<Emulsion> {
     const existing = await this.findById(id);
     const updated = Emulsion.create({
       id: existing.id,

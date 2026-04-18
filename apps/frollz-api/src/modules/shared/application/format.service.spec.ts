@@ -25,24 +25,24 @@ const makeFormat = (
 const makeFormatRepo = (
   overrides: Partial<IFormatRepository> = {},
 ): IFormatRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByPackageId: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByPackageId: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makePackageRepo = (
   overrides: Partial<IPackageRepository> = {},
 ): IPackageRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -57,8 +57,8 @@ describe("FormatService", () => {
       const pkg = makePkg({ name: "Roll" });
       const format = makeFormat({ packageId: pkg.id });
       const service = makeService(
-        makeFormatRepo({ findAll: jest.fn().mockResolvedValue([format]) }),
-        makePackageRepo({ findById: jest.fn().mockResolvedValue(pkg) }),
+        makeFormatRepo({ findAll: vi.fn().mockResolvedValue([format]) }),
+        makePackageRepo({ findById: vi.fn().mockResolvedValue(pkg) }),
       );
 
       const results = await service.findAll();
@@ -76,8 +76,8 @@ describe("FormatService", () => {
     it("attaches undefined pkg when package is not found", async () => {
       const format = makeFormat();
       const service = makeService(
-        makeFormatRepo({ findAll: jest.fn().mockResolvedValue([format]) }),
-        makePackageRepo({ findById: jest.fn().mockResolvedValue(null) }),
+        makeFormatRepo({ findAll: vi.fn().mockResolvedValue([format]) }),
+        makePackageRepo({ findById: vi.fn().mockResolvedValue(null) }),
       );
 
       const results = await service.findAll();
@@ -90,8 +90,8 @@ describe("FormatService", () => {
       const pkg = makePkg();
       const format = makeFormat({ packageId: pkg.id });
       const service = makeService(
-        makeFormatRepo({ findById: jest.fn().mockResolvedValue(format) }),
-        makePackageRepo({ findById: jest.fn().mockResolvedValue(pkg) }),
+        makeFormatRepo({ findById: vi.fn().mockResolvedValue(format) }),
+        makePackageRepo({ findById: vi.fn().mockResolvedValue(pkg) }),
       );
 
       const result = await service.findById(format.id);
@@ -116,10 +116,10 @@ describe("FormatService", () => {
       const saved = makeFormat({ id: savedId, packageId: pkg.id, name: "120" });
       const service = makeService(
         makeFormatRepo({
-          save: jest.fn().mockResolvedValue(savedId),
-          findById: jest.fn().mockResolvedValue(saved),
+          save: vi.fn().mockResolvedValue(savedId),
+          findById: vi.fn().mockResolvedValue(saved),
         }),
-        makePackageRepo({ findById: jest.fn().mockResolvedValue(pkg) }),
+        makePackageRepo({ findById: vi.fn().mockResolvedValue(pkg) }),
       );
 
       const result = await service.create({ packageId: pkg.id, name: "120" });
@@ -133,12 +133,12 @@ describe("FormatService", () => {
       const savedId = randomId();
       const saved = makeFormat({ id: savedId, packageId: 7, name: "4x5" });
       const formatRepo = makeFormatRepo({
-        save: jest.fn().mockResolvedValue(savedId),
-        findById: jest.fn().mockResolvedValue(saved),
+        save: vi.fn().mockResolvedValue(savedId),
+        findById: vi.fn().mockResolvedValue(saved),
       });
       const service = makeService(
         formatRepo,
-        makePackageRepo({ findById: jest.fn().mockResolvedValue(pkg) }),
+        makePackageRepo({ findById: vi.fn().mockResolvedValue(pkg) }),
       );
 
       await service.create({ packageId: 7, name: "4x5" });
@@ -154,8 +154,8 @@ describe("FormatService", () => {
       const pkg = makePkg();
       const existing = makeFormat({ packageId: pkg.id, name: "35mm" });
       const service = makeService(
-        makeFormatRepo({ findById: jest.fn().mockResolvedValue(existing) }),
-        makePackageRepo({ findById: jest.fn().mockResolvedValue(pkg) }),
+        makeFormatRepo({ findById: vi.fn().mockResolvedValue(existing) }),
+        makePackageRepo({ findById: vi.fn().mockResolvedValue(pkg) }),
       );
 
       const result = await service.update(existing.id, { name: "120" });
@@ -167,8 +167,8 @@ describe("FormatService", () => {
       const pkg = makePkg({ id: 5 });
       const existing = makeFormat({ packageId: 5, name: "35mm" });
       const service = makeService(
-        makeFormatRepo({ findById: jest.fn().mockResolvedValue(existing) }),
-        makePackageRepo({ findById: jest.fn().mockResolvedValue(pkg) }),
+        makeFormatRepo({ findById: vi.fn().mockResolvedValue(existing) }),
+        makePackageRepo({ findById: vi.fn().mockResolvedValue(pkg) }),
       );
 
       const result = await service.update(existing.id, { name: "120" });
@@ -180,11 +180,11 @@ describe("FormatService", () => {
       const pkg = makePkg({ id: 3 });
       const existing = makeFormat({ packageId: 3, name: "35mm" });
       const formatRepo = makeFormatRepo({
-        findById: jest.fn().mockResolvedValue(existing),
+        findById: vi.fn().mockResolvedValue(existing),
       });
       const service = makeService(
         formatRepo,
-        makePackageRepo({ findById: jest.fn().mockResolvedValue(pkg) }),
+        makePackageRepo({ findById: vi.fn().mockResolvedValue(pkg) }),
       );
 
       await service.update(existing.id, { name: "120" });
@@ -206,7 +206,7 @@ describe("FormatService", () => {
     it("deletes an existing format", async () => {
       const format = makeFormat();
       const formatRepo = makeFormatRepo({
-        findById: jest.fn().mockResolvedValue(format),
+        findById: vi.fn().mockResolvedValue(format),
       });
       const service = makeService(formatRepo);
 

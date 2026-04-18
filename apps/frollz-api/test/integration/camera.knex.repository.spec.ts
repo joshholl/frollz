@@ -53,7 +53,7 @@ describe('CameraKnexRepository', () => {
         status: 'active',
         serialNumber: 'SN-001',
         purchasePrice: 250.5,
-        acquiredAt: new Date('2022-03-15'),
+        acquiredAt: '2022-03-15',
       }));
       const camera = await repo.findById(id);
 

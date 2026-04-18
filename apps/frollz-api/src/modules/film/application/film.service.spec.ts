@@ -60,97 +60,97 @@ const makeTransitionRule = (
 const makeFilmRepo = (
   overrides: Partial<IFilmRepository> = {},
 ): IFilmRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findWithFilters: jest.fn().mockResolvedValue([]),
-  findByEmulsionId: jest.fn().mockResolvedValue([]),
-  findChildren: jest.fn().mockResolvedValue([]),
-  findByCurrentStateIds: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findWithFilters: vi.fn().mockResolvedValue([]),
+  findByEmulsionId: vi.fn().mockResolvedValue([]),
+  findChildren: vi.fn().mockResolvedValue([]),
+  findByCurrentStateIds: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeFilmTagRepo = (
   overrides: Partial<IFilmTagRepository> = {},
 ): IFilmTagRepository => ({
-  add: jest.fn().mockResolvedValue(undefined),
-  remove: jest.fn().mockResolvedValue(undefined),
+  add: vi.fn().mockResolvedValue(undefined),
+  remove: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeFilmStateRepo = (
   overrides: Partial<IFilmStateRepository> = {},
 ): IFilmStateRepository => ({
-  findById: jest.fn().mockResolvedValue(null),
-  findByFilmId: jest.fn().mockResolvedValue([]),
-  findLatestByFilmId: jest.fn().mockResolvedValue(null),
-  findFilmIdsByCurrentState: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
-  saveMetadataValue: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findById: vi.fn().mockResolvedValue(null),
+  findByFilmId: vi.fn().mockResolvedValue([]),
+  findLatestByFilmId: vi.fn().mockResolvedValue(null),
+  findFilmIdsByCurrentState: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
+  saveMetadataValue: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeTransitionStateMetadataRepo = (
   overrides: Partial<ITransitionStateMetadataRepository> = {},
 ): ITransitionStateMetadataRepository => ({
-  findById: jest.fn().mockResolvedValue(null),
-  findAll: jest.fn().mockResolvedValue([]),
-  findByTransitionStateId: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findById: vi.fn().mockResolvedValue(null),
+  findAll: vi.fn().mockResolvedValue([]),
+  findByTransitionStateId: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeMetadataFieldRepo = (
   overrides: Partial<ITransitionMetadataFieldRepository> = {},
 ): ITransitionMetadataFieldRepository => ({
-  findById: jest.fn().mockResolvedValue(null),
-  findAll: jest.fn().mockResolvedValue([]),
-  findByName: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findById: vi.fn().mockResolvedValue(null),
+  findAll: vi.fn().mockResolvedValue([]),
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeStateRepo = (
   overrides: Partial<ITransitionStateRepository> = {},
 ): ITransitionStateRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeRuleRepo = (
   overrides: Partial<ITransitionRuleRepository> = {},
 ): ITransitionRuleRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByProfileId: jest.fn().mockResolvedValue([]),
-  findByFromStateId: jest.fn().mockResolvedValue([]),
-  findByFromStateAndProfile: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByProfileId: vi.fn().mockResolvedValue([]),
+  findByFromStateId: vi.fn().mockResolvedValue([]),
+  findByFromStateAndProfile: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeNoteRepo = (
   overrides: Partial<INoteRepository> = {},
 ): INoteRepository => ({
-  findById: jest.fn(),
-  findAll: jest.fn(),
-  findByEntityId: jest.fn(),
-  save: jest.fn(),
+  findById: vi.fn(),
+  findAll: vi.fn(),
+  findByEntityId: vi.fn(),
+  save: vi.fn(),
   ...overrides,
 });
 
@@ -180,7 +180,7 @@ describe("FilmService", () => {
     it("returns all films when no filters given", async () => {
       const film = makeFilm();
       const service = makeService(
-        makeFilmRepo({ findAll: jest.fn().mockResolvedValue([film]) }),
+        makeFilmRepo({ findAll: vi.fn().mockResolvedValue([film]) }),
       );
 
       await expect(service.findAll()).resolves.toEqual([film]);
@@ -190,10 +190,10 @@ describe("FilmService", () => {
       const addedState = makeTransitionState({ name: "Added" });
       const film = makeFilm();
       const filmRepo = makeFilmRepo({
-        findWithFilters: jest.fn().mockResolvedValue([film]),
+        findWithFilters: vi.fn().mockResolvedValue([film]),
       });
       const stateRepo = makeStateRepo({
-        findAll: jest.fn().mockResolvedValue([addedState]),
+        findAll: vi.fn().mockResolvedValue([addedState]),
       });
       const service = makeService(
         filmRepo,
@@ -222,7 +222,7 @@ describe("FilmService", () => {
       const film = makeFilm();
       const emulsionId = randomId();
       const filmRepo = makeFilmRepo({
-        findWithFilters: jest.fn().mockResolvedValue([film]),
+        findWithFilters: vi.fn().mockResolvedValue([film]),
       });
       const service = makeService(filmRepo);
 
@@ -236,7 +236,7 @@ describe("FilmService", () => {
       const film = makeFilm();
       const formatId = randomId();
       const filmRepo = makeFilmRepo({
-        findWithFilters: jest.fn().mockResolvedValue([film]),
+        findWithFilters: vi.fn().mockResolvedValue([film]),
       });
       const service = makeService(filmRepo);
 
@@ -250,7 +250,7 @@ describe("FilmService", () => {
       const film = makeFilm();
       const tagIds = [randomId(), randomId()];
       const filmRepo = makeFilmRepo({
-        findWithFilters: jest.fn().mockResolvedValue([film]),
+        findWithFilters: vi.fn().mockResolvedValue([film]),
       });
       const service = makeService(filmRepo);
 
@@ -265,10 +265,10 @@ describe("FilmService", () => {
       const film = makeFilm();
       const emulsionId = randomId();
       const filmRepo = makeFilmRepo({
-        findWithFilters: jest.fn().mockResolvedValue([film]),
+        findWithFilters: vi.fn().mockResolvedValue([film]),
       });
       const stateRepo = makeStateRepo({
-        findAll: jest.fn().mockResolvedValue([addedState]),
+        findAll: vi.fn().mockResolvedValue([addedState]),
       });
       const service = makeService(
         filmRepo,
@@ -289,10 +289,10 @@ describe("FilmService", () => {
       const loadedState = makeTransitionState({ name: "Loaded" });
       const film = makeFilm();
       const filmRepo = makeFilmRepo({
-        findWithFilters: jest.fn().mockResolvedValue([film]),
+        findWithFilters: vi.fn().mockResolvedValue([film]),
       });
       const stateRepo = makeStateRepo({
-        findAll: jest.fn().mockResolvedValue([loadedState]),
+        findAll: vi.fn().mockResolvedValue([loadedState]),
       });
       const service = makeService(
         filmRepo,
@@ -313,10 +313,10 @@ describe("FilmService", () => {
       const loadedState = makeTransitionState({ name: "Loaded" });
       const film = makeFilm();
       const filmRepo = makeFilmRepo({
-        findWithFilters: jest.fn().mockResolvedValue([film]),
+        findWithFilters: vi.fn().mockResolvedValue([film]),
       });
       const stateRepo = makeStateRepo({
-        findAll: jest.fn().mockResolvedValue([loadedState]),
+        findAll: vi.fn().mockResolvedValue([loadedState]),
       });
       const service = makeService(
         filmRepo,
@@ -337,10 +337,10 @@ describe("FilmService", () => {
       const loadedState = makeTransitionState({ name: "Loaded" });
       const film = makeFilm();
       const filmRepo = makeFilmRepo({
-        findWithFilters: jest.fn().mockResolvedValue([film]),
+        findWithFilters: vi.fn().mockResolvedValue([film]),
       });
       const stateRepo = makeStateRepo({
-        findAll: jest.fn().mockResolvedValue([loadedState]),
+        findAll: vi.fn().mockResolvedValue([loadedState]),
       });
       const service = makeService(
         filmRepo,
@@ -360,10 +360,10 @@ describe("FilmService", () => {
 
     it("ignores date filter when Loaded state does not exist", async () => {
       const filmRepo = makeFilmRepo({
-        findAll: jest.fn().mockResolvedValue([]),
+        findAll: vi.fn().mockResolvedValue([]),
       });
       const stateRepo = makeStateRepo({
-        findAll: jest.fn().mockResolvedValue([]),
+        findAll: vi.fn().mockResolvedValue([]),
       });
       const service = makeService(
         filmRepo,
@@ -383,10 +383,10 @@ describe("FilmService", () => {
       const emulsionId = randomId();
       const film = makeFilm();
       const filmRepo = makeFilmRepo({
-        findWithFilters: jest.fn().mockResolvedValue([film]),
+        findWithFilters: vi.fn().mockResolvedValue([film]),
       });
       const stateRepo = makeStateRepo({
-        findAll: jest.fn().mockResolvedValue([loadedState]),
+        findAll: vi.fn().mockResolvedValue([loadedState]),
       });
       const service = makeService(
         filmRepo,
@@ -412,7 +412,7 @@ describe("FilmService", () => {
     it("passes searchQuery when q is provided", async () => {
       const film = makeFilm();
       const filmRepo = makeFilmRepo({
-        findWithFilters: jest.fn().mockResolvedValue([film]),
+        findWithFilters: vi.fn().mockResolvedValue([film]),
       });
       const service = makeService(filmRepo);
 
@@ -425,7 +425,7 @@ describe("FilmService", () => {
 
     it("trims whitespace from q before passing as searchQuery", async () => {
       const filmRepo = makeFilmRepo({
-        findWithFilters: jest.fn().mockResolvedValue([]),
+        findWithFilters: vi.fn().mockResolvedValue([]),
       });
       const service = makeService(filmRepo);
 
@@ -438,7 +438,7 @@ describe("FilmService", () => {
 
     it("ignores q when it is blank whitespace", async () => {
       const filmRepo = makeFilmRepo({
-        findAll: jest.fn().mockResolvedValue([]),
+        findAll: vi.fn().mockResolvedValue([]),
       });
       const service = makeService(filmRepo);
 
@@ -451,7 +451,7 @@ describe("FilmService", () => {
     it("combines q with other filters", async () => {
       const emulsionId = randomId();
       const filmRepo = makeFilmRepo({
-        findWithFilters: jest.fn().mockResolvedValue([]),
+        findWithFilters: vi.fn().mockResolvedValue([]),
       });
       const service = makeService(filmRepo);
 
@@ -468,7 +468,7 @@ describe("FilmService", () => {
     it("returns the film when found", async () => {
       const film = makeFilm();
       const service = makeService(
-        makeFilmRepo({ findById: jest.fn().mockResolvedValue(film) }),
+        makeFilmRepo({ findById: vi.fn().mockResolvedValue(film) }),
       );
 
       await expect(service.findById(film.id)).resolves.toEqual(film);
@@ -488,11 +488,11 @@ describe("FilmService", () => {
       const savedFilm = makeFilm({ name: "Roll 001" });
       const addedState = makeTransitionState({ name: "Added" });
       const filmRepo = makeFilmRepo({
-        findById: jest.fn().mockResolvedValue(savedFilm),
+        findById: vi.fn().mockResolvedValue(savedFilm),
       });
       const filmStateRepo = makeFilmStateRepo();
       const stateRepo = makeStateRepo({
-        findByName: jest.fn().mockResolvedValue(addedState),
+        findByName: vi.fn().mockResolvedValue(addedState),
       });
       const service = makeService(
         filmRepo,
@@ -520,7 +520,7 @@ describe("FilmService", () => {
     it("throws NotFoundException when the Added state is missing from the database", async () => {
       const filmRepo = makeFilmRepo();
       const stateRepo = makeStateRepo({
-        findByName: jest.fn().mockResolvedValue(null),
+        findByName: vi.fn().mockResolvedValue(null),
       });
       const service = makeService(
         filmRepo,
@@ -546,7 +546,7 @@ describe("FilmService", () => {
       const tagId = randomId();
       const filmTagRepo = makeFilmTagRepo();
       const service = makeService(
-        makeFilmRepo({ findById: jest.fn().mockResolvedValue(film) }),
+        makeFilmRepo({ findById: vi.fn().mockResolvedValue(film) }),
         filmTagRepo,
       );
 
@@ -576,14 +576,14 @@ describe("FilmService", () => {
       });
 
       const filmRepo = makeFilmRepo({
-        findById: jest.fn().mockResolvedValue(film),
+        findById: vi.fn().mockResolvedValue(film),
       });
       const filmStateRepo = makeFilmStateRepo();
       const stateRepo = makeStateRepo({
-        findByName: jest.fn().mockResolvedValue(loadedState),
+        findByName: vi.fn().mockResolvedValue(loadedState),
       });
       const ruleRepo = makeRuleRepo({
-        findByFromStateAndProfile: jest.fn().mockResolvedValue([rule]),
+        findByFromStateAndProfile: vi.fn().mockResolvedValue([rule]),
       });
       const service = makeService(
         filmRepo,
@@ -603,7 +603,7 @@ describe("FilmService", () => {
     it("throws NotFoundException when target state does not exist", async () => {
       const film = makeFilm();
       const service = makeService(
-        makeFilmRepo({ findById: jest.fn().mockResolvedValue(film) }),
+        makeFilmRepo({ findById: vi.fn().mockResolvedValue(film) }),
       );
 
       await expect(
@@ -618,13 +618,13 @@ describe("FilmService", () => {
       const film = makeFilm({ states: [existingFilmState] });
 
       const filmRepo = makeFilmRepo({
-        findById: jest.fn().mockResolvedValue(film),
+        findById: vi.fn().mockResolvedValue(film),
       });
       const stateRepo = makeStateRepo({
-        findByName: jest.fn().mockResolvedValue(receivedState),
+        findByName: vi.fn().mockResolvedValue(receivedState),
       });
       const ruleRepo = makeRuleRepo({
-        findByFromStateAndProfile: jest.fn().mockResolvedValue([]),
+        findByFromStateAndProfile: vi.fn().mockResolvedValue([]),
       });
       const service = makeService(
         filmRepo,
@@ -643,11 +643,11 @@ describe("FilmService", () => {
       const addedState = makeTransitionState({ name: "Added" });
       const film = makeFilm({ states: [] });
       const filmRepo = makeFilmRepo({
-        findById: jest.fn().mockResolvedValue(film),
+        findById: vi.fn().mockResolvedValue(film),
       });
       const filmStateRepo = makeFilmStateRepo();
       const stateRepo = makeStateRepo({
-        findByName: jest.fn().mockResolvedValue(addedState),
+        findByName: vi.fn().mockResolvedValue(addedState),
       });
       const service = makeService(
         filmRepo,

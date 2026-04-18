@@ -24,27 +24,27 @@ const makeEmulsion = (
 const makeRepo = (
   overrides: Partial<IEmulsionRepository> = {},
 ): IEmulsionRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByBrand: jest.fn().mockResolvedValue(null),
-  findByProcessId: jest.fn().mockResolvedValue([]),
-  findByFormatId: jest.fn().mockResolvedValue([]),
-  findBrands: jest.fn().mockResolvedValue([]),
-  findManufacturers: jest.fn().mockResolvedValue([]),
-  findSpeeds: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
-  updateBoxImage: jest.fn().mockResolvedValue(undefined),
-  getBoxImage: jest.fn().mockResolvedValue(null),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByBrand: vi.fn().mockResolvedValue(null),
+  findByProcessId: vi.fn().mockResolvedValue([]),
+  findByFormatId: vi.fn().mockResolvedValue([]),
+  findBrands: vi.fn().mockResolvedValue([]),
+  findManufacturers: vi.fn().mockResolvedValue([]),
+  findSpeeds: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
+  updateBoxImage: vi.fn().mockResolvedValue(undefined),
+  getBoxImage: vi.fn().mockResolvedValue(null),
   ...overrides,
 });
 
 const makeTagRepo = (
   overrides: Partial<IEmulsionTagRepository> = {},
 ): IEmulsionTagRepository => ({
-  add: jest.fn().mockResolvedValue(undefined),
-  remove: jest.fn().mockResolvedValue(undefined),
+  add: vi.fn().mockResolvedValue(undefined),
+  remove: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -53,7 +53,7 @@ describe("EmulsionService", () => {
     it("returns the emulsion when found", async () => {
       const emulsion = makeEmulsion();
       const service = new EmulsionService(
-        makeRepo({ findById: jest.fn().mockResolvedValue(emulsion) }),
+        makeRepo({ findById: vi.fn().mockResolvedValue(emulsion) }),
         makeTagRepo(),
       );
 
@@ -73,7 +73,7 @@ describe("EmulsionService", () => {
     it("saves and returns a new emulsion with a generated uuid", async () => {
       const savedEmulsion = makeEmulsion({ brand: "Kodak Portra 400" });
       const repo = makeRepo({
-        findById: jest.fn().mockResolvedValue(savedEmulsion),
+        findById: vi.fn().mockResolvedValue(savedEmulsion),
       });
       const service = new EmulsionService(repo, makeTagRepo());
 
@@ -97,7 +97,7 @@ describe("EmulsionService", () => {
       const formatIds = [randomId(), randomId()];
       const emulsions = formatIds.map((formatId) => makeEmulsion({ formatId }));
       const repo = makeRepo({
-        findById: jest
+        findById: vi
           .fn()
           .mockResolvedValueOnce(emulsions[0])
           .mockResolvedValueOnce(emulsions[1]),
@@ -124,7 +124,7 @@ describe("EmulsionService", () => {
       const existing = makeEmulsion();
       const afterUpdate = makeEmulsion({ id: existing.id, speed: 800 });
       const repo = makeRepo({
-        findById: jest
+        findById: vi
           .fn()
           .mockResolvedValueOnce(existing)
           .mockResolvedValueOnce(afterUpdate),
@@ -152,7 +152,7 @@ describe("EmulsionService", () => {
       const tagRepo = makeTagRepo();
       const tagId = randomId();
       const service = new EmulsionService(
-        makeRepo({ findById: jest.fn().mockResolvedValue(emulsion) }),
+        makeRepo({ findById: vi.fn().mockResolvedValue(emulsion) }),
         tagRepo,
       );
 
@@ -166,7 +166,7 @@ describe("EmulsionService", () => {
       const tagRepo = makeTagRepo();
       const tagId = randomId();
       const service = new EmulsionService(
-        makeRepo({ findById: jest.fn().mockResolvedValue(emulsion) }),
+        makeRepo({ findById: vi.fn().mockResolvedValue(emulsion) }),
         tagRepo,
       );
 
@@ -187,7 +187,7 @@ describe("EmulsionService", () => {
   describe("typeahead", () => {
     it("delegates findBrands with query to repository", async () => {
       const repo = makeRepo({
-        findBrands: jest.fn().mockResolvedValue(["Kodak", "Ilford"]),
+        findBrands: vi.fn().mockResolvedValue(["Kodak", "Ilford"]),
       });
       const service = new EmulsionService(repo, makeTagRepo());
 
@@ -199,7 +199,7 @@ describe("EmulsionService", () => {
 
     it("delegates findBrands without query to repository", async () => {
       const repo = makeRepo({
-        findBrands: jest.fn().mockResolvedValue(["Kodak", "Ilford", "Fuji"]),
+        findBrands: vi.fn().mockResolvedValue(["Kodak", "Ilford", "Fuji"]),
       });
       const service = new EmulsionService(repo, makeTagRepo());
 
@@ -211,7 +211,7 @@ describe("EmulsionService", () => {
 
     it("delegates findManufacturers with query to repository", async () => {
       const repo = makeRepo({
-        findManufacturers: jest.fn().mockResolvedValue(["Kodak"]),
+        findManufacturers: vi.fn().mockResolvedValue(["Kodak"]),
       });
       const service = new EmulsionService(repo, makeTagRepo());
 
@@ -223,7 +223,7 @@ describe("EmulsionService", () => {
 
     it("delegates findManufacturers without query to repository", async () => {
       const repo = makeRepo({
-        findManufacturers: jest.fn().mockResolvedValue(["Kodak", "Ilford"]),
+        findManufacturers: vi.fn().mockResolvedValue(["Kodak", "Ilford"]),
       });
       const service = new EmulsionService(repo, makeTagRepo());
 
@@ -233,7 +233,7 @@ describe("EmulsionService", () => {
     });
 
     it("delegates findSpeeds with query to repository", async () => {
-      const repo = makeRepo({ findSpeeds: jest.fn().mockResolvedValue([400]) });
+      const repo = makeRepo({ findSpeeds: vi.fn().mockResolvedValue([400]) });
       const service = new EmulsionService(repo, makeTagRepo());
 
       const result = await service.findSpeeds("4");
@@ -244,7 +244,7 @@ describe("EmulsionService", () => {
 
     it("delegates findSpeeds without query to repository", async () => {
       const repo = makeRepo({
-        findSpeeds: jest.fn().mockResolvedValue([100, 200, 400]),
+        findSpeeds: vi.fn().mockResolvedValue([100, 200, 400]),
       });
       const service = new EmulsionService(repo, makeTagRepo());
 
@@ -258,7 +258,7 @@ describe("EmulsionService", () => {
     it("returns all emulsions from the repository", async () => {
       const emulsions = [makeEmulsion(), makeEmulsion({ brand: "Ilford HP5" })];
       const repo = makeRepo({
-        findAll: jest.fn().mockResolvedValue(emulsions),
+        findAll: vi.fn().mockResolvedValue(emulsions),
       });
       const service = new EmulsionService(repo, makeTagRepo());
 
@@ -277,7 +277,7 @@ describe("EmulsionService", () => {
     it("deletes an existing emulsion", async () => {
       const emulsion = makeEmulsion();
       const repo = makeRepo({
-        findById: jest.fn().mockResolvedValue(emulsion),
+        findById: vi.fn().mockResolvedValue(emulsion),
       });
       const service = new EmulsionService(repo, makeTagRepo());
 
@@ -309,7 +309,7 @@ describe("EmulsionService", () => {
     it("uploads a box image for an existing emulsion", async () => {
       const emulsion = makeEmulsion();
       const repo = makeRepo({
-        findById: jest.fn().mockResolvedValue(emulsion),
+        findById: vi.fn().mockResolvedValue(emulsion),
       });
       const service = new EmulsionService(repo, makeTagRepo());
       const buf = Buffer.from("fake-image");
@@ -335,8 +335,8 @@ describe("EmulsionService", () => {
       const emulsion = makeEmulsion();
       const imageData = { data: Buffer.from("img"), mimeType: "image/jpeg" };
       const repo = makeRepo({
-        findById: jest.fn().mockResolvedValue(emulsion),
-        getBoxImage: jest.fn().mockResolvedValue(imageData),
+        findById: vi.fn().mockResolvedValue(emulsion),
+        getBoxImage: vi.fn().mockResolvedValue(imageData),
       });
       const service = new EmulsionService(repo, makeTagRepo());
 
@@ -348,8 +348,8 @@ describe("EmulsionService", () => {
     it("throws NotFoundException when no box image has been set", async () => {
       const emulsion = makeEmulsion();
       const repo = makeRepo({
-        findById: jest.fn().mockResolvedValue(emulsion),
-        getBoxImage: jest.fn().mockResolvedValue(null),
+        findById: vi.fn().mockResolvedValue(emulsion),
+        getBoxImage: vi.fn().mockResolvedValue(null),
       });
       const service = new EmulsionService(repo, makeTagRepo());
 

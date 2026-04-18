@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import { randomInt } from "crypto";
 import { ExportService } from "./export.service";
 import { IFilmRepository } from "../../../domain/film/repositories/film.repository.interface";
@@ -27,15 +28,15 @@ const makeFilm = (
 const makeFilmRepo = (
   overrides: Partial<IFilmRepository> = {},
 ): IFilmRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findWithFilters: jest.fn().mockResolvedValue([]),
-  findByEmulsionId: jest.fn().mockResolvedValue([]),
-  findChildren: jest.fn().mockResolvedValue([]),
-  findByCurrentStateIds: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findWithFilters: vi.fn().mockResolvedValue([]),
+  findByEmulsionId: vi.fn().mockResolvedValue([]),
+  findChildren: vi.fn().mockResolvedValue([]),
+  findByCurrentStateIds: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -75,64 +76,64 @@ const makeTag = (
 const makeEmulsionRepo = (
   overrides: Partial<IEmulsionRepository> = {},
 ): IEmulsionRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByBrand: jest.fn().mockResolvedValue(null),
-  findByProcessId: jest.fn().mockResolvedValue([]),
-  findByFormatId: jest.fn().mockResolvedValue([]),
-  findBrands: jest.fn().mockResolvedValue([]),
-  findManufacturers: jest.fn().mockResolvedValue([]),
-  findSpeeds: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
-  updateBoxImage: jest.fn().mockResolvedValue(undefined),
-  getBoxImage: jest.fn().mockResolvedValue(null),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByBrand: vi.fn().mockResolvedValue(null),
+  findByProcessId: vi.fn().mockResolvedValue([]),
+  findByFormatId: vi.fn().mockResolvedValue([]),
+  findBrands: vi.fn().mockResolvedValue([]),
+  findManufacturers: vi.fn().mockResolvedValue([]),
+  findSpeeds: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
+  updateBoxImage: vi.fn().mockResolvedValue(undefined),
+  getBoxImage: vi.fn().mockResolvedValue(null),
   ...overrides,
 });
 
 const makeFormatRepo = (
   overrides: Partial<IFormatRepository> = {},
 ): IFormatRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByPackageId: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByPackageId: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeTagRepo = (
   overrides: Partial<ITagRepository> = {},
 ): ITagRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 describe("ExportService", () => {
   let service: ExportService;
-  let filmRepo: jest.Mocked<IFilmRepository>;
-  let emulsionRepo: jest.Mocked<IEmulsionRepository>;
-  let formatRepo: jest.Mocked<IFormatRepository>;
-  let tagRepo: jest.Mocked<ITagRepository>;
+  let filmRepo: Mocked<IFilmRepository>;
+  let emulsionRepo: Mocked<IEmulsionRepository>;
+  let formatRepo: Mocked<IFormatRepository>;
+  let tagRepo: Mocked<ITagRepository>;
 
   beforeEach(() => {
-    filmRepo = makeFilmRepo() as jest.Mocked<IFilmRepository>;
-    emulsionRepo = makeEmulsionRepo() as jest.Mocked<IEmulsionRepository>;
-    formatRepo = makeFormatRepo() as jest.Mocked<IFormatRepository>;
-    tagRepo = makeTagRepo() as jest.Mocked<ITagRepository>;
+    filmRepo = makeFilmRepo() as Mocked<IFilmRepository>;
+    emulsionRepo = makeEmulsionRepo() as Mocked<IEmulsionRepository>;
+    formatRepo = makeFormatRepo() as Mocked<IFormatRepository>;
+    tagRepo = makeTagRepo() as Mocked<ITagRepository>;
     service = new ExportService(filmRepo, emulsionRepo, formatRepo, tagRepo);
   });
 
   describe("exportFilmsJson", () => {
     it("returns an empty films array when no films exist", async () => {
-      filmRepo.findAll = jest.fn().mockResolvedValue([]);
+      filmRepo.findAll = vi.fn().mockResolvedValue([]);
       const result = await service.exportFilmsJson();
       expect(result.films).toEqual([]);
     });
@@ -142,7 +143,7 @@ describe("ExportService", () => {
         makeFilm({ name: "Roll 001" }),
         makeFilm({ name: "Roll 002" }),
       ];
-      filmRepo.findAll = jest.fn().mockResolvedValue(films);
+      filmRepo.findAll = vi.fn().mockResolvedValue(films);
       const result = await service.exportFilmsJson();
       expect(result.films).toEqual(films);
       expect(filmRepo.findAll).toHaveBeenCalledTimes(1);
@@ -150,7 +151,7 @@ describe("ExportService", () => {
 
     it("includes a version field from APP_VERSION env var", async () => {
       process.env.APP_VERSION = "v1.2.3";
-      filmRepo.findAll = jest.fn().mockResolvedValue([]);
+      filmRepo.findAll = vi.fn().mockResolvedValue([]);
       const result = await service.exportFilmsJson();
       expect(result.version).toBe("v1.2.3");
       delete process.env.APP_VERSION;
@@ -158,13 +159,13 @@ describe("ExportService", () => {
 
     it('falls back to "unknown" when APP_VERSION is not set', async () => {
       delete process.env.APP_VERSION;
-      filmRepo.findAll = jest.fn().mockResolvedValue([]);
+      filmRepo.findAll = vi.fn().mockResolvedValue([]);
       const result = await service.exportFilmsJson();
       expect(result.version).toBe("unknown");
     });
 
     it("includes an exportedAt ISO timestamp", async () => {
-      filmRepo.findAll = jest.fn().mockResolvedValue([]);
+      filmRepo.findAll = vi.fn().mockResolvedValue([]);
       const before = new Date().toISOString();
       const result = await service.exportFilmsJson();
       const after = new Date().toISOString();
@@ -191,9 +192,9 @@ describe("ExportService", () => {
         makeFormat({ name: "120" }),
       ];
       const tags = [makeTag({ name: "Expired" }), makeTag({ name: "Push +1" })];
-      emulsionRepo.findAll = jest.fn().mockResolvedValue(emulsions);
-      formatRepo.findAll = jest.fn().mockResolvedValue(formats);
-      tagRepo.findAll = jest.fn().mockResolvedValue(tags);
+      emulsionRepo.findAll = vi.fn().mockResolvedValue(emulsions);
+      formatRepo.findAll = vi.fn().mockResolvedValue(formats);
+      tagRepo.findAll = vi.fn().mockResolvedValue(tags);
 
       const result = await service.exportLibraryJson();
 

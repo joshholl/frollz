@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 type Params = Record<string, string | number | string[] | number[] | undefined>;
@@ -42,6 +44,17 @@ async function request<T>(
   const text = await res.text();
   const data: T = text ? (JSON.parse(text) as T) : (undefined as T);
   return { data };
+}
+
+export async function apiFetch<T>(
+  schema: z.ZodSchema<T>,
+  method: string,
+  path: string,
+  body?: unknown,
+  params?: Params,
+): Promise<{ data: T }> {
+  const { data } = await request<unknown>(method, path, body, params);
+  return { data: schema.parse(data) };
 }
 
 export const api = {

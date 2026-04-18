@@ -654,7 +654,7 @@ const handleSubmit = async () => {
     const payload = {
       brand: form.value.brand,
       manufacturer: form.value.manufacturer,
-      formatIds: form.value.formatIds,
+      formatIds: form.value.formatIds.map(Number),
       processId: Number(form.value.processId),
       speed: form.value.speed!,
     };

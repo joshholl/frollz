@@ -1175,11 +1175,13 @@ const handleSubmit = async () => {
     const payload = {
       name: form.value.name,
       transitionProfileId: Number(form.value.transitionProfileId),
-      ...(form.value.emulsionId ? { emulsionId: form.value.emulsionId } : {}),
+      ...(form.value.emulsionId
+        ? { emulsionId: Number(form.value.emulsionId) }
+        : {}),
       ...(form.value.expirationDate
         ? { expirationDate: form.value.expirationDate }
         : {}),
-      ...(form.value.parentId ? { parentId: form.value.parentId } : {}),
+      ...(form.value.parentId ? { parentId: Number(form.value.parentId) } : {}),
     };
     const created = await filmApi.create(payload);
     closeModal();

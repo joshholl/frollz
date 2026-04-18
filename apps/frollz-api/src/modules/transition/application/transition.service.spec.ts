@@ -39,50 +39,50 @@ const makeField = (): TransitionMetadataField =>
 const makeProfileRepo = (
   overrides: Partial<ITransitionProfileRepository> = {},
 ): ITransitionProfileRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeRuleRepo = (
   overrides: Partial<ITransitionRuleRepository> = {},
 ): ITransitionRuleRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByProfileId: jest.fn().mockResolvedValue([]),
-  findByFromStateId: jest.fn().mockResolvedValue([]),
-  findByFromStateAndProfile: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByProfileId: vi.fn().mockResolvedValue([]),
+  findByFromStateId: vi.fn().mockResolvedValue([]),
+  findByFromStateAndProfile: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeStateRepo = (
   overrides: Partial<ITransitionStateRepository> = {},
 ): ITransitionStateRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeFieldRepo = (
   overrides: Partial<ITransitionMetadataFieldRepository> = {},
 ): ITransitionMetadataFieldRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -100,7 +100,7 @@ describe("TransitionService", () => {
       const service = makeService(
         makeRuleRepo(),
         makeStateRepo(),
-        makeProfileRepo({ findAll: jest.fn().mockResolvedValue(profiles) }),
+        makeProfileRepo({ findAll: vi.fn().mockResolvedValue(profiles) }),
       );
 
       const result = await service.listProfiles();
@@ -132,11 +132,11 @@ describe("TransitionService", () => {
       const rule = makeRule(added.id, loaded.id, profile.id);
 
       const service = makeService(
-        makeRuleRepo({ findByProfileId: jest.fn().mockResolvedValue([rule]) }),
+        makeRuleRepo({ findByProfileId: vi.fn().mockResolvedValue([rule]) }),
         makeStateRepo({
-          findAll: jest.fn().mockResolvedValue([added, loaded]),
+          findAll: vi.fn().mockResolvedValue([added, loaded]),
         }),
-        makeProfileRepo({ findByName: jest.fn().mockResolvedValue(profile) }),
+        makeProfileRepo({ findByName: vi.fn().mockResolvedValue(profile) }),
       );
 
       const graph = await service.getGraph("standard");
@@ -160,11 +160,11 @@ describe("TransitionService", () => {
       const rule = makeRule(added.id, loaded.id, profile.id);
 
       const service = makeService(
-        makeRuleRepo({ findByProfileId: jest.fn().mockResolvedValue([rule]) }),
+        makeRuleRepo({ findByProfileId: vi.fn().mockResolvedValue([rule]) }),
         makeStateRepo({
-          findAll: jest.fn().mockResolvedValue([added, loaded, orphan]),
+          findAll: vi.fn().mockResolvedValue([added, loaded, orphan]),
         }),
-        makeProfileRepo({ findByName: jest.fn().mockResolvedValue(profile) }),
+        makeProfileRepo({ findByName: vi.fn().mockResolvedValue(profile) }),
       );
 
       const graph = await service.getGraph("standard");
@@ -188,10 +188,10 @@ describe("TransitionService", () => {
       const rule = makeRule(added.id, sent.id, profile.id);
 
       const service = makeService(
-        makeRuleRepo({ findByProfileId: jest.fn().mockResolvedValue([rule]) }),
-        makeStateRepo({ findAll: jest.fn().mockResolvedValue([added, sent]) }),
-        makeProfileRepo({ findByName: jest.fn().mockResolvedValue(profile) }),
-        makeFieldRepo({ findById: jest.fn().mockResolvedValue(field) }),
+        makeRuleRepo({ findByProfileId: vi.fn().mockResolvedValue([rule]) }),
+        makeStateRepo({ findAll: vi.fn().mockResolvedValue([added, sent]) }),
+        makeProfileRepo({ findByName: vi.fn().mockResolvedValue(profile) }),
+        makeFieldRepo({ findById: vi.fn().mockResolvedValue(field) }),
       );
 
       const graph = await service.getGraph("standard");

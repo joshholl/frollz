@@ -3,9 +3,15 @@ import {
   CAMERA_REPOSITORY,
   ICameraRepository,
 } from "../../../domain/camera/repositories/camera.repository.interface";
-import { CreateCameraDto } from "../dto/CreateCameraDto";
-import { UpdateCameraDto } from "../dto/UpdateCameraDto";
-import { FilterCameraDto } from "../dto/FilterCameraDto";
+import { CreateCameraInput, UpdateCameraInput } from "@frollz/shared";
+
+type CameraFilter = {
+  brand?: string;
+  model?: string;
+  status?: "active" | "retired" | "in_repair";
+  formatId?: number;
+  unloaded?: boolean;
+};
 import { Camera } from "../../../domain/camera/entities/camera.entity";
 import {
   INoteRepository,
@@ -20,7 +26,7 @@ export class CameraService {
     @Inject(NOTE_REPOSITORY) private readonly noteRepository: INoteRepository,
   ) {}
 
-  async findAll(filter: FilterCameraDto): Promise<Camera[]> {
+  async findAll(filter: CameraFilter): Promise<Camera[]> {
     const cameras = await this.cameraRepo.findAll({ ...filter });
     const results = await Promise.all(
       cameras.map(async (c) => {
@@ -38,7 +44,7 @@ export class CameraService {
     return this.cameraRepo.delete(id);
   }
 
-  async update(id: number, dto: UpdateCameraDto) {
+  async update(id: number, dto: UpdateCameraInput) {
     const existing = await this.findById(id);
     if (!existing) {
       throw new NotFoundException(`Camera '${id}' not found`);
@@ -48,11 +54,9 @@ export class CameraService {
       brand: dto.brand ?? existing.brand,
       model: dto.model ?? existing.model,
       status: dto.status ?? existing.status,
-      serialNumber: dto.serial_number ?? existing.serialNumber,
-      purchasePrice: dto.purchase_price ?? existing.purchasePrice,
-      acquiredAt: dto.acquired_at
-        ? new Date(dto.acquired_at)
-        : existing.acquiredAt,
+      serialNumber: dto.serialNumber ?? existing.serialNumber,
+      purchasePrice: dto.purchasePrice ?? existing.purchasePrice,
+      acquiredAt: dto.acquiredAt ?? existing.acquiredAt,
     });
     await this.cameraRepo.update(updated);
     if (dto.notes) {
@@ -61,18 +65,18 @@ export class CameraService {
     return this.findById(id);
   }
 
-  async create(dto: CreateCameraDto): Promise<Camera> {
+  async create(dto: CreateCameraInput): Promise<Camera> {
     const cameraId = await this.cameraRepo.save(
       Camera.create({
         brand: dto.brand,
         model: dto.model,
         status: dto.status,
         notes: dto.notes,
-        serialNumber: dto.serial_number,
-        purchasePrice: dto.purchase_price,
-        acquiredAt: dto.acquired_at ? new Date(dto.acquired_at) : undefined,
+        serialNumber: dto.serialNumber,
+        purchasePrice: dto.purchasePrice,
+        acquiredAt: dto.acquiredAt,
       }),
-      dto.supported_format_ids ?? [],
+      dto.supportedFormatIds ?? [],
     );
 
     if (dto.notes) {

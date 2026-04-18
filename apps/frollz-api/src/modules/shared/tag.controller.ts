@@ -11,8 +11,9 @@ import {
   Post,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
-import { CreateTagDto } from "./dto/create-tag.dto";
-import { UpdateTagDto } from "./dto/update-tag.dto";
+import { CreateTagInput, UpdateTagInput } from "@frollz/shared";
+import { ApiZodBody } from "../../common/swagger/zod-swagger";
+import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { TagService } from "./application/tag.service";
 
 @ApiTags("Tags")
@@ -34,13 +35,18 @@ export class TagController {
 
   @Post()
   @ApiOperation({ summary: "Create a tag" })
-  create(@Body() dto: CreateTagDto) {
+  @ApiZodBody(CreateTagInput)
+  create(@Body(new ZodValidationPipe(CreateTagInput)) dto: CreateTagInput) {
     return this.tagService.create(dto);
   }
 
   @Patch(":id")
   @ApiOperation({ summary: "Update a tag" })
-  update(@Param("id", ParseIntPipe) id: number, @Body() dto: UpdateTagDto) {
+  @ApiZodBody(UpdateTagInput)
+  update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body(new ZodValidationPipe(UpdateTagInput)) dto: UpdateTagInput,
+  ) {
     return this.tagService.update(id, dto);
   }
 

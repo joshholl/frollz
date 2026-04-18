@@ -1,3 +1,4 @@
+import type { Mocked } from "vitest";
 import { BadRequestException } from "@nestjs/common";
 import { randomInt } from "crypto";
 import { LibraryImportService } from "./library-import.service";
@@ -29,43 +30,43 @@ const makeTag = (name = "landscape"): Tag =>
 const makeEmulsionRepo = (
   overrides: Partial<IEmulsionRepository> = {},
 ): IEmulsionRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByBrand: jest.fn().mockResolvedValue(null),
-  findByProcessId: jest.fn().mockResolvedValue([]),
-  findByFormatId: jest.fn().mockResolvedValue([]),
-  findBrands: jest.fn().mockResolvedValue([]),
-  findManufacturers: jest.fn().mockResolvedValue([]),
-  findSpeeds: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
-  updateBoxImage: jest.fn().mockResolvedValue(undefined),
-  getBoxImage: jest.fn().mockResolvedValue(null),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByBrand: vi.fn().mockResolvedValue(null),
+  findByProcessId: vi.fn().mockResolvedValue([]),
+  findByFormatId: vi.fn().mockResolvedValue([]),
+  findBrands: vi.fn().mockResolvedValue([]),
+  findManufacturers: vi.fn().mockResolvedValue([]),
+  findSpeeds: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
+  updateBoxImage: vi.fn().mockResolvedValue(undefined),
+  getBoxImage: vi.fn().mockResolvedValue(null),
   ...overrides,
 });
 
 const makeFormatRepo = (
   overrides: Partial<IFormatRepository> = {},
 ): IFormatRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByPackageId: jest.fn().mockResolvedValue([]),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByPackageId: vi.fn().mockResolvedValue([]),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
 const makeTagRepo = (
   overrides: Partial<ITagRepository> = {},
 ): ITagRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -83,14 +84,14 @@ const envelope = (overrides: Record<string, unknown> = {}) =>
 
 describe("LibraryImportService", () => {
   let service: LibraryImportService;
-  let emulsionRepo: jest.Mocked<IEmulsionRepository>;
-  let formatRepo: jest.Mocked<IFormatRepository>;
-  let tagRepo: jest.Mocked<ITagRepository>;
+  let emulsionRepo: Mocked<IEmulsionRepository>;
+  let formatRepo: Mocked<IFormatRepository>;
+  let tagRepo: Mocked<ITagRepository>;
 
   beforeEach(() => {
-    emulsionRepo = makeEmulsionRepo() as jest.Mocked<IEmulsionRepository>;
-    formatRepo = makeFormatRepo() as jest.Mocked<IFormatRepository>;
-    tagRepo = makeTagRepo() as jest.Mocked<ITagRepository>;
+    emulsionRepo = makeEmulsionRepo() as Mocked<IEmulsionRepository>;
+    formatRepo = makeFormatRepo() as Mocked<IFormatRepository>;
+    tagRepo = makeTagRepo() as Mocked<ITagRepository>;
     service = new LibraryImportService(emulsionRepo, formatRepo, tagRepo);
   });
 
@@ -113,7 +114,7 @@ describe("LibraryImportService", () => {
     });
 
     it("skips a tag that already exists", async () => {
-      tagRepo.findByName = jest.fn().mockResolvedValue(makeTag("expired"));
+      tagRepo.findByName = vi.fn().mockResolvedValue(makeTag("expired"));
       const result = await service.importLibrary(
         envelope({ tags: [{ name: "expired", colorCode: "#FF0000" }] }),
       );
@@ -124,8 +125,8 @@ describe("LibraryImportService", () => {
 
   describe("formats", () => {
     it("imports a new format and maps its id", async () => {
-      formatRepo.findByPackageId = jest.fn().mockResolvedValue([]);
-      formatRepo.save = jest.fn().mockResolvedValue(42);
+      formatRepo.findByPackageId = vi.fn().mockResolvedValue([]);
+      formatRepo.save = vi.fn().mockResolvedValue(42);
       const result = await service.importLibrary(
         envelope({ formats: [{ id: 99, packageId: 1, name: "35mm" }] }),
       );
@@ -134,7 +135,7 @@ describe("LibraryImportService", () => {
     });
 
     it("skips a format that already exists", async () => {
-      formatRepo.findByPackageId = jest
+      formatRepo.findByPackageId = vi
         .fn()
         .mockResolvedValue([makeFormat(1, "35mm", 1)]);
       const result = await service.importLibrary(
@@ -165,7 +166,7 @@ describe("LibraryImportService", () => {
     });
 
     it("skips an emulsion that already exists", async () => {
-      emulsionRepo.findByBrand = jest
+      emulsionRepo.findByBrand = vi
         .fn()
         .mockResolvedValue(makeEmulsion("Kodak"));
       const result = await service.importLibrary(
@@ -187,8 +188,8 @@ describe("LibraryImportService", () => {
 
     it("remaps emulsion formatId using the format id map", async () => {
       // format id 99 in export → local id 42
-      formatRepo.findByPackageId = jest.fn().mockResolvedValue([]);
-      formatRepo.save = jest.fn().mockResolvedValue(42);
+      formatRepo.findByPackageId = vi.fn().mockResolvedValue([]);
+      formatRepo.save = vi.fn().mockResolvedValue(42);
 
       await service.importLibrary(
         envelope({
@@ -212,12 +213,12 @@ describe("LibraryImportService", () => {
   });
 
   it("returns correct aggregate counts for a mixed envelope", async () => {
-    tagRepo.findByName = jest
+    tagRepo.findByName = vi
       .fn()
       .mockResolvedValueOnce(makeTag("existing"))
       .mockResolvedValueOnce(null);
-    formatRepo.findByPackageId = jest.fn().mockResolvedValue([]);
-    formatRepo.save = jest.fn().mockResolvedValue(randomId());
+    formatRepo.findByPackageId = vi.fn().mockResolvedValue([]);
+    formatRepo.save = vi.fn().mockResolvedValue(randomId());
 
     const result = await service.importLibrary(
       envelope({

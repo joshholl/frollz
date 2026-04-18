@@ -8,12 +8,12 @@ const makeProcess = (id: number, name: string): Process =>
 const makeRepo = (
   overrides: Partial<IProcessRepository> = {},
 ): IProcessRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(undefined),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn().mockResolvedValue(undefined),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -22,7 +22,7 @@ describe("ProcessService", () => {
     it("returns all processes from the repository", async () => {
       const processes = [makeProcess(1, "C-41"), makeProcess(2, "E-6")];
       const service = new ProcessService(
-        makeRepo({ findAll: jest.fn().mockResolvedValue(processes) }),
+        makeRepo({ findAll: vi.fn().mockResolvedValue(processes) }),
       );
 
       const result = await service.findAll();

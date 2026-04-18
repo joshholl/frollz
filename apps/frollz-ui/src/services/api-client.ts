@@ -1,5 +1,5 @@
-import { api } from "./api";
-import type {
+import { z } from "zod";
+import {
   Format,
   Package,
   Process,
@@ -14,49 +14,50 @@ import type {
   MonthCount,
   EmulsionCount,
   TransitionDuration,
-} from "@/types";
+} from "@frollz/shared";
+import { api, apiFetch } from "./api";
 
-// Format API (replaces filmFormatApi)
+// Format API
 export const formatApi = {
-  getAll: () => api.get<Format[]>("/formats"),
-  getById: (id: number) => api.get<Format>(`/formats/${id}`),
+  getAll: () => apiFetch(Format.array(), "GET", "/formats"),
+  getById: (id: number) => apiFetch(Format, "GET", `/formats/${id}`),
   create: (data: { packageId: number; name: string }) =>
-    api.post<Format>("/formats", data),
+    apiFetch(Format, "POST", "/formats", data),
   update: (id: number, data: Partial<{ packageId: number; name: string }>) =>
-    api.patch<Format>(`/formats/${id}`, data),
+    apiFetch(Format, "PATCH", `/formats/${id}`, data),
   delete: (id: number) => api.delete(`/formats/${id}`),
 };
 
 // Package API
 export const packageApi = {
-  getAll: () => api.get<Package[]>("/packages"),
+  getAll: () => apiFetch(Package.array(), "GET", "/packages"),
 };
 
 // Process API
 export const processApi = {
-  getAll: () => api.get<Process[]>("/processes"),
+  getAll: () => apiFetch(Process.array(), "GET", "/processes"),
 };
 
-// Emulsion API (replaces stockApi)
+// Emulsion API
 export const emulsionApi = {
-  getAll: () => api.get<Emulsion[]>("/emulsions"),
-  getById: (id: number) => api.get<Emulsion>(`/emulsions/${id}`),
+  getAll: () => apiFetch(Emulsion.array(), "GET", "/emulsions"),
+  getById: (id: number) => apiFetch(Emulsion, "GET", `/emulsions/${id}`),
   create: (data: {
     brand: string;
     manufacturer: string;
     speed: number;
     processId: number;
     formatId: number;
-    parentId?: string;
-  }) => api.post<Emulsion>("/emulsions", data),
+    parentId?: number;
+  }) => apiFetch(Emulsion, "POST", "/emulsions", data),
   createBulk: (data: {
     brand: string;
     manufacturer: string;
     speed: number;
     processId: number;
-    formatIds: string[];
-    parentId?: string;
-  }) => api.post<Emulsion[]>("/emulsions/bulk", data),
+    formatIds: number[];
+    parentId?: number;
+  }) => apiFetch(Emulsion.array(), "POST", "/emulsions/bulk", data),
   update: (
     id: number,
     data: Partial<{
@@ -66,7 +67,7 @@ export const emulsionApi = {
       processId: number;
       formatId: number;
     }>,
-  ) => api.patch<Emulsion>(`/emulsions/${id}`, data),
+  ) => apiFetch(Emulsion, "PATCH", `/emulsions/${id}`, data),
   uploadBoxImage: (id: number, file: File) => {
     const form = new FormData();
     form.append("file", file);
@@ -78,36 +79,38 @@ export const emulsionApi = {
   removeTag: (id: number, tagId: number) =>
     api.delete(`/emulsions/${id}/tags/${tagId}`),
   getBrands: (q: string) =>
-    api.get<string[]>("/emulsions/brands", { params: { q } }),
+    apiFetch(z.string().array(), "GET", "/emulsions/brands", undefined, { q }),
   getManufacturers: (q: string) =>
-    api.get<string[]>("/emulsions/manufacturers", { params: { q } }),
+    apiFetch(z.string().array(), "GET", "/emulsions/manufacturers", undefined, {
+      q,
+    }),
   getSpeeds: (q: string) =>
-    api.get<number[]>("/emulsions/speeds", { params: { q } }),
+    apiFetch(z.number().array(), "GET", "/emulsions/speeds", undefined, { q }),
 };
 
 // Tag API
 export const tagApi = {
-  getAll: () => api.get<Tag[]>("/tags"),
-  getById: (id: number) => api.get<Tag>(`/tags/${id}`),
+  getAll: () => apiFetch(Tag.array(), "GET", "/tags"),
+  getById: (id: number) => apiFetch(Tag, "GET", `/tags/${id}`),
   create: (data: { name: string; colorCode: string; description?: string }) =>
-    api.post<Tag>("/tags", data),
+    apiFetch(Tag, "POST", "/tags", data),
   update: (
     id: number,
     data: Partial<{ name: string; colorCode: string; description: string }>,
-  ) => api.patch<Tag>(`/tags/${id}`, data),
+  ) => apiFetch(Tag, "PATCH", `/tags/${id}`, data),
   delete: (id: number) => api.delete(`/tags/${id}`),
 };
 
-// FilmTag API (replaces rollTagApi)
+// FilmTag API
 export const filmTagApi = {
   getAll: (params?: { filmId?: number; tagId?: number }) =>
-    api.get<FilmTag[]>("/film-tags", { params }),
+    apiFetch(FilmTag.array(), "GET", "/film-tags", undefined, params),
   create: (data: { filmId: number; tagId: number }) =>
-    api.post<FilmTag>("/film-tags", data),
+    apiFetch(FilmTag, "POST", "/film-tags", data),
   delete: (id: number) => api.delete(`/film-tags/${id}`),
 };
 
-// Film API (replaces rollApi)
+// Film API
 export const filmApi = {
   getAll: (params?: {
     state?: string[];
@@ -117,20 +120,17 @@ export const filmApi = {
     from?: string;
     to?: string;
     q?: string;
-  }) =>
-    api.get<Film[]>("/films", {
-      params,
-      paramsSerializer: { indexes: null },
-    }),
-  getById: (id: number) => api.get<Film>(`/films/${id}`),
-  getChildren: (id: number) => api.get<Film[]>(`/films/${id}/children`),
+  }) => apiFetch(Film.array(), "GET", "/films", undefined, params),
+  getById: (id: number) => apiFetch(Film, "GET", `/films/${id}`),
+  getChildren: (id: number) =>
+    apiFetch(Film.array(), "GET", `/films/${id}/children`),
   create: (data: {
     name: string;
-    emulsionId?: string;
+    emulsionId?: number;
     expirationDate?: string;
-    parentId?: string;
+    parentId?: number;
     transitionProfileId: number;
-  }) => api.post<Film>("/films", data),
+  }) => apiFetch(Film, "POST", "/films", data),
   update: (
     id: number,
     data: Partial<{
@@ -139,7 +139,7 @@ export const filmApi = {
       expirationDate: string;
       transitionProfileId: number;
     }>,
-  ) => api.patch<Film>(`/films/${id}`, data),
+  ) => apiFetch(Film, "PATCH", `/films/${id}`, data),
   delete: (id: number) => api.delete(`/films/${id}`),
   transition: (
     id: number,
@@ -148,7 +148,7 @@ export const filmApi = {
     note?: string,
     metadata?: Record<string, string | string[]>,
   ) =>
-    api.post<Film>(`/films/${id}/transition`, {
+    apiFetch(Film, "POST", `/films/${id}/transition`, {
       targetStateName,
       date,
       note,
@@ -160,10 +160,10 @@ export const filmApi = {
     api.delete(`/films/${id}/tags/${tagId}`),
 };
 
-// FilmState API (replaces rollStateApi)
+// FilmState API
 export const filmStateApi = {
   getByFilmId: (filmId: number) =>
-    api.get<FilmState[]>("/film-states", { params: { filmId } }),
+    apiFetch(FilmState.array(), "GET", "/film-states", undefined, { filmId }),
 };
 
 // Export API
@@ -174,51 +174,70 @@ export const exportApi = {
 
 // Import API
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+
+const ImportFilmsResult = z.object({
+  imported: z.number(),
+  skipped: z.number(),
+  errors: z.array(z.object({ row: z.number(), reason: z.string() })),
+});
+
+const ImportLibraryResult = z.object({
+  tags: z.object({ imported: z.number(), skipped: z.number() }),
+  formats: z.object({ imported: z.number(), skipped: z.number() }),
+  emulsions: z.object({ imported: z.number(), skipped: z.number() }),
+  errors: z.array(
+    z.object({ entity: z.string(), index: z.number(), reason: z.string() }),
+  ),
+});
+
+const ImportFilmsJsonResult = z.object({
+  imported: z.number(),
+  skipped: z.number(),
+  errors: z.array(
+    z.object({ index: z.number(), name: z.string(), reason: z.string() }),
+  ),
+});
+
 export const importApi = {
   templateUrl: `${API_BASE_URL}/import/films/template`,
   importFilms: (file: File) => {
     const form = new FormData();
     form.append("csv", file);
-    return api.post<{
-      imported: number;
-      skipped: number;
-      errors: { row: number; reason: string }[];
-    }>("/import/films", form);
+    return apiFetch(ImportFilmsResult, "POST", "/import/films", form);
   },
   importLibrary: (file: File) => {
     const form = new FormData();
     form.append("library", file);
-    return api.post<{
-      tags: { imported: number; skipped: number };
-      formats: { imported: number; skipped: number };
-      emulsions: { imported: number; skipped: number };
-      errors: { entity: string; index: number; reason: string }[];
-    }>("/import/library", form);
+    return apiFetch(ImportLibraryResult, "POST", "/import/library", form);
   },
   importFilmsJson: (file: File) => {
     const form = new FormData();
     form.append("films", file);
-    return api.post<{
-      imported: number;
-      skipped: number;
-      errors: { index: number; name: string; reason: string }[];
-    }>("/import/films/json", form);
+    return apiFetch(ImportFilmsJsonResult, "POST", "/import/films/json", form);
   },
 };
 
 // Film Stats API
 export const filmStatsApi = {
-  byState: () => api.get<StateCount[]>("/films/stats/by-state"),
+  byState: () => apiFetch(StateCount.array(), "GET", "/films/stats/by-state"),
   byMonth: (months = 12) =>
-    api.get<MonthCount[]>("/films/stats/by-month", { params: { months } }),
-  byEmulsion: () => api.get<EmulsionCount[]>("/films/stats/by-emulsion"),
+    apiFetch(MonthCount.array(), "GET", "/films/stats/by-month", undefined, {
+      months,
+    }),
+  byEmulsion: () =>
+    apiFetch(EmulsionCount.array(), "GET", "/films/stats/by-emulsion"),
   lifecycleDurations: () =>
-    api.get<TransitionDuration[]>("/films/stats/lifecycle-durations"),
+    apiFetch(
+      TransitionDuration.array(),
+      "GET",
+      "/films/stats/lifecycle-durations",
+    ),
 };
 
 // Transition API
 export const transitionApi = {
-  getProfiles: () => api.get<TransitionProfile[]>("/transitions/profiles"),
+  getProfiles: () =>
+    apiFetch(TransitionProfile.array(), "GET", "/transitions/profiles"),
   getGraph: (profile = "standard") =>
-    api.get<TransitionGraph>("/transitions", { params: { profile } }),
+    apiFetch(TransitionGraph, "GET", "/transitions", undefined, { profile }),
 };

@@ -23,12 +23,12 @@ const makeTag = (
   });
 
 const makeRepo = (overrides: Partial<ITagRepository> = {}): ITagRepository => ({
-  findAll: jest.fn().mockResolvedValue([]),
-  findById: jest.fn().mockResolvedValue(null),
-  findByName: jest.fn().mockResolvedValue(null),
-  save: jest.fn().mockResolvedValue(randomId()),
-  update: jest.fn().mockResolvedValue(undefined),
-  delete: jest.fn().mockResolvedValue(undefined),
+  findAll: vi.fn().mockResolvedValue([]),
+  findById: vi.fn().mockResolvedValue(null),
+  findByName: vi.fn().mockResolvedValue(null),
+  save: vi.fn().mockResolvedValue(randomId()),
+  update: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -36,7 +36,7 @@ describe("TagService", () => {
   describe("findAll", () => {
     it("returns all tags from the repository", async () => {
       const tag = makeTag();
-      const repo = makeRepo({ findAll: jest.fn().mockResolvedValue([tag]) });
+      const repo = makeRepo({ findAll: vi.fn().mockResolvedValue([tag]) });
       const service = new TagService(repo);
 
       const result = await service.findAll();
@@ -48,7 +48,7 @@ describe("TagService", () => {
   describe("findById", () => {
     it("returns the tag when found", async () => {
       const tag = makeTag();
-      const repo = makeRepo({ findById: jest.fn().mockResolvedValue(tag) });
+      const repo = makeRepo({ findById: vi.fn().mockResolvedValue(tag) });
       const service = new TagService(repo);
 
       await expect(service.findById(tag.id)).resolves.toEqual(tag);
@@ -67,7 +67,7 @@ describe("TagService", () => {
     it("saves and returns a new tag with a generated uuid", async () => {
       const savedTag = makeTag({ name: "Expired", colorCode: "#ff0000" });
       const repo = makeRepo({
-        findById: jest.fn().mockResolvedValue(savedTag),
+        findById: vi.fn().mockResolvedValue(savedTag),
       });
       const service = new TagService(repo);
 
@@ -93,7 +93,7 @@ describe("TagService", () => {
         colorCode: existing.colorCode,
       });
       const repo = makeRepo({
-        findById: jest
+        findById: vi
           .fn()
           .mockResolvedValueOnce(existing)
           .mockResolvedValueOnce(updated),
@@ -121,7 +121,7 @@ describe("TagService", () => {
   describe("delete", () => {
     it("deletes an existing tag", async () => {
       const tag = makeTag();
-      const repo = makeRepo({ findById: jest.fn().mockResolvedValue(tag) });
+      const repo = makeRepo({ findById: vi.fn().mockResolvedValue(tag) });
       const service = new TagService(repo);
 
       await service.delete(tag.id);

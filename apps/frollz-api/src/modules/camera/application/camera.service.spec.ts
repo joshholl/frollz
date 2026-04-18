@@ -1,36 +1,41 @@
+import type { Mocked } from "vitest";
 import { NotFoundException } from "@nestjs/common";
 import { CameraService } from "./camera.service";
 import { ICameraRepository } from "../../../domain/camera/repositories/camera.repository.interface";
-import { CreateCameraDto } from "../dto/CreateCameraDto";
-import { UpdateCameraDto } from "../dto/UpdateCameraDto";
-import { FilterCameraDto } from "../dto/FilterCameraDto";
+import {
+  CreateCameraInput,
+  UpdateCameraInput,
+  CameraStatus,
+} from "@frollz/shared";
 import { Camera } from "../../../domain/camera/entities/camera.entity";
 import { INoteRepository } from "../../../domain/shared/repositories/note.repository.interface";
 import { Note } from "../../../domain/shared/entities/note.entity";
 
+type CameraFilter = { status?: CameraStatus };
+
 describe("CameraService", () => {
   let service: CameraService;
-  let mockCameraRepo: jest.Mocked<ICameraRepository>;
-  let mockNoteRepo: jest.Mocked<INoteRepository>;
+  let mockCameraRepo: Mocked<ICameraRepository>;
+  let mockNoteRepo: Mocked<INoteRepository>;
 
-  const makeMockNoteRepo = (): jest.Mocked<INoteRepository> => ({
-    findById: jest.fn(),
-    findAll: jest.fn(),
-    findByEntityId: jest.fn(),
-    save: jest.fn(),
+  const makeMockNoteRepo = (): Mocked<INoteRepository> => ({
+    findById: vi.fn(),
+    findAll: vi.fn(),
+    findByEntityId: vi.fn(),
+    save: vi.fn(),
   });
 
-  const makeMockCameraRepo = (): jest.Mocked<ICameraRepository> => ({
-    findAll: jest.fn(),
-    findById: jest.fn(),
-    save: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
+  const makeMockCameraRepo = (): Mocked<ICameraRepository> => ({
+    findAll: vi.fn(),
+    findById: vi.fn(),
+    save: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
   });
 
   beforeEach(async () => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date("2024-01-01"));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-01-01"));
 
     service = new CameraService(
       (mockCameraRepo = makeMockCameraRepo()),
@@ -39,7 +44,7 @@ describe("CameraService", () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it("should be defined", () => {
@@ -48,7 +53,7 @@ describe("CameraService", () => {
 
   describe("findAll", () => {
     it("should return an array of cameras", async () => {
-      const filter: FilterCameraDto = {};
+      const filter: CameraFilter = {};
       const cameras: Camera[] = [
         Camera.create({ brand: "Canon", model: "EOS R", status: "active" }),
       ];
@@ -120,7 +125,7 @@ describe("CameraService", () => {
   describe("update", () => {
     it("should update and return the camera", async () => {
       const id = 1;
-      const dto: UpdateCameraDto = {
+      const dto: UpdateCameraInput = {
         brand: "Nikon",
         model: "D5",
         status: "active",
@@ -151,7 +156,7 @@ describe("CameraService", () => {
 
     it("should throw NotFoundException if camera not found", async () => {
       const id = 1;
-      const dto: UpdateCameraDto = {
+      const dto: UpdateCameraInput = {
         brand: "Nikon",
         model: "D5",
         status: "active",
@@ -163,7 +168,7 @@ describe("CameraService", () => {
 
     it("should save a note when dto.notes is provided on update", async () => {
       const id = 2;
-      const dto: UpdateCameraDto = {
+      const dto: UpdateCameraInput = {
         brand: "Pentax",
         model: "K1000",
         status: "active",
@@ -194,7 +199,7 @@ describe("CameraService", () => {
 
     it("should not save a note when dto.notes is absent on update", async () => {
       const id = 3;
-      const dto: UpdateCameraDto = {
+      const dto: UpdateCameraInput = {
         brand: "Nikon",
         model: "FM",
         status: "active",
@@ -217,12 +222,12 @@ describe("CameraService", () => {
 
   describe("create", () => {
     it("should create and return the camera", async () => {
-      const dto: CreateCameraDto = {
+      const dto: CreateCameraInput = {
         brand: "Canon",
         model: "EOS R",
         status: "active",
         notes: "Great camera",
-        supported_format_ids: [1, 2],
+        supportedFormatIds: [1, 2],
       };
       const cameraId = 1;
       const camera = Camera.create({
@@ -244,7 +249,7 @@ describe("CameraService", () => {
           status: dto.status,
           notes: dto.notes,
         }),
-        dto.supported_format_ids ?? [],
+        dto.supportedFormatIds ?? [],
       );
       expect(mockNoteRepo.save).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -258,7 +263,7 @@ describe("CameraService", () => {
     });
 
     it("should not save a note when dto.notes is absent", async () => {
-      const dto: CreateCameraDto = {
+      const dto: CreateCameraInput = {
         brand: "Olympus",
         model: "OM-1",
         status: "active",
@@ -279,8 +284,8 @@ describe("CameraService", () => {
       expect(mockNoteRepo.save).not.toHaveBeenCalled();
     });
 
-    it("should use empty array for format ids when supported_format_ids is not provided", async () => {
-      const dto: CreateCameraDto = {
+    it("should use empty array for format ids when supportedFormatIds is not provided", async () => {
+      const dto: CreateCameraInput = {
         brand: "Minolta",
         model: "X-700",
         status: "active",

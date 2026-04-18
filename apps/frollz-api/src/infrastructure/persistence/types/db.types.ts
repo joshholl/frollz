@@ -116,7 +116,7 @@ export interface CameraRow {
   notes?: string | null;
   serial_number?: string | null;
   purchase_price?: number | null;
-  acquired_at?: Date | null;
+  acquired_at?: Date | string | null;
 }
 
 export interface CameraFormatJoinRow {

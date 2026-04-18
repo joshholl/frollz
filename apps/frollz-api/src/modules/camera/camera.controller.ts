@@ -12,9 +12,10 @@ import {
   Query,
 } from "@nestjs/common";
 import { ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { CreateCameraInput, UpdateCameraInput } from "@frollz/shared";
+import { ApiZodBody } from "../../common/swagger/zod-swagger";
+import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { CameraService } from "./application/camera.service";
-import { CreateCameraDto } from "./dto/CreateCameraDto";
-import { UpdateCameraDto } from "./dto/UpdateCameraDto";
 
 @ApiTags("Camera")
 @Controller("cameras")
@@ -23,30 +24,15 @@ export class CameraController {
 
   @Get()
   @ApiOperation({ summary: "List all cameras with optional filters" })
-  @ApiQuery({
-    name: "brand",
-    required: false,
-    type: String,
-    description: "Filter by brand",
-  })
-  @ApiQuery({
-    name: "model",
-    required: false,
-    type: String,
-    description: "Filter by model",
-  })
+  @ApiQuery({ name: "brand", required: false, type: String })
+  @ApiQuery({ name: "model", required: false, type: String })
   @ApiQuery({
     name: "status",
     required: false,
     type: String,
-    description: "Filter by status (active, retired, in_repair)",
+    description: "active | retired | in_repair",
   })
-  @ApiQuery({
-    name: "formatId",
-    required: false,
-    type: Number,
-    description: "Filter by accepted format ID",
-  })
+  @ApiQuery({ name: "formatId", required: false, type: Number })
   @ApiQuery({
     name: "unloaded",
     required: false,
@@ -70,20 +56,27 @@ export class CameraController {
   }
 
   @Get(":id")
-  @ApiOperation({ summary: "Get a film by id" })
+  @ApiOperation({ summary: "Get a camera by id" })
   findById(@Param("id", ParseIntPipe) id: number) {
     return this.cameraService.findById(id);
   }
 
   @Post()
   @ApiOperation({ summary: "Create a camera" })
-  create(@Body() dto: CreateCameraDto) {
+  @ApiZodBody(CreateCameraInput)
+  create(
+    @Body(new ZodValidationPipe(CreateCameraInput)) dto: CreateCameraInput,
+  ) {
     return this.cameraService.create(dto);
   }
 
   @Patch(":id")
   @ApiOperation({ summary: "Update a camera" })
-  update(@Param("id", ParseIntPipe) id: number, @Body() dto: UpdateCameraDto) {
+  @ApiZodBody(UpdateCameraInput)
+  update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body(new ZodValidationPipe(UpdateCameraInput)) dto: UpdateCameraInput,
+  ) {
     return this.cameraService.update(id, dto);
   }
 

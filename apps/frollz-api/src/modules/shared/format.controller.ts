@@ -11,8 +11,9 @@ import {
   Post,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
-import { CreateFormatDto } from "./dto/create-format.dto";
-import { UpdateFormatDto } from "./dto/update-format.dto";
+import { CreateFormatInput, UpdateFormatInput } from "@frollz/shared";
+import { ApiZodBody } from "../../common/swagger/zod-swagger";
+import { ZodValidationPipe } from "../../common/pipes/zod-validation.pipe";
 import { FormatService } from "./application/format.service";
 
 @ApiTags("Formats")
@@ -34,13 +35,20 @@ export class FormatController {
 
   @Post()
   @ApiOperation({ summary: "Create a format" })
-  create(@Body() dto: CreateFormatDto) {
+  @ApiZodBody(CreateFormatInput)
+  create(
+    @Body(new ZodValidationPipe(CreateFormatInput)) dto: CreateFormatInput,
+  ) {
     return this.formatService.create(dto);
   }
 
   @Patch(":id")
   @ApiOperation({ summary: "Update a format" })
-  update(@Param("id", ParseIntPipe) id: number, @Body() dto: UpdateFormatDto) {
+  @ApiZodBody(UpdateFormatInput)
+  update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body(new ZodValidationPipe(UpdateFormatInput)) dto: UpdateFormatInput,
+  ) {
     return this.formatService.update(id, dto);
   }
 

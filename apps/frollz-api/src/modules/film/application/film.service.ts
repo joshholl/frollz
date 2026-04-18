@@ -39,9 +39,11 @@ import {
   NOTE_REPOSITORY,
 } from "../../../domain/shared/repositories/note.repository.interface";
 import { FilmFilters } from "../../../domain/film/repositories/film.repository.interface";
-import { CreateFilmDto } from "../dto/create-film.dto";
-import { UpdateFilmDto } from "../dto/update-film.dto";
-import { TransitionFilmDto } from "../dto/transition-film.dto";
+import {
+  CreateFilmInput,
+  TransitionFilmInput,
+  UpdateFilmInput,
+} from "@frollz/shared";
 import { Note } from "../../../domain/shared/entities/note.entity";
 
 export interface FilmFindAllParams {
@@ -121,7 +123,7 @@ export class FilmService {
     return this.filmRepo.findChildren(parentId);
   }
 
-  async create(dto: CreateFilmDto): Promise<Film> {
+  async create(dto: CreateFilmInput): Promise<Film> {
     const addedState = await this.transitionStateRepo.findByName("Added");
     if (!addedState)
       throw new NotFoundException(`Initial state 'Added' not found`);
@@ -129,7 +131,7 @@ export class FilmService {
     const film = Film.create({
       name: dto.name,
       emulsionId: dto.emulsionId,
-      expirationDate: new Date(dto.expirationDate),
+      expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : null,
       parentId: dto.parentId ?? null,
       transitionProfileId: dto.transitionProfileId,
     });
@@ -153,7 +155,7 @@ export class FilmService {
     return this.findById(id);
   }
 
-  async update(id: number, dto: UpdateFilmDto): Promise<Film> {
+  async update(id: number, dto: UpdateFilmInput): Promise<Film> {
     const existing = await this.findById(id);
     const updated = Film.create({
       id: existing.id,
@@ -185,7 +187,7 @@ export class FilmService {
     await this.filmTagRepo.remove(filmId, tagId);
   }
 
-  async transition(filmId: number, dto: TransitionFilmDto): Promise<Film> {
+  async transition(filmId: number, dto: TransitionFilmInput): Promise<Film> {
     const film = await this.findById(filmId);
 
     const targetState = await this.transitionStateRepo.findByName(

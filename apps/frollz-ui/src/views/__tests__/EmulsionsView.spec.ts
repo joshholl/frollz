@@ -158,7 +158,7 @@ describe("StocksView", () => {
       vm.form = {
         brand: "Test Brand",
         manufacturer: "Test Manufacturer",
-        formatIds: ["fmt1"],
+        formatIds: ["1"],
         processId: 1,
         speed: 400,
         boxImageUrl: "",
@@ -170,7 +170,7 @@ describe("StocksView", () => {
       expect(emulsionApi.createBulk).toHaveBeenCalledWith({
         brand: "Test Brand",
         manufacturer: "Test Manufacturer",
-        formatIds: ["fmt1"],
+        formatIds: [1],
         processId: 1,
         speed: 400,
       });

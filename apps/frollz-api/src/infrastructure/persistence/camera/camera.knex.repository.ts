@@ -106,6 +106,7 @@ export class CameraKnexRepository
       .join("format as f", "caf.format_id", "f.id")
       .join("package as p", "f.package_id", "p.id")
       .select(
+        "caf.id",
         "caf.camera_id",
         "caf.format_id",
         "f.name as format_name",
