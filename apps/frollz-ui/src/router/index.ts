@@ -46,6 +46,11 @@ const router = createRouter({
       meta: { title: "Cameras" },
     },
     {
+      path: "/cameras/:id",
+      name: "camera-detail",
+      component: () => import("@/views/CameraDetailView.vue"),
+    },
+    {
       path: "/stats",
       name: "stats",
       component: () => import("@/views/StatsView.vue"),
@@ -60,7 +65,13 @@ router.afterEach((to) => {
     const metaTitle = typeof to.meta.title === "string" ? to.meta.title : "";
     const filmKey =
       to.name === "film-detail" && to.params.key ? String(to.params.key) : "";
-    const pageTitle = filmKey ? `Film ${filmKey}` : metaTitle;
+    const cameraKey =
+      to.name === "camera-detail" && to.params.id ? String(to.params.id) : "";
+    const pageTitle = filmKey
+      ? `Film ${filmKey}`
+      : cameraKey
+        ? `Camera ${cameraKey}`
+        : metaTitle;
     document.title = pageTitle ? `${pageTitle} | Frollz` : "Frollz";
     document.getElementById("main-content")?.focus();
   });

@@ -124,6 +124,7 @@ export const filmApi = {
     from?: string;
     to?: string;
     q?: string;
+    cameraId?: number;
   }) => apiFetch(Film.array(), "GET", "/films", undefined, params),
   getById: (id: number) => apiFetch(Film, "GET", `/films/${id}`),
   getChildren: (id: number) =>

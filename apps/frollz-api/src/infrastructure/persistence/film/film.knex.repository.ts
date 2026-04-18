@@ -93,6 +93,27 @@ export class FilmKnexRepository
       query = query.whereIn("id", sub);
     }
 
+    if (filters.cameraId !== undefined) {
+      query = query.whereIn(
+        "id",
+        this.db("film_state as fsc")
+          .select("fsc.film_id")
+          .join("film_state_metadata as fsm", "fsm.film_state_id", "fsc.id")
+          .join(
+            "transition_state_metadata as tsm",
+            "tsm.id",
+            "fsm.transition_state_metadata_id",
+          )
+          .join(
+            "transition_metadata_field as tmf",
+            "tmf.id",
+            "tsm.field_id",
+          )
+          .where("tmf.name", "cameraId")
+          .where("fsm.value", String(filters.cameraId)),
+      );
+    }
+
     if (filters.searchQuery) {
       const pattern = `%${filters.searchQuery}%`;
       query = query.where((builder) => {

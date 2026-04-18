@@ -75,6 +75,12 @@ export class FilmController {
     description:
       "Search by film name or state note (case-insensitive partial match)",
   })
+  @ApiQuery({
+    name: "cameraId",
+    required: false,
+    type: Number,
+    description: "Filter by camera ID (films loaded with this camera)",
+  })
   findAll(
     @Query("state") state?: string | string[],
     @Query("emulsionId") rawEmulsionId?: string,
@@ -83,6 +89,7 @@ export class FilmController {
     @Query("from") rawFrom?: string,
     @Query("to") rawTo?: string,
     @Query("q") rawQ?: string,
+    @Query("cameraId") rawCameraId?: string,
   ) {
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (rawFrom && !dateRegex.test(rawFrom)) {
@@ -110,6 +117,8 @@ export class FilmController {
           .map((t) => parseInt(t, 10))
           .filter((n) => !isNaN(n))
       : undefined;
+    const cameraId =
+      rawCameraId !== undefined ? parseInt(rawCameraId, 10) : undefined;
     return this.filmService.findAll({
       stateNames,
       emulsionId,
@@ -118,6 +127,7 @@ export class FilmController {
       from: rawFrom,
       to: rawTo,
       q: rawQ,
+      cameraId,
     });
   }
 

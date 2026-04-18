@@ -54,6 +54,7 @@ export interface FilmFindAllParams {
   from?: string;
   to?: string;
   q?: string;
+  cameraId?: number;
 }
 
 @Injectable()
@@ -95,6 +96,7 @@ export class FilmService {
     if (params.formatId !== undefined) filters.formatId = params.formatId;
     if (params.tagIds?.length) filters.tagIds = params.tagIds;
     if (params.q?.trim()) filters.searchQuery = params.q.trim();
+    if (params.cameraId !== undefined) filters.cameraId = params.cameraId;
 
     if (params.from || params.to) {
       const loadedState = allStates.find((s) => s.name === "Loaded");

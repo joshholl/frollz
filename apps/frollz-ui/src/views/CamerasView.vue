@@ -33,9 +33,12 @@
       >
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <p class="font-semibold text-gray-900 dark:text-gray-100 truncate">
+            <RouterLink
+              :to="{ name: 'camera-detail', params: { id: camera.id } }"
+              class="font-semibold text-primary-600 dark:text-primary-400 hover:underline truncate block"
+            >
               {{ camera.brand }} {{ camera.model }}
-            </p>
+            </RouterLink>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               <span :class="statusClass(camera.status)">{{
                 statusLabel(camera.status)
@@ -47,6 +50,13 @@
             >
               {{ formatNames(camera) }}
             </p>
+            <RouterLink
+              v-if="loadedFilmByCameraId.get(camera.id)"
+              :to="{ name: 'film-detail', params: { key: loadedFilmByCameraId.get(camera.id)!.id } }"
+              class="mt-1 text-xs text-primary-600 dark:text-primary-400 hover:underline block"
+            >
+              ↳ {{ loadedFilmByCameraId.get(camera.id)!.name }} (loaded)
+            </RouterLink>
           </div>
           <div class="flex gap-2 shrink-0">
             <button
@@ -112,12 +122,24 @@
               <td
                 class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100"
               >
-                {{ camera.brand }} {{ camera.model }}
+                <RouterLink
+                  :to="{ name: 'camera-detail', params: { id: camera.id } }"
+                  class="text-primary-600 dark:text-primary-400 hover:underline font-medium"
+                >
+                  {{ camera.brand }} {{ camera.model }}
+                </RouterLink>
                 <span
                   v-if="camera.serialNumber"
                   class="block text-xs text-gray-400 dark:text-gray-500"
                   >#{{ camera.serialNumber }}</span
                 >
+                <RouterLink
+                  v-if="loadedFilmByCameraId.get(camera.id)"
+                  :to="{ name: 'film-detail', params: { key: loadedFilmByCameraId.get(camera.id)!.id } }"
+                  class="block text-xs text-primary-600 dark:text-primary-400 hover:underline mt-0.5"
+                >
+                  ↳ {{ loadedFilmByCameraId.get(camera.id)!.name }} (loaded)
+                </RouterLink>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm">
                 <span :class="statusClass(camera.status)">{{
@@ -382,9 +404,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { cameraApi, formatApi } from "@/services/api-client";
-import type { Camera, Format } from "@/types";
+import { ref, computed, onMounted } from "vue";
+import { RouterLink } from "vue-router";
+import { cameraApi, filmApi, formatApi } from "@/services/api-client";
+import type { Camera, Film, Format } from "@/types";
 import BaseModal from "@/components/BaseModal.vue";
 import { useNotificationStore } from "@/stores/notification";
 
@@ -394,7 +417,30 @@ type FormMode = "create" | "edit" | null;
 
 const cameras = ref<Camera[]>([]);
 const formats = ref<Format[]>([]);
+const loadedFilms = ref<Film[]>([]);
 const isLoading = ref(false);
+
+function getCameraIdFromLoadedFilm(film: Film): number | null {
+  const loadedState = [...film.states]
+    .sort((a, b) => b.id - a.id)
+    .find((s) => s.state?.name === "Loaded");
+  if (!loadedState) return null;
+  const meta = loadedState.metadata.find(
+    (m) => m.transitionStateMetadata?.field?.name === "cameraId",
+  );
+  const val = meta?.value;
+  if (!val || Array.isArray(val)) return null;
+  return parseInt(val, 10) || null;
+}
+
+const loadedFilmByCameraId = computed(() => {
+  const map = new Map<number, Film>();
+  for (const film of loadedFilms.value) {
+    const cameraId = getCameraIdFromLoadedFilm(film);
+    if (cameraId !== null) map.set(cameraId, film);
+  }
+  return map;
+});
 
 const formMode = ref<FormMode>(null);
 const editingId = ref<number | null>(null);
@@ -446,8 +492,12 @@ function toIsoDateTime(dateOnly: string): string {
 const loadCameras = async () => {
   isLoading.value = true;
   try {
-    const res = await cameraApi.getAll();
-    cameras.value = res.data;
+    const [cameraRes, filmRes] = await Promise.all([
+      cameraApi.getAll(),
+      filmApi.getAll({ state: ["Loaded"] }),
+    ]);
+    cameras.value = cameraRes.data;
+    loadedFilms.value = filmRes.data;
   } catch (err) {
     console.error("Error loading cameras:", err);
   } finally {
