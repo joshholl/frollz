@@ -6,7 +6,8 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "clean": "rm -rf dist dev.db",
+    "predev": "pnpm --filter @frollz/shared build",
+    "clean": "rm -rf dist dev.db node_modules",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "nest start",

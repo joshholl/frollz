@@ -1179,7 +1179,11 @@ const handleSubmit = async () => {
         ? { emulsionId: Number(form.value.emulsionId) }
         : {}),
       ...(form.value.expirationDate
-        ? { expirationDate: form.value.expirationDate }
+        ? {
+            expirationDate: new Date(
+              `${form.value.expirationDate}T12:00:00`,
+            ).toISOString(),
+          }
         : {}),
       ...(form.value.parentId ? { parentId: Number(form.value.parentId) } : {}),
     };

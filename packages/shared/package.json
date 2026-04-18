@@ -15,7 +15,8 @@
         "dev": "tsc --watch",
         "check-types": "tsc --noEmit",
         "format": "eslint --fix .",
-        "lint": "eslint src"
+        "lint": "eslint src",
+        "clean": "rm -rf dist node_modules"
     },
     "dependencies": {
         "zod": "^4.3.6"

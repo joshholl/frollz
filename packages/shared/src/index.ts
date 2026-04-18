@@ -243,14 +243,14 @@ export type CreateFilmInput = z.infer<typeof CreateFilmInput>
 export const UpdateFilmInput = z.strictObject({
   name: z.string().nonempty().optional(),
   emulsionId: z.int().positive().optional(),
-  expirationDate: z.iso.date().nullable().optional(),
+  expirationDate: z.iso.datetime().nullable().optional(),
   transitionProfileId: z.int().positive().optional(),
 })
 export type UpdateFilmInput = z.infer<typeof UpdateFilmInput>
 
 export const TransitionFilmInput = z.strictObject({
   targetStateName: z.string().nonempty(),
-  date: z.iso.date().optional(),
+  date: z.iso.datetime().optional(),
   note: z.string().optional(),
   metadata: z.record(z.string(), z.union([z.string(), z.array(z.string())])).optional(),
 })
@@ -264,7 +264,7 @@ export const CreateCameraInput = z.strictObject({
   notes: z.string().optional(),
   serialNumber: z.string().optional(),
   purchasePrice: z.number().positive().optional(),
-  acquiredAt: z.iso.date().optional(),
+  acquiredAt: z.iso.datetime().optional(),
   supportedFormatIds: z.array(z.int().positive()).optional(),
 })
 export type CreateCameraInput = z.infer<typeof CreateCameraInput>
@@ -276,7 +276,7 @@ export const UpdateCameraInput = z.strictObject({
   notes: z.string().optional(),
   serialNumber: z.string().optional(),
   purchasePrice: z.number().positive().optional(),
-  acquiredAt: z.iso.date().optional(),
+  acquiredAt: z.iso.datetime().optional(),
   supportedFormatIds: z.array(z.int().positive()).optional(),
 })
 export type UpdateCameraInput = z.infer<typeof UpdateCameraInput>

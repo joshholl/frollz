@@ -15,6 +15,9 @@ export type {
   MonthCount,
   EmulsionCount,
   TransitionDuration,
+  Camera,
+  CameraAcceptedFormat,
+  CameraStatus,
 } from "@frollz/shared";
 
 // Helpers — derive current state name from Film.states

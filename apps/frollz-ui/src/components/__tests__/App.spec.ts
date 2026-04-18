@@ -28,6 +28,8 @@ const router = createRouter({
     { path: "/films", component: { template: "<div></div>" } },
     { path: "/formats", component: { template: "<div></div>" } },
     { path: "/tags", component: { template: "<div></div>" } },
+    { path: "/cameras", component: { template: "<div></div>" } },
+    { path: "/stats", component: { template: "<div></div>" } },
   ],
 });
 

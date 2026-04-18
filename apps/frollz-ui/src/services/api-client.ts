@@ -14,6 +14,10 @@ import {
   MonthCount,
   EmulsionCount,
   TransitionDuration,
+  Camera,
+  type CameraStatus,
+  type CreateCameraInput,
+  type UpdateCameraInput,
 } from "@frollz/shared";
 import { api, apiFetch } from "./api";
 
@@ -232,6 +236,29 @@ export const filmStatsApi = {
       "GET",
       "/films/stats/lifecycle-durations",
     ),
+};
+
+// Camera API
+export const cameraApi = {
+  getAll: (params?: {
+    brand?: string;
+    model?: string;
+    status?: CameraStatus;
+    formatId?: number;
+    unloaded?: boolean;
+  }) => {
+    const { unloaded, ...rest } = params ?? {};
+    const p: Record<string, string | number | string[] | number[] | undefined> =
+      { ...rest };
+    if (unloaded !== undefined) p.unloaded = String(unloaded);
+    return apiFetch(Camera.array(), "GET", "/cameras", undefined, p);
+  },
+  getById: (id: number) => apiFetch(Camera, "GET", `/cameras/${id}`),
+  create: (data: CreateCameraInput) =>
+    apiFetch(Camera, "POST", "/cameras", data),
+  update: (id: number, data: UpdateCameraInput) =>
+    apiFetch(Camera, "PATCH", `/cameras/${id}`, data),
+  delete: (id: number) => api.delete(`/cameras/${id}`),
 };
 
 // Transition API
