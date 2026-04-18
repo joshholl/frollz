@@ -128,6 +128,7 @@ const navLinks = [
   { to: "/emulsions", name: "emulsions", label: "Emulsions" },
   { to: "/films", name: "films", label: "Films" },
   { to: "/tags", name: "tags", label: "Tags" },
+  { to: "/cameras", name: "cameras", label: "Cameras" },
   { to: "/stats", name: "stats", label: "Statistics" },
 ] as const;
 

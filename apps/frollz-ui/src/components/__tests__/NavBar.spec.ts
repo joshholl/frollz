@@ -33,6 +33,8 @@ const router = createRouter({
     },
     { path: "/films", name: "films", component: { template: "<div/>" } },
     { path: "/tags", name: "tags", component: { template: "<div/>" } },
+    { path: "/cameras", name: "cameras", component: { template: "<div/>" } },
+    { path: "/stats", name: "stats", component: { template: "<div/>" } },
   ],
 });
 

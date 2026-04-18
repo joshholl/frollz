@@ -40,6 +40,12 @@ const router = createRouter({
       meta: { title: "Tags" },
     },
     {
+      path: "/cameras",
+      name: "cameras",
+      component: () => import("@/views/CamerasView.vue"),
+      meta: { title: "Cameras" },
+    },
+    {
       path: "/stats",
       name: "stats",
       component: () => import("@/views/StatsView.vue"),

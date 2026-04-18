@@ -36,6 +36,11 @@ export class CameraMapper {
           ? new Date(cameraRow.acquired_at).toISOString()
           : undefined;
 
+    const toDate = (value: Date | string | number | undefined | null): Date | undefined => {
+      if (!value) return undefined;
+      return value instanceof Date ? value : new Date(value);
+    };
+
     return Camera.create({
       id: cameraRow.id,
       brand: cameraRow.brand,
@@ -44,8 +49,8 @@ export class CameraMapper {
       serialNumber: cameraRow.serial_number ?? undefined,
       purchasePrice: cameraRow.purchase_price ?? undefined,
       acquiredAt,
-      createdAt: cameraRow.created_at,
-      updatedAt: cameraRow.updated_at,
+      createdAt: toDate(cameraRow.created_at),
+      updatedAt: toDate(cameraRow.updated_at),
       acceptedFormats,
     });
   }

@@ -46,22 +46,28 @@ export class Camera {
     model: string;
     status: CameraStatus;
     acceptedFormats?: CameraAcceptedFormats[];
-    createdAt?: Date;
-    updatedAt?: Date;
+    createdAt?: Date | string | number;
+    updatedAt?: Date | string | number;
     notes?: string;
     serialNumber?: string;
     purchasePrice?: number;
     acquiredAt?: string;
   }): Camera {
     const now = new Date();
+
+    const toDate = (value?: Date | string | number): Date | undefined => {
+      if (!value) return undefined;
+      return value instanceof Date ? value : new Date(value);
+    };
+
     return new Camera(
       props.id ?? 0,
       props.brand,
       props.model,
       props.status,
       props.acceptedFormats ?? [],
-      props.createdAt ?? now,
-      props.updatedAt ?? now,
+      toDate(props.createdAt) ?? now,
+      toDate(props.updatedAt) ?? now,
       props.notes,
       props.serialNumber,
       props.purchasePrice,

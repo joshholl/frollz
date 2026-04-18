@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "clean": "rm -rf dist node_modules",
+    "predev": "pnpm --filter @frollz/shared build",
     "build": "vite build",
     "dev": "vite --host 0.0.0.0",
     "preview": "vite preview",
