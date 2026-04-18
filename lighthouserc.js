@@ -4,7 +4,7 @@ module.exports = {
     collect: {
       // `serve -s` (single-page app mode) serves index.html for all unmatched
       // paths, so Vue Router history-mode routes return 200 instead of 404.
-      startServerCommand: 'npx serve -s ./frollz-ui/dist -l 3000',
+      startServerCommand: 'npx serve -s ./apps/frollz-ui/dist -l 3000',
       url: [
         'http://localhost:3000/',          // Dashboard
         'http://localhost:3000/films',     // Roll list

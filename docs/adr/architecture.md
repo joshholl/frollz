@@ -4,6 +4,9 @@
 Frollz is a self-hosted film photography tracker. It allows photographers to catalogue film emulsions, manage individual film rolls through a defined lifecycle (adding, storing, loading, shooting, developing, receiving), and track cameras. The system provides a Vue 3 SPA for browsing and managing all entities and a NestJS REST API that owns all persistence and business logic.
 
 ## STACK
+- **Monorepo:** `pnpm` + `turbo` workspace. Root `package.json` orchestrates `dev`, `build`, `test`, `lint`, `check-types`, `format`, and `clean` across `apps/*` and `packages/*`.
+- **Apps:** `apps/frollz-api` (NestJS API) and `apps/frollz-ui` (Vue 3 SPA).
+- **Workspace packages:** reusable config and shared libraries live under `packages/`, including `@frollz/shared`, `@frollz/eslint-config`, `@frollz/typescript-config`, and `@frollz/vitest-config`.
 - **Backend:** NestJS (TypeScript) — `frollz-api`
 - **Frontend:** Vue 3 + TypeScript, Tailwind CSS, Vite — `frollz-ui`
 - **Database:** PostgreSQL 18 in production; SQLite (`better-sqlite3`) in development and test (selected automatically when `NODE_ENV=development`)
@@ -11,6 +14,10 @@ Frollz is a self-hosted film photography tracker. It allows photographers to cat
 - **Build:** Multi-stage root `Dockerfile` (ui-build → api-build → production)
 
 ## ARCHITECTURE
+The repository is organised as a Turbo-powered pnpm monorepo. The root workspace is defined by `pnpm-workspace.yaml` and `turbo.json`, with top-level orchestration in `package.json` that runs commands across `apps/*` and `packages/*`.
+
+`apps/frollz-api` is the NestJS backend package and `apps/frollz-ui` is the Vue 3 frontend package. `apps/frollz-ui` depends on workspace packages such as `@frollz/shared` and consumes the shared configuration packages in `packages/` for TypeScript, ESLint, and Vitest setup.
+
 Monorepo deployed as a single container in production. The combined image contains the NestJS API and the built Vue SPA; NestJS serves both via `ServeStaticModule` for all non-`/api` routes. PostgreSQL runs as a separate container. No nginx is involved — users are expected to place a reverse proxy (Nginx Proxy Manager, Traefik, Caddy, etc.) in front for HTTPS termination. Security headers are applied by `helmet` in `main.ts`.
 
 **Production** (`docker-compose.yml`): two services — `frollz` (combined container) + `postgres`.

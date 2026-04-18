@@ -1,0 +1,32 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "tasks": {
+        "build": {
+            "dependsOn": ["^build"],
+            "outputs": ["dist/**"]
+        },
+        "dev":{
+            "dependsOn": ["^build"],
+            "persistent": true,
+            "cache": false
+        },
+        "test": {
+            "dependsOn": ["^build", "@frollz/vitest-config#build"],
+            "outputs": ["coverage/**"]
+        },
+        "lint": {
+            "outputs": []
+        },
+        "check-types": {
+            "dependsOn": ["^check-types"]
+        },
+        "format":{
+            "dependsOn": ["^format"],
+            "cache":false
+        },
+        "clean":{
+            "dependsOn": ["^clean"],
+            "cache":false
+        }
+    }
+}

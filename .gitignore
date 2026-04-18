@@ -42,4 +42,9 @@ Thumbs.db
 !.claude/skills/**
 frollz-api/coverage
 frollz-ui/coverage
-frollz-api/dev.db
+**/frollz-api/dev.db
+.turbo/**
+**/.turbo/**
+
+# ── codebase-memory MCP tool output (generated, not for version control) ──────
+.codebase-memory/
