@@ -33,9 +33,12 @@
       >
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <p class="font-semibold text-gray-900 dark:text-gray-100 truncate">
+            <RouterLink
+              :to="{ name: 'camera-detail', params: { id: camera.id } }"
+              class="font-semibold text-primary-600 dark:text-primary-400 hover:underline truncate block"
+            >
               {{ camera.brand }} {{ camera.model }}
-            </p>
+            </RouterLink>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               <span :class="statusClass(camera.status)">{{
                 statusLabel(camera.status)
@@ -112,7 +115,12 @@
               <td
                 class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100"
               >
-                {{ camera.brand }} {{ camera.model }}
+                <RouterLink
+                  :to="{ name: 'camera-detail', params: { id: camera.id } }"
+                  class="text-primary-600 dark:text-primary-400 hover:underline font-medium"
+                >
+                  {{ camera.brand }} {{ camera.model }}
+                </RouterLink>
                 <span
                   v-if="camera.serialNumber"
                   class="block text-xs text-gray-400 dark:text-gray-500"
@@ -383,6 +391,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { RouterLink } from "vue-router";
 import { cameraApi, formatApi } from "@/services/api-client";
 import type { Camera, Format } from "@/types";
 import BaseModal from "@/components/BaseModal.vue";

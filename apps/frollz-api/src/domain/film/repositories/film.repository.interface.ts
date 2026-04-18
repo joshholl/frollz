@@ -11,6 +11,7 @@ export interface FilmFilters {
   loadedDateFrom?: Date;
   loadedDateTo?: Date;
   searchQuery?: string;
+  cameraId?: number;
 }
 
 export interface IFilmRepository {
