@@ -88,100 +88,14 @@
       :aria-busy="isLoading"
       aria-label="Cameras table"
     >
-      <div class="overflow-x-auto">
-        <table class="min-w-full">
-          <thead class="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Brand / Model
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Status
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Formats
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Notes
-              </th>
-              <th class="px-6 py-3"></th>
-            </tr>
-          </thead>
-          <tbody
-            class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
-          >
-            <tr v-for="camera in cameras" :key="camera.id">
-              <td
-                class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100"
-              >
-                <RouterLink
-                  :to="{ name: 'camera-detail', params: { id: camera.id } }"
-                  class="text-primary-600 dark:text-primary-400 hover:underline font-medium"
-                >
-                  {{ camera.brand }} {{ camera.model }}
-                </RouterLink>
-                <span
-                  v-if="camera.serialNumber"
-                  class="block text-xs text-gray-400 dark:text-gray-500"
-                  >#{{ camera.serialNumber }}</span
-                >
-                <RouterLink
-                  v-if="loadedFilmByCameraId.get(camera.id)"
-                  :to="{ name: 'film-detail', params: { key: loadedFilmByCameraId.get(camera.id)!.id } }"
-                  class="block text-xs text-primary-600 dark:text-primary-400 hover:underline mt-0.5"
-                >
-                  ↳ {{ loadedFilmByCameraId.get(camera.id)!.name }} (loaded)
-                </RouterLink>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm">
-                <span :class="statusClass(camera.status)">{{
-                  statusLabel(camera.status)
-                }}</span>
-              </td>
-              <td
-                class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-[200px]"
-              >
-                {{ formatNames(camera) || "—" }}
-              </td>
-              <td
-                class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-[200px] truncate"
-              >
-                {{ camera.notes ?? "—" }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right space-x-2">
-                <button
-                  @click="openEdit(camera)"
-                  class="px-3 py-2 min-h-[44px] text-xs font-medium text-primary-600 dark:text-primary-400 border border-primary-300 dark:border-primary-600 rounded hover:bg-primary-50 dark:hover:bg-primary-900/30"
-                >
-                  Edit
-                </button>
-                <button
-                  @click="confirmDelete(camera)"
-                  class="px-3 py-2 min-h-[44px] text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/30"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-            <tr v-if="cameras.length === 0">
-              <td
-                colspan="5"
-                class="px-6 py-8 text-center text-sm text-gray-600 dark:text-gray-400"
-              >
-                No cameras found.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <CamerasDataTable
+        :cameras="cameras"
+        :is-loading="isLoading"
+        :status-label="statusLabel"
+        :status-class="statusClass"
+        @edit="openEdit"
+        @delete="confirmDelete"
+      />
     </div>
 
     <!-- Create / Edit Modal -->
@@ -409,6 +323,7 @@ import { RouterLink } from "vue-router";
 import { cameraApi, filmApi, formatApi } from "@/services/api-client";
 import type { Camera, Film, Format } from "@/types";
 import BaseModal from "@/components/BaseModal.vue";
+import CamerasDataTable from "@/components/CamerasDataTable.vue";
 import { useNotificationStore } from "@/stores/notification";
 
 const notification = useNotificationStore();

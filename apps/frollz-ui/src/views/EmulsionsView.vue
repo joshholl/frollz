@@ -371,11 +371,13 @@ type SortField = "brand" | "manufacturer" | "speed";
 const sortField = ref<SortField>("brand");
 const sortDirection = ref<"asc" | "desc">("asc");
 
-const setSort = (field: SortField) => {
-  if (sortField.value === field) {
+const setSort = (field: string) => {
+  if (!["brand", "manufacturer", "speed"].includes(field)) return;
+  const f = field as SortField;
+  if (sortField.value === f) {
     sortDirection.value = sortDirection.value === "asc" ? "desc" : "asc";
   } else {
-    sortField.value = field;
+    sortField.value = f;
     sortDirection.value = "asc";
   }
 };
