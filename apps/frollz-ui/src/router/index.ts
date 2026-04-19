@@ -56,6 +56,12 @@ const router = createRouter({
       component: () => import("@/views/StatsView.vue"),
       meta: { title: "Statistics" },
     },
+    {
+      path: "/admin",
+      name: "admin",
+      component: () => import("@/views/AdminView.vue"),
+      meta: { title: "Admin" },
+    },
   ],
 });
 
