@@ -96,7 +96,7 @@
         <!-- Nav links with large tap targets (≥44px per WCAG 2.5.5) -->
         <nav
           aria-label="Mobile navigation"
-          class="page-x pt-2 pb-4 space-y-1"
+          class="page-x pt-2 pb-[max(2rem,env(safe-area-inset-bottom))] space-y-1"
         >
           <RouterLink
             v-for="link in navLinks"
@@ -108,31 +108,8 @@
             >{{ link.label }}</RouterLink
           >
         </nav>
-
-        <!-- Footer section with admin link -->
-        <div
-          class="border-t border-gray-200 dark:border-gray-700 page-x pt-4 pb-[max(2rem,env(safe-area-inset-bottom))]"
-        >
-          <RouterLink
-            to="/admin"
-            class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-            @click="closeMenu"
-            >Admin</RouterLink
-          >
-        </div>
       </div>
     </Transition>
-
-    <!-- Desktop footer link — visible on md and wider -->
-    <div
-      class="hidden md:block border-t border-gray-200 dark:border-gray-700 page-x py-3 mt-4"
-    >
-      <RouterLink
-        to="/admin"
-        class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-        >Admin</RouterLink
-      >
-    </div>
   </nav>
 </template>
 
