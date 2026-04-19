@@ -128,9 +128,19 @@
       :aria-busy="isLoading"
       aria-label="Emulsions table"
     >
-      <div class="overflow-x-auto">
-        <table class="min-w-full">
-          <thead class="bg-gray-50 dark:bg-gray-700">
+      <EmulsionsDataTable
+        :emulsions="sortedEmulsions"
+        :is-loading="isLoading"
+        :sort-field="sortField"
+        :sort-direction="sortDirection"
+        :format-name-by-id="formatNameById"
+        :process-name-by-id="processNameById"
+        :emulsion-tag-map="emulsionTagMap"
+        @sort="setSort"
+        @filter="addFilter"
+        @add-film="createFilm"
+        :box-image-src="boxImageSrc"
+      />
             <tr>
               <th
                 @click="setSort('brand')"
@@ -476,6 +486,7 @@ import TypeaheadInput from "@/components/TypeaheadInput.vue";
 import BaseModal from "@/components/BaseModal.vue";
 import SpeedTypeaheadInput from "@/components/SpeedTypeaheadInput.vue";
 import TagMultiSelect from "@/components/TagMultiSelect.vue";
+import EmulsionsDataTable from "@/components/EmulsionsDataTable.vue";
 import { useNotificationStore } from "@/stores/notification";
 import placeholderColorNegative from "@/components/placeholder/color-negative.svg";
 import placeholderBlackAndWhite from "@/components/placeholder/black-and-white.svg";
