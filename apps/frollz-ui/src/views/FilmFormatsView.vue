@@ -56,55 +56,12 @@
       :aria-busy="isLoading"
       aria-label="Film formats table"
     >
-      <div class="overflow-x-auto">
-        <table class="min-w-full">
-          <thead class="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Package
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Format
-              </th>
-              <th
-                class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody
-            class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
-          >
-            <tr v-for="format in filmFormats" :key="format.id">
-              <td
-                class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100"
-              >
-                {{ packageNameById[format.packageId] ?? "—" }}
-              </td>
-              <td
-                class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100"
-              >
-                {{ format.name }}
-              </td>
-              <td
-                class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
-              >
-                <button
-                  @click="deleteFormat(format.id)"
-                  class="inline-flex items-center px-3 py-2 min-h-[44px] text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <FilmFormatsDataTable
+        :formats="filmFormats"
+        :is-loading="isLoading"
+        :package-name-by-id="packageNameById"
+        @delete="deleteFormat"
+      />
     </div>
 
     <!-- Create Form Modal -->
@@ -190,6 +147,7 @@ import { ref, computed, onMounted } from "vue";
 import { formatApi, packageApi } from "@/services/api-client";
 import type { Format, Package } from "@/types";
 import BaseModal from "@/components/BaseModal.vue";
+import FilmFormatsDataTable from "@/components/FilmFormatsDataTable.vue";
 import { useNotificationStore } from "@/stores/notification";
 
 const notification = useNotificationStore();

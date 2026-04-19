@@ -230,59 +230,18 @@
           </div>
         </template>
         <p
-          v-else-if="durationError"
+          v-if="durationError"
           role="alert"
           class="p-6 text-sm text-red-600 dark:text-red-400"
         >
           Could not load lifecycle data.
         </p>
-        <p
-          v-else-if="transitionDurations.length === 0"
-          class="p-6 text-center text-gray-500 dark:text-gray-400"
-        >
-          No completed transitions recorded yet.
-        </p>
-        <table v-else class="w-full text-sm text-left">
-          <caption class="sr-only">
-            Average days between consecutive film state transitions
-          </caption>
-          <thead>
-            <tr class="border-b border-gray-100 dark:border-gray-700">
-              <th
-                scope="col"
-                class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300"
-              >
-                Transition
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 text-right"
-              >
-                Avg. Days
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="item in transitionDurations"
-              :key="item.transition"
-              class="border-b border-gray-50 dark:border-gray-700/50 last:border-b-0"
-            >
-              <td class="px-6 py-3 text-gray-800 dark:text-gray-200">
-                {{ item.transition }}
-              </td>
-              <td class="px-6 py-3 text-right font-mono">
-                <span
-                  v-if="item.avgDays !== null"
-                  class="text-gray-800 dark:text-gray-200"
-                >
-                  {{ item.avgDays.toFixed(1) }}
-                </span>
-                <span v-else class="text-gray-400 dark:text-gray-500">N/A</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-else class="p-6">
+          <StatsDataTable
+            :durations="transitionDurations"
+            :is-loading="loadingDurations"
+          />
+        </div>
       </div>
     </section>
   </div>
@@ -297,6 +256,7 @@ import type {
   EmulsionCount,
   TransitionDuration,
 } from "@frollz/shared";
+import StatsDataTable from "@/components/StatsDataTable.vue";
 
 // --- State counts (#145) ---
 const loadingStates = ref(true);

@@ -75,37 +75,36 @@
 
     <!-- Desktop table (hidden below md) -->
     <div
-      class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md"
+      class="hidden md:block bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-x-auto"
       :aria-busy="isLoading"
       aria-label="Tags table"
     >
-      <div class="overflow-x-auto">
-        <table class="min-w-full">
-          <thead class="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Color
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Name
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              >
-                Description
-              </th>
-              <th class="px-6 py-3"></th>
-            </tr>
-          </thead>
-          <tbody
-            class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700"
-          >
-            <tr v-for="tag in paginatedTags" :key="tag.id">
-              <td class="px-6 py-4 whitespace-nowrap">
+      <Table>
+        <TableHeader class="bg-gray-50 dark:bg-gray-700">
+          <TableRow>
+            <TableHead class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Color
+            </TableHead>
+            <TableHead class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Name
+            </TableHead>
+            <TableHead class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Description
+            </TableHead>
+            <TableHead></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <template v-if="paginatedTags.length === 0">
+            <TableRow>
+              <TableCell colspan="4" class="text-center py-8 text-sm text-gray-600 dark:text-gray-400">
+                No tags found.
+              </TableCell>
+            </TableRow>
+          </template>
+          <template v-else>
+            <TableRow v-for="tag in paginatedTags" :key="tag.id">
+              <TableCell class="px-6 py-4 whitespace-nowrap">
                 <template v-if="editingId === tag.id">
                   <input
                     v-model="editForm.colorCode"
@@ -120,10 +119,8 @@
                     :style="{ backgroundColor: tag.colorCode }"
                   ></span>
                 </template>
-              </td>
-              <td
-                class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100"
-              >
+              </TableCell>
+              <TableCell class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                 <template v-if="editingId === tag.id">
                   <input
                     v-model="editForm.name"
@@ -139,8 +136,8 @@
                     >{{ tag.name }}</span
                   >
                 </template>
-              </td>
-              <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+              </TableCell>
+              <TableCell class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                 <template v-if="editingId === tag.id">
                   <input
                     v-model="editForm.description"
@@ -152,8 +149,8 @@
                 <template v-else>
                   {{ tag.description ?? "—" }}
                 </template>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right space-x-2">
+              </TableCell>
+              <TableCell class="px-6 py-4 whitespace-nowrap text-right space-x-2">
                 <template v-if="editingId === tag.id">
                   <button
                     @click="saveEdit(tag.id)"
@@ -182,19 +179,11 @@
                     Delete
                   </button>
                 </template>
-              </td>
-            </tr>
-            <tr v-if="tags.length === 0">
-              <td
-                colspan="4"
-                class="px-6 py-8 text-center text-sm text-gray-600 dark:text-gray-400"
-              >
-                No tags found.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              </TableCell>
+            </TableRow>
+          </template>
+        </TableBody>
+      </Table>
     </div>
 
     <!-- Pagination -->
@@ -264,6 +253,7 @@ import { tagApi } from "@/services/api-client";
 import type { Tag } from "@frollz/shared";
 import BaseModal from "@/components/BaseModal.vue";
 import TagEditForm from "@/components/TagEditForm.vue";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useNotificationStore } from "@/stores/notification";
 
 const notification = useNotificationStore();
