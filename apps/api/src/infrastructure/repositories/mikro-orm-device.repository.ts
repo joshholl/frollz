@@ -3,6 +3,7 @@ import { EntityManager } from '@mikro-orm/core';
 import { DeviceRepository } from './device.repository.js';
 import {
   CameraEntity,
+  DeviceMountEntity,
   FilmFormatEntity,
   FilmHolderEntity,
   FilmHolderSlotEntity,
@@ -12,7 +13,7 @@ import {
   DeviceTypeEntity,
   UserEntity
 } from '../entities/index.js';
-import { mapFilmHolderSlotEntity, mapFilmDeviceEntity } from '../mappers/index.js';
+import { mapDeviceMountEntity, mapFilmHolderSlotEntity, mapFilmDeviceEntity } from '../mappers/index.js';
 
 @Injectable()
 export class MikroOrmDeviceRepository extends DeviceRepository {
@@ -299,5 +300,88 @@ export class MikroOrmDeviceRepository extends DeviceRepository {
     );
 
     return slot ? mapFilmHolderSlotEntity(slot) : null;
+  }
+
+  async listMountsForCamera(userId: number, cameraDeviceId: number) {
+    const mounts = await this.entityManager.find(
+      DeviceMountEntity,
+      { user: userId, cameraDevice: cameraDeviceId },
+      { populate: ['user', 'cameraDevice', 'mountedDevice'], orderBy: { mountedAt: 'desc', id: 'desc' } }
+    );
+
+    return mounts.map(mapDeviceMountEntity);
+  }
+
+  async createMount(
+    userId: number,
+    cameraDeviceId: number,
+    input: { mountedDeviceId: number; mountedAt?: string | undefined }
+  ) {
+    const user = this.entityManager.getReference(UserEntity, userId);
+    const cameraDevice = this.entityManager.getReference(FilmDeviceEntity, cameraDeviceId);
+    const mountedDevice = this.entityManager.getReference(FilmDeviceEntity, input.mountedDeviceId);
+
+    const mount = this.entityManager.create(DeviceMountEntity, {
+      user,
+      cameraDevice,
+      mountedDevice,
+      mountedAt: input.mountedAt ?? new Date().toISOString(),
+      unmountedAt: null
+    });
+
+    this.entityManager.persist(mount);
+    await this.entityManager.flush();
+
+    const persisted = await this.entityManager.findOneOrFail(
+      DeviceMountEntity,
+      { id: mount.id },
+      { populate: ['user', 'cameraDevice', 'mountedDevice'] }
+    );
+    return mapDeviceMountEntity(persisted);
+  }
+
+  async unmount(
+    userId: number,
+    cameraDeviceId: number,
+    input: { mountedDeviceId: number; unmountedAt?: string | undefined }
+  ) {
+    const activeMount = await this.entityManager.findOne(
+      DeviceMountEntity,
+      {
+        user: userId,
+        cameraDevice: cameraDeviceId,
+        mountedDevice: input.mountedDeviceId,
+        unmountedAt: null
+      },
+      { populate: ['user', 'cameraDevice', 'mountedDevice'], orderBy: { mountedAt: 'desc', id: 'desc' } }
+    );
+
+    if (!activeMount) {
+      return null;
+    }
+
+    activeMount.unmountedAt = input.unmountedAt ?? new Date().toISOString();
+    this.entityManager.persist(activeMount);
+    await this.entityManager.flush();
+
+    return mapDeviceMountEntity(activeMount);
+  }
+
+  async findActiveMountForCamera(userId: number, cameraDeviceId: number) {
+    const mount = await this.entityManager.findOne(
+      DeviceMountEntity,
+      { user: userId, cameraDevice: cameraDeviceId, unmountedAt: null },
+      { populate: ['user', 'cameraDevice', 'mountedDevice'], orderBy: { mountedAt: 'desc', id: 'desc' } }
+    );
+    return mount ? mapDeviceMountEntity(mount) : null;
+  }
+
+  async findActiveMountForMountedDevice(userId: number, mountedDeviceId: number) {
+    const mount = await this.entityManager.findOne(
+      DeviceMountEntity,
+      { user: userId, mountedDevice: mountedDeviceId, unmountedAt: null },
+      { populate: ['user', 'cameraDevice', 'mountedDevice'], orderBy: { mountedAt: 'desc', id: 'desc' } }
+    );
+    return mount ? mapDeviceMountEntity(mount) : null;
   }
 }

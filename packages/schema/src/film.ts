@@ -182,6 +182,25 @@ export const deviceLoadTimelineEventSchema = z.object({
   slotSideNumber: z.number().int().nullable()
 });
 
+export const deviceMountSchema = z.object({
+  id: idSchema,
+  userId: idSchema,
+  cameraDeviceId: idSchema,
+  mountedDeviceId: idSchema,
+  mountedAt: isoDateTimeSchema,
+  unmountedAt: isoDateTimeSchema.nullable()
+});
+
+export const createDeviceMountRequestSchema = z.object({
+  mountedDeviceId: idSchema,
+  mountedAt: isoDateTimeSchema.optional()
+});
+
+export const unmountDeviceRequestSchema = z.object({
+  mountedDeviceId: idSchema,
+  unmountedAt: isoDateTimeSchema.optional()
+});
+
 export const createFilmJourneyEventRequestSchema = z.object({
   filmStateCode: filmStateCodeSchema,
   occurredAt: isoDateTimeSchema,
@@ -250,8 +269,8 @@ export const createFilmDeviceRequestSchema = z.discriminatedUnion('deviceTypeCod
     frameSize: z.string().min(1),
     make: z.string().min(1),
     model: z.string().min(1),
-    loadMode: cameraLoadModeSchema,
-    canUnload: z.boolean(),
+    loadMode: cameraLoadModeSchema.optional().default('direct'),
+    canUnload: z.boolean().optional().default(true),
     cameraSystem: z.string().nullable().optional(),
     serialNumber: z.string().nullable().optional(),
     dateAcquired: isoDateTimeSchema.nullable().optional()
@@ -302,9 +321,12 @@ export type FilmUpdateRequest = z.infer<typeof filmUpdateRequestSchema>;
 export type FilmListQuery = z.infer<typeof filmListQuerySchema>;
 export type FilmJourneyEvent = z.infer<typeof filmJourneyEventSchema>;
 export type DeviceLoadTimelineEvent = z.infer<typeof deviceLoadTimelineEventSchema>;
+export type DeviceMount = z.infer<typeof deviceMountSchema>;
 export type FilmJourneyEventPayload = z.infer<typeof filmJourneyEventPayloadSchema>;
 export type FilmUnitLoadTarget = z.infer<typeof filmUnitLoadTargetSchema>;
 export type CreateFilmJourneyEventRequest = z.infer<typeof createFilmJourneyEventRequestSchema>;
+export type CreateDeviceMountRequest = z.infer<typeof createDeviceMountRequestSchema>;
+export type UnmountDeviceRequest = z.infer<typeof unmountDeviceRequestSchema>;
 export type FilmHolderSlot = z.infer<typeof filmHolderSlotSchema>;
 export type FilmDevice = z.infer<typeof filmDeviceSchema>;
 export type CreateFilmDeviceRequest = z.infer<typeof createFilmDeviceRequestSchema>;

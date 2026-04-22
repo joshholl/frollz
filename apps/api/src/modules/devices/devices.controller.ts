@@ -1,6 +1,11 @@
 import { Body, Controller, Delete, Get, Headers, Inject, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { createFilmDeviceRequestSchema, updateFilmDeviceRequestSchema } from '@frollz2/schema';
+import {
+  createDeviceMountRequestSchema,
+  createFilmDeviceRequestSchema,
+  unmountDeviceRequestSchema,
+  updateFilmDeviceRequestSchema
+} from '@frollz2/schema';
 import { ZodSchemaPipe } from '../../common/pipes/zod-schema.pipe.js';
 import { IdempotencyService } from '../../common/services/idempotency.service.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
@@ -51,6 +56,35 @@ export class DevicesController {
       requestPayload: body,
       handler: () => this.devicesService.create(user.userId, body)
     });
+  }
+
+  @Get(':id/mounts')
+  @ApiOperation({ summary: 'List mount history for a camera device' })
+  @ApiResponse({ status: 200, description: 'Device mount history' })
+  listMounts(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+    return this.devicesService.listMounts(user.userId, id);
+  }
+
+  @Post(':id/mount')
+  @ApiOperation({ summary: 'Mount a compatible device to a camera' })
+  @ApiResponse({ status: 201, description: 'Mount created' })
+  mount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body(new ZodSchemaPipe(createDeviceMountRequestSchema)) body: typeof createDeviceMountRequestSchema['_output']
+  ) {
+    return this.devicesService.mount(user.userId, id, body);
+  }
+
+  @Post(':id/unmount')
+  @ApiOperation({ summary: 'Unmount a mounted device from a camera' })
+  @ApiResponse({ status: 200, description: 'Mount closed' })
+  unmount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body(new ZodSchemaPipe(unmountDeviceRequestSchema)) body: typeof unmountDeviceRequestSchema['_output']
+  ) {
+    return this.devicesService.unmount(user.userId, id, body);
   }
 
   @Patch(':id')

@@ -1,4 +1,12 @@
-import type { CreateFilmDeviceRequest, FilmDevice, FilmHolderSlot, UpdateFilmDeviceRequest } from '@frollz2/schema';
+import type {
+  CreateDeviceMountRequest,
+  CreateFilmDeviceRequest,
+  DeviceMount,
+  FilmDevice,
+  FilmHolderSlot,
+  UnmountDeviceRequest,
+  UpdateFilmDeviceRequest
+} from '@frollz2/schema';
 
 export abstract class DeviceRepository {
   abstract list(userId: number): Promise<FilmDevice[]>;
@@ -18,4 +26,14 @@ export abstract class DeviceRepository {
     filmDeviceId: number,
     sideNumber: number
   ): Promise<FilmHolderSlot | null>;
+
+  abstract listMountsForCamera(userId: number, cameraDeviceId: number): Promise<DeviceMount[]>;
+
+  abstract createMount(userId: number, cameraDeviceId: number, input: CreateDeviceMountRequest): Promise<DeviceMount>;
+
+  abstract unmount(userId: number, cameraDeviceId: number, input: UnmountDeviceRequest): Promise<DeviceMount | null>;
+
+  abstract findActiveMountForCamera(userId: number, cameraDeviceId: number): Promise<DeviceMount | null>;
+
+  abstract findActiveMountForMountedDevice(userId: number, mountedDeviceId: number): Promise<DeviceMount | null>;
 }

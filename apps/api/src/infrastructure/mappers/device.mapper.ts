@@ -1,6 +1,6 @@
-import type { FilmHolderSlot, FilmDevice } from '@frollz2/schema';
+import type { DeviceMount, FilmHolderSlot, FilmDevice } from '@frollz2/schema';
 import { holderTypeSchema, slotStateSchema } from '@frollz2/schema';
-import type { FilmHolderSlotEntity, FilmDeviceEntity } from '../entities/index.js';
+import type { DeviceMountEntity, FilmHolderSlotEntity, FilmDeviceEntity } from '../entities/index.js';
 
 function normalizeSideNumber(value: number): number {
   return Number.isInteger(value) && value > 0 ? value : 1;
@@ -70,4 +70,15 @@ export function mapFilmDeviceEntity(entity: FilmDeviceEntity): FilmDevice {
   }
 
   throw new Error(`Unsupported device type ${entity.deviceType.code}`);
+}
+
+export function mapDeviceMountEntity(entity: DeviceMountEntity): DeviceMount {
+  return {
+    id: entity.id,
+    userId: entity.user.id,
+    cameraDeviceId: entity.cameraDevice.id,
+    mountedDeviceId: entity.mountedDevice.id,
+    mountedAt: entity.mountedAt,
+    unmountedAt: entity.unmountedAt
+  };
 }
