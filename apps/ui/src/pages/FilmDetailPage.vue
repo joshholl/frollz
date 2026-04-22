@@ -388,6 +388,9 @@ function validateEventForm(): Record<string, string> {
   }
   if (eventForm.filmStateCode === 'loaded' && eventForm.deviceId) {
     const selectedDevice = deviceStore.devices.find((entry) => entry.id === eventForm.deviceId);
+    if (!selectedDevice) {
+      errors.deviceId = 'Select a valid device.';
+    }
     if (selectedDevice?.deviceTypeCode === 'film_holder') {
       if (typeof eventForm.slotSideNumber !== 'number' || !Number.isInteger(eventForm.slotSideNumber)) {
         errors.slotSideNumber = 'Select a holder slot.';
@@ -414,12 +417,7 @@ function buildEventData(): Record<string, unknown> {
         const selectedDevice = deviceStore.devices.find((entry) => entry.id === eventForm.deviceId);
 
         if (!selectedDevice) {
-          return {
-            filmUnitId: eventForm.filmUnitId,
-            deviceId: eventForm.deviceId,
-            slotSideNumber: eventForm.slotSideNumber,
-            intendedPushPull: eventForm.intendedPushPull
-          };
+          return {};
         }
 
         if (selectedDevice.deviceTypeCode === 'camera') {

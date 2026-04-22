@@ -4,6 +4,7 @@ import {
   emulsionSchema,
   filmDetailSchema,
   filmJourneyEventSchema,
+  filmUnitSchema,
   filmFormatSchema,
   filmDeviceSchema,
   holderTypeSchema,
@@ -11,7 +12,7 @@ import {
   deviceTypeSchema,
   storageLocationSchema,
   tokenPairSchema
-} from '../../../packages/schema/src/index.js';
+} from '@frollz2/schema';
 import { createTestHarness, destroyTestHarness, type TestHarness } from './test-harness.js';
 
 describe('API integration', () => {
@@ -95,6 +96,19 @@ describe('API integration', () => {
       refs,
       film: filmDetailSchema.parse(createResponse.json())
     };
+  }
+
+  async function getFirstAvailableFilmUnitId(authHeaders: Record<string, string>, filmId: number) {
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: `/api/v1/film/${filmId}/units`,
+      headers: authHeaders
+    });
+    expect(response.statusCode).toBe(200);
+    const units = filmUnitSchema.array().parse(response.json());
+    const availableUnit = units.find((unit) => unit.firstLoadedAt === null);
+    expect(availableUnit).toBeTruthy();
+    return availableUnit!.id;
   }
 
   it('registers, logs in, and returns a token pair', async () => {
@@ -318,6 +332,7 @@ describe('API integration', () => {
     expect(deviceCreateResponse.statusCode).toBe(201);
     const device = filmDeviceSchema.parse(deviceCreateResponse.json());
     expect(device.deviceTypeCode).toBe('film_holder');
+    const createdFilmUnitId = await getFirstAvailableFilmUnitId(authHeaders, createdFilm.id);
 
     const loadedEventResponse = await harness.app.inject({
       method: 'POST',
@@ -328,8 +343,10 @@ describe('API integration', () => {
         occurredAt: new Date().toISOString(),
         notes: 'Loaded into holder',
         eventData: {
-          deviceId: device.id,
-          slotSideNumber: 1,
+          loadTargetType: 'film_holder_slot',
+          filmUnitId: createdFilmUnitId,
+          filmHolderId: device.id,
+          slotNumber: 1,
           intendedPushPull: null
         }
       }
@@ -501,6 +518,7 @@ describe('API integration', () => {
     const device = filmDeviceSchema.parse(deviceCreateResponse.json());
 
     const firstFilm = await createFilmForUser(authHeaders, 'First slot film');
+    const firstFilmUnitId = await getFirstAvailableFilmUnitId(authHeaders, firstFilm.film.id);
     await harness.app.inject({
       method: 'POST',
       url: `/api/v1/film/${firstFilm.film.id}/events`,
@@ -523,14 +541,17 @@ describe('API integration', () => {
         filmStateCode: 'loaded',
         occurredAt: new Date().toISOString(),
         eventData: {
-          deviceId: device.id,
-          slotSideNumber: 1,
+          loadTargetType: 'film_holder_slot',
+          filmUnitId: firstFilmUnitId,
+          filmHolderId: device.id,
+          slotNumber: 1,
           intendedPushPull: null
         }
       }
     });
 
     const secondFilm = await createFilmForUser(authHeaders, 'Second slot film');
+    const secondFilmUnitId = await getFirstAvailableFilmUnitId(authHeaders, secondFilm.film.id);
     await harness.app.inject({
       method: 'POST',
       url: `/api/v1/film/${secondFilm.film.id}/events`,
@@ -553,8 +574,10 @@ describe('API integration', () => {
         filmStateCode: 'loaded',
         occurredAt: new Date().toISOString(),
         eventData: {
-          deviceId: device.id,
-          slotSideNumber: 1,
+          loadTargetType: 'film_holder_slot',
+          filmUnitId: secondFilmUnitId,
+          filmHolderId: device.id,
+          slotNumber: 1,
           intendedPushPull: null
         }
       }
@@ -698,6 +721,7 @@ describe('API integration', () => {
       }
     });
     const camera = filmDeviceSchema.parse(cameraCreateResponse.json());
+    const filmUnitId = await getFirstAvailableFilmUnitId(authHeaders, film.id);
 
     const stored = await harness.app.inject({
       method: 'POST',
@@ -722,8 +746,9 @@ describe('API integration', () => {
         filmStateCode: 'loaded',
         occurredAt: new Date().toISOString(),
         eventData: {
-          deviceId: camera.id,
-          slotSideNumber: null,
+          loadTargetType: 'camera_direct',
+          filmUnitId,
+          cameraId: camera.id,
           intendedPushPull: null
         }
       }
@@ -769,6 +794,7 @@ describe('API integration', () => {
       }
     });
     const camera = filmDeviceSchema.parse(cameraCreateResponse.json());
+    const filmUnitId = await getFirstAvailableFilmUnitId(authHeaders, film.id);
 
     await harness.app.inject({
       method: 'POST',
@@ -792,8 +818,9 @@ describe('API integration', () => {
         filmStateCode: 'loaded',
         occurredAt: new Date().toISOString(),
         eventData: {
-          deviceId: camera.id,
-          slotSideNumber: null,
+          loadTargetType: 'camera_direct',
+          filmUnitId,
+          cameraId: camera.id,
           intendedPushPull: null
         }
       }
@@ -849,6 +876,7 @@ describe('API integration', () => {
     const camera = filmDeviceSchema.parse(cameraCreateResponse.json());
 
     const holderFilm = await createFilmForUser(ownerHeaders, 'Holder timeline roll');
+    const holderFilmUnitId = await getFirstAvailableFilmUnitId(ownerHeaders, holderFilm.film.id);
     await harness.app.inject({
       method: 'POST',
       url: `/api/v1/film/${holderFilm.film.id}/events`,
@@ -870,14 +898,17 @@ describe('API integration', () => {
         filmStateCode: 'loaded',
         occurredAt: '2026-01-02T12:00:00.000Z',
         eventData: {
-          deviceId: holder.id,
-          slotSideNumber: 2,
+          loadTargetType: 'film_holder_slot',
+          filmUnitId: holderFilmUnitId,
+          filmHolderId: holder.id,
+          slotNumber: 2,
           intendedPushPull: null
         }
       }
     });
 
     const cameraFilm = await createFilmForUser(ownerHeaders, 'Camera timeline roll');
+    const cameraFilmUnitId = await getFirstAvailableFilmUnitId(ownerHeaders, cameraFilm.film.id);
     const cameraLoadedResponse = await harness.app.inject({
       method: 'POST',
       url: `/api/v1/film/${cameraFilm.film.id}/events`,
@@ -900,8 +931,9 @@ describe('API integration', () => {
         filmStateCode: 'loaded',
         occurredAt: '2030-01-02T14:00:00.000Z',
         eventData: {
-          deviceId: camera.id,
-          slotSideNumber: null,
+          loadTargetType: 'camera_direct',
+          filmUnitId: cameraFilmUnitId,
+          cameraId: camera.id,
           intendedPushPull: null
         }
       }
@@ -930,6 +962,7 @@ describe('API integration', () => {
     expect(cameraRemovedResponse.statusCode).toBe(201);
 
     const newerHolderFilm = await createFilmForUser(ownerHeaders, 'Holder timeline newest');
+    const newerHolderFilmUnitId = await getFirstAvailableFilmUnitId(ownerHeaders, newerHolderFilm.film.id);
     await harness.app.inject({
       method: 'POST',
       url: `/api/v1/film/${newerHolderFilm.film.id}/events`,
@@ -951,8 +984,10 @@ describe('API integration', () => {
         filmStateCode: 'loaded',
         occurredAt: '2026-01-02T16:00:00.000Z',
         eventData: {
-          deviceId: holder.id,
-          slotSideNumber: 1,
+          loadTargetType: 'film_holder_slot',
+          filmUnitId: newerHolderFilmUnitId,
+          filmHolderId: holder.id,
+          slotNumber: 1,
           intendedPushPull: null
         }
       }

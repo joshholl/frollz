@@ -71,27 +71,21 @@ export const filmJourneyEventDataStoredSchema = z.object({
   storageLocationId: idSchema,
   storageLocationCode: storageLocationSchema.shape.code
 });
-export const filmJourneyEventDataLoadedLegacySchema = z.object({
-  deviceId: idSchema,
-  slotSideNumber: z.number().int().nullable(),
-  filmUnitId: idSchema.optional(),
-  intendedPushPull: z.number().int().nullable()
-});
 export const filmUnitLoadTargetCameraDirectSchema = z.object({
   loadTargetType: z.literal('camera_direct'),
-  filmUnitId: idSchema.optional(),
+  filmUnitId: idSchema,
   cameraId: idSchema,
   intendedPushPull: z.number().int().nullable()
 });
 export const filmUnitLoadTargetInterchangeableBackSchema = z.object({
   loadTargetType: z.literal('interchangeable_back'),
-  filmUnitId: idSchema.optional(),
+  filmUnitId: idSchema,
   interchangeableBackId: idSchema,
   intendedPushPull: z.number().int().nullable()
 });
 export const filmUnitLoadTargetFilmHolderSlotSchema = z.object({
   loadTargetType: z.literal('film_holder_slot'),
-  filmUnitId: idSchema.optional(),
+  filmUnitId: idSchema,
   filmHolderId: idSchema,
   slotNumber: z.union([z.literal(1), z.literal(2)]),
   intendedPushPull: z.number().int().nullable()
@@ -101,10 +95,7 @@ export const filmUnitLoadTargetSchema = z.discriminatedUnion('loadTargetType', [
   filmUnitLoadTargetInterchangeableBackSchema,
   filmUnitLoadTargetFilmHolderSlotSchema
 ]);
-export const filmJourneyEventDataLoadedSchema = z.union([
-  filmJourneyEventDataLoadedLegacySchema,
-  filmUnitLoadTargetSchema
-]);
+export const filmJourneyEventDataLoadedSchema = filmUnitLoadTargetSchema;
 export const filmJourneyEventDataExposedSchema = z.object({}).strict();
 export const filmJourneyEventDataRemovedSchema = z.object({}).strict();
 export const filmJourneyEventDataSentForDevSchema = z.object({

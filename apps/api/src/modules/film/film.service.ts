@@ -37,7 +37,7 @@ function nowIso(): string {
 type NormalizedLoadedEventData = {
   deviceId: number;
   slotSideNumber: number | null;
-  filmUnitId: number | null;
+  filmUnitId: number;
   loadTargetType: 'camera_direct' | 'interchangeable_back' | 'film_holder_slot';
 };
 
@@ -563,20 +563,11 @@ export class FilmService {
       return null;
     }
 
-    if ('deviceId' in parsed.data.eventData) {
-      return {
-        deviceId: parsed.data.eventData.deviceId,
-        slotSideNumber: parsed.data.eventData.slotSideNumber,
-        filmUnitId: parsed.data.eventData.filmUnitId ?? null,
-        loadTargetType: typeof parsed.data.eventData.slotSideNumber === 'number' ? 'film_holder_slot' : 'camera_direct'
-      };
-    }
-
     if (parsed.data.eventData.loadTargetType === 'camera_direct') {
       return {
         deviceId: parsed.data.eventData.cameraId,
         slotSideNumber: null,
-        filmUnitId: parsed.data.eventData.filmUnitId ?? null,
+        filmUnitId: parsed.data.eventData.filmUnitId,
         loadTargetType: 'camera_direct'
       };
     }
@@ -585,7 +576,7 @@ export class FilmService {
       return {
         deviceId: parsed.data.eventData.interchangeableBackId,
         slotSideNumber: null,
-        filmUnitId: parsed.data.eventData.filmUnitId ?? null,
+        filmUnitId: parsed.data.eventData.filmUnitId,
         loadTargetType: 'interchangeable_back'
       };
     }
@@ -593,7 +584,7 @@ export class FilmService {
     return {
       deviceId: parsed.data.eventData.filmHolderId,
       slotSideNumber: parsed.data.eventData.slotNumber,
-      filmUnitId: parsed.data.eventData.filmUnitId ?? null,
+      filmUnitId: parsed.data.eventData.filmUnitId,
       loadTargetType: 'film_holder_slot'
     };
   }
@@ -611,7 +602,7 @@ export class FilmService {
   ): Promise<FilmUnitEntity | null> {
     if (filmStateCode === 'loaded') {
       const loadedData = this.parseLoadedEventData(eventData);
-      if (!loadedData?.filmUnitId) {
+      if (!loadedData) {
         return null;
       }
       return entityManager.findOne(
@@ -627,7 +618,7 @@ export class FilmService {
     }
 
     const loadedData = this.parseLoadedEventData(loadedEvent.eventData);
-    if (!loadedData?.filmUnitId) {
+    if (!loadedData) {
       return null;
     }
 
@@ -642,20 +633,12 @@ export class FilmService {
     entityManager: EntityManager,
     userId: number,
     filmId: number,
-    filmUnitId: number | null
+    filmUnitId: number
   ): Promise<FilmUnitEntity | null> {
-    if (filmUnitId !== null) {
-      return entityManager.findOne(
-        FilmUnitEntity,
-        { id: filmUnitId, user: userId, legacyFilm: filmId },
-        { populate: ['user', 'filmStock', 'legacyFilm', 'currentState', 'boundHolderDevice'] }
-      );
-    }
-
     return entityManager.findOne(
       FilmUnitEntity,
-      { user: userId, legacyFilm: filmId, firstLoadedAt: null },
-      { orderBy: { ordinal: 'asc', id: 'asc' }, populate: ['user', 'filmStock', 'legacyFilm', 'currentState', 'boundHolderDevice'] }
+      { id: filmUnitId, user: userId, legacyFilm: filmId },
+      { populate: ['user', 'filmStock', 'legacyFilm', 'currentState', 'boundHolderDevice'] }
     );
   }
 

@@ -7,37 +7,19 @@ import { mapFilmDetailEntity, mapFilmJourneyEventEntity, mapFilmSummaryEntity, m
 
 function parseLoadedEventData(raw: unknown): { deviceId: number; slotSideNumber: number | null } | null {
   const parsed = filmJourneyEventDataLoadedSchema.safeParse(raw);
-  if (parsed.success) {
-    if ('deviceId' in parsed.data) {
-      return {
-        deviceId: parsed.data.deviceId,
-        slotSideNumber: parsed.data.slotSideNumber
-      };
-    }
-
-    if (parsed.data.loadTargetType === 'camera_direct') {
-      return { deviceId: parsed.data.cameraId, slotSideNumber: null };
-    }
-
-    if (parsed.data.loadTargetType === 'interchangeable_back') {
-      return { deviceId: parsed.data.interchangeableBackId, slotSideNumber: null };
-    }
-
-    return { deviceId: parsed.data.filmHolderId, slotSideNumber: parsed.data.slotNumber };
+  if (!parsed.success) {
+    return null;
   }
 
-  // Backward compatibility for older payloads that stored receiverId instead of deviceId.
-  if (raw && typeof raw === 'object') {
-    const candidate = raw as Record<string, unknown>;
-    if (typeof candidate['receiverId'] === 'number') {
-      return {
-        deviceId: candidate['receiverId'],
-        slotSideNumber: typeof candidate['slotSideNumber'] === 'number' ? candidate['slotSideNumber'] : null
-      };
-    }
+  if (parsed.data.loadTargetType === 'camera_direct') {
+    return { deviceId: parsed.data.cameraId, slotSideNumber: null };
   }
 
-  return null;
+  if (parsed.data.loadTargetType === 'interchangeable_back') {
+    return { deviceId: parsed.data.interchangeableBackId, slotSideNumber: null };
+  }
+
+  return { deviceId: parsed.data.filmHolderId, slotSideNumber: parsed.data.slotNumber };
 }
 
 function toStockLabel(film: FilmEntity): string | null {

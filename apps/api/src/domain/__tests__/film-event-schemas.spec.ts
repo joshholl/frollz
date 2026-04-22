@@ -4,13 +4,14 @@ import {
 } from '@frollz2/schema';
 
 describe('filmJourneyEventPayloadSchema', () => {
-  it('parses valid loaded payloads', () => {
+  it('parses valid explicit loaded payloads', () => {
     expect(
       filmJourneyEventPayloadSchema.parse({
         filmStateCode: 'loaded',
         eventData: {
-          deviceId: 1,
-          slotSideNumber: 1,
+          loadTargetType: 'camera_direct',
+          filmUnitId: 1,
+          cameraId: 2,
           intendedPushPull: null
         }
       })
@@ -49,7 +50,10 @@ describe('filmJourneyEventPayloadSchema', () => {
       filmJourneyEventPayloadSchema.parse({
         filmStateCode: 'loaded',
         eventData: {
-          slotSideNumber: 1
+          loadTargetType: 'film_holder_slot',
+          filmHolderId: 2,
+          slotNumber: 1,
+          intendedPushPull: null
         }
       })
     ).toThrow();
