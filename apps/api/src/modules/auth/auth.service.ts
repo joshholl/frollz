@@ -5,7 +5,12 @@ import bcrypt from 'bcrypt';
 import type { CurrentUser, LoginRequest, RegisterRequest, TokenPair } from '@frollz2/schema';
 import { AuthRepository } from '../../infrastructure/repositories/auth.repository.js';
 import { DomainError } from '../../domain/errors.js';
-import { AUTH_ACCESS_TOKEN_TTL, AUTH_REFRESH_TOKEN_TTL_DAYS, requireAuthJwtSecret } from './auth.constants.js';
+import {
+  AUTH_ACCESS_TOKEN_TTL,
+  AUTH_REFRESH_REPLAY_GRACE_SECONDS,
+  AUTH_REFRESH_TOKEN_TTL_DAYS,
+  requireAuthJwtSecret
+} from './auth.constants.js';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -13,6 +18,10 @@ function nowIso(): string {
 
 function refreshExpiresAt(): string {
   return new Date(Date.now() + AUTH_REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function refreshGraceUntil(): string {
+  return new Date(Date.now() + AUTH_REFRESH_REPLAY_GRACE_SECONDS * 1000).toISOString();
 }
 
 function hashRefreshToken(token: string): string {
@@ -62,19 +71,90 @@ export class AuthService {
 
   async refresh(refreshToken: string): Promise<TokenPair> {
     const tokenHash = hashRefreshToken(refreshToken);
-    const storedToken = await this.authRepository.findRefreshTokenByHash(tokenHash);
+    const rotateToken = async (session: Awaited<ReturnType<AuthRepository['findRefreshTokenByHash']>>): Promise<string | null> => {
+      if (!session) {
+        return null;
+      }
 
-    if (!storedToken) {
+      const nextRefreshToken = this.generateRefreshToken();
+      const updatedAt = nowIso();
+      const newHash = hashRefreshToken(nextRefreshToken);
+
+      if (session.matchType === 'current') {
+        const rotated = await this.authRepository.rotateRefreshToken({
+          userId: session.userId,
+          oldTokenHash: tokenHash,
+          newTokenHash: newHash,
+          previousTokenGraceUntil: refreshGraceUntil(),
+          createdAt: updatedAt,
+          expiresAt: refreshExpiresAt()
+        });
+
+        return rotated ? nextRefreshToken : null;
+      }
+
+      const rotatedFromPrevious = await this.authRepository.rotateRefreshTokenFromPrevious({
+        userId: session.userId,
+        previousTokenHash: tokenHash,
+        currentTokenHash: session.tokenHash,
+        newTokenHash: newHash,
+        previousTokenGraceUntil: refreshGraceUntil(),
+        createdAt: updatedAt,
+        expiresAt: refreshExpiresAt(),
+        now: updatedAt
+      });
+
+      return rotatedFromPrevious ? nextRefreshToken : null;
+    };
+
+    const assertReplayWindow = async (session: Awaited<ReturnType<AuthRepository['findRefreshTokenByHash']>>) => {
+      if (
+        session
+        && session.matchType === 'previous'
+        && (!session.previousTokenGraceUntil || new Date(session.previousTokenGraceUntil).getTime() <= Date.now())
+      ) {
+        await this.authRepository.revokeRefreshTokensForUser(session.userId, nowIso());
+        throw new DomainError('UNAUTHORIZED', 'Refresh token reuse detected');
+      }
+    };
+
+    let session = await this.authRepository.findRefreshTokenByHash(tokenHash);
+
+    if (!session || session.revokedAt) {
       throw new DomainError('UNAUTHORIZED', 'Invalid refresh token');
     }
 
-    if (new Date(storedToken.expiresAt).getTime() <= Date.now()) {
+    if (new Date(session.expiresAt).getTime() <= Date.now()) {
       throw new DomainError('UNAUTHORIZED', 'Refresh token has expired');
     }
 
-    const user = await this.authRepository.findUserById(storedToken.userId);
+    await assertReplayWindow(session);
+
+    const user = await this.authRepository.findUserById(session.userId);
 
     if (!user) {
+      throw new DomainError('UNAUTHORIZED', 'Invalid refresh token');
+    }
+
+    let nextRefreshToken = await rotateToken(session);
+
+    if (!nextRefreshToken) {
+      session = await this.authRepository.findRefreshTokenByHash(tokenHash);
+
+      if (!session || session.revokedAt) {
+        throw new DomainError('UNAUTHORIZED', 'Invalid refresh token');
+      }
+
+      if (new Date(session.expiresAt).getTime() <= Date.now()) {
+        throw new DomainError('UNAUTHORIZED', 'Refresh token has expired');
+      }
+
+      await assertReplayWindow(session);
+
+      nextRefreshToken = await rotateToken(session);
+    }
+
+    if (!nextRefreshToken) {
       throw new DomainError('UNAUTHORIZED', 'Invalid refresh token');
     }
 
@@ -88,7 +168,7 @@ export class AuthService {
 
     return {
       accessToken,
-      refreshToken
+      refreshToken: nextRefreshToken
     };
   }
 

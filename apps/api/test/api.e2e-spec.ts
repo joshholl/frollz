@@ -35,6 +35,14 @@ describe('API integration', () => {
     return tokenPairSchema.parse(response.json());
   }
 
+  async function refreshToken(refreshToken: string) {
+    return harness.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/refresh',
+      payload: { refreshToken }
+    });
+  }
+
   async function loadCoreReferenceData(authHeaders: Record<string, string>) {
     const emulsionResponse = await harness.app.inject({ method: 'GET', url: '/api/v1/reference/emulsions', headers: authHeaders });
     const emulsions = emulsionSchema.array().parse(emulsionResponse.json());
@@ -102,6 +110,44 @@ describe('API integration', () => {
 
     expect(loginResponse.statusCode).toBe(200);
     expect(tokenPairSchema.parse(loginResponse.json())).toMatchObject({ accessToken: expect.any(String), refreshToken: expect.any(String) });
+  });
+
+  it('rotates refresh tokens and tolerates immediate duplicate refresh submissions', async () => {
+    const email = `refresh-race-${Date.now()}@example.com`;
+    const initialTokens = await registerUser(email);
+
+    const firstRefreshResponse = await refreshToken(initialTokens.refreshToken);
+    expect(firstRefreshResponse.statusCode).toBe(200);
+    const firstRefreshTokens = tokenPairSchema.parse(firstRefreshResponse.json());
+    expect(firstRefreshTokens.refreshToken).not.toBe(initialTokens.refreshToken);
+
+    const duplicateRefreshResponse = await refreshToken(initialTokens.refreshToken);
+    expect(duplicateRefreshResponse.statusCode).toBe(200);
+    const duplicateRefreshTokens = tokenPairSchema.parse(duplicateRefreshResponse.json());
+    expect(duplicateRefreshTokens.refreshToken).not.toBe(initialTokens.refreshToken);
+  });
+
+  it('revokes the session when an old refresh token is replayed after the grace window', async () => {
+    const email = `refresh-replay-${Date.now()}@example.com`;
+    const initialTokens = await registerUser(email);
+
+    const refreshResponse = await refreshToken(initialTokens.refreshToken);
+    expect(refreshResponse.statusCode).toBe(200);
+    const rotatedTokens = tokenPairSchema.parse(refreshResponse.json());
+
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+
+    const replayResponse = await refreshToken(initialTokens.refreshToken);
+    expect(replayResponse.statusCode).toBe(401);
+    expect(replayResponse.json()).toMatchObject({
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Refresh token reuse detected'
+      }
+    });
+
+    const revokedSessionRefreshResponse = await refreshToken(rotatedTokens.refreshToken);
+    expect(revokedSessionRefreshResponse.statusCode).toBe(401);
   });
 
   it('rejects unauthenticated access to film endpoints', async () => {

@@ -4,6 +4,18 @@ export interface AuthUserRecord extends CurrentUser {
   passwordHash: string;
 }
 
+export type RefreshTokenMatchType = 'current' | 'previous';
+
+export interface RefreshTokenRecord {
+  userId: number;
+  tokenHash: string;
+  previousTokenHash: string | null;
+  previousTokenGraceUntil: string | null;
+  expiresAt: string;
+  revokedAt: string | null;
+  matchType: RefreshTokenMatchType;
+}
+
 export abstract class AuthRepository {
   abstract findCurrentUserById(userId: number): Promise<CurrentUser | null>;
 
@@ -26,9 +38,23 @@ export abstract class AuthRepository {
     userId: number;
     oldTokenHash: string;
     newTokenHash: string;
+    previousTokenGraceUntil: string;
     createdAt: string;
     expiresAt: string;
-  }): Promise<void>;
+  }): Promise<boolean>;
 
-  abstract findRefreshTokenByHash(tokenHash: string): Promise<{ userId: number; tokenHash: string; expiresAt: string } | null>;
+  abstract rotateRefreshTokenFromPrevious(input: {
+    userId: number;
+    previousTokenHash: string;
+    currentTokenHash: string;
+    newTokenHash: string;
+    previousTokenGraceUntil: string;
+    createdAt: string;
+    expiresAt: string;
+    now: string;
+  }): Promise<boolean>;
+
+  abstract revokeRefreshTokensForUser(userId: number, revokedAt: string): Promise<void>;
+
+  abstract findRefreshTokenByHash(tokenHash: string): Promise<RefreshTokenRecord | null>;
 }

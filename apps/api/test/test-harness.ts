@@ -20,6 +20,7 @@ export async function createTestHarness(): Promise<TestHarness> {
   const dbPath = join(dbDirectory, 'test.sqlite');
   process.env['DATABASE_URL'] = dbPath;
   process.env['JWT_ACCESS_SECRET'] ??= 'test-access-secret';
+  process.env['AUTH_REFRESH_REPLAY_GRACE_SECONDS'] ??= '1';
 
   const { AppModule } = await import('../src/app.module.js');
 

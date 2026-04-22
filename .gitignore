@@ -40,6 +40,7 @@ Thumbs.db
 .claude/settings.local.json
 frollz-api/coverage
 frollz-ui/coverage
+**/*/*.sqlite.json
 **/frollz-api/dev.db
 .turbo/**
 **/.turbo/**
@@ -48,3 +49,5 @@ frollz-ui/coverage
 .codebase-memory/*.sqlite
 **/*.sqlite
 **/*/.env
+
+

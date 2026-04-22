@@ -11,9 +11,18 @@ export class RefreshTokenEntity extends AutoIncrementEntity {
   @Property({ type: 'text', fieldName: 'token_hash' })
   tokenHash!: string;
 
+  @Property({ type: 'text', fieldName: 'previous_token_hash', nullable: true })
+  previousTokenHash: string | null = null;
+
+  @Property({ type: 'text', fieldName: 'previous_token_grace_until', nullable: true })
+  previousTokenGraceUntil: string | null = null;
+
   @Property({ type: 'text', fieldName: 'created_at' })
   createdAt!: string;
 
   @Property({ type: 'text', fieldName: 'expires_at' })
   expiresAt!: string;
+
+  @Property({ type: 'text', fieldName: 'revoked_at', nullable: true })
+  revokedAt: string | null = null;
 }

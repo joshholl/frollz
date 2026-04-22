@@ -59,8 +59,11 @@ export class MikroOrmAuthRepository extends AuthRepository {
       const entity = transactionalEntityManager.create(RefreshTokenEntity, {
         user,
         tokenHash: input.tokenHash,
+        previousTokenHash: null,
+        previousTokenGraceUntil: null,
         createdAt: input.createdAt,
-        expiresAt: input.expiresAt
+        expiresAt: input.expiresAt,
+        revokedAt: null
       });
 
       transactionalEntityManager.persist(entity);
@@ -69,33 +72,97 @@ export class MikroOrmAuthRepository extends AuthRepository {
   }
 
   async deleteRefreshToken(tokenHash: string, userId: number) {
-    await this.entityManager.nativeDelete(RefreshTokenEntity, { tokenHash, user: userId });
-  }
-
-  async rotateRefreshToken(input: { userId: number; oldTokenHash: string; newTokenHash: string; createdAt: string; expiresAt: string }) {
-    await this.entityManager.transactional(async (transactionalEntityManager) => {
-      await transactionalEntityManager.nativeDelete(RefreshTokenEntity, { user: input.userId, tokenHash: input.oldTokenHash });
-      const user = transactionalEntityManager.getReference(UserEntity, input.userId);
-      const entity = transactionalEntityManager.create(RefreshTokenEntity, {
-        user,
-        tokenHash: input.newTokenHash,
-        createdAt: input.createdAt,
-        expiresAt: input.expiresAt
-      });
-      transactionalEntityManager.persist(entity);
-      await transactionalEntityManager.flush();
+    await this.entityManager.nativeDelete(RefreshTokenEntity, {
+      user: userId,
+      $or: [{ tokenHash }, { previousTokenHash: tokenHash }]
     });
   }
 
-  async findRefreshTokenByHash(tokenHash: string) {
-    const entity = await this.entityManager.findOne(RefreshTokenEntity, { tokenHash }, { populate: ['user'] });
-
-    return entity
-      ? {
-        userId: entity.user.id,
-        tokenHash: entity.tokenHash,
-        expiresAt: entity.expiresAt
+  async rotateRefreshToken(input: {
+    userId: number;
+    oldTokenHash: string;
+    newTokenHash: string;
+    previousTokenGraceUntil: string;
+    createdAt: string;
+    expiresAt: string;
+  }) {
+    const updatedRows = await this.entityManager.nativeUpdate(
+      RefreshTokenEntity,
+      {
+        user: input.userId,
+        tokenHash: input.oldTokenHash,
+        revokedAt: null
+      },
+      {
+        tokenHash: input.newTokenHash,
+        previousTokenHash: input.oldTokenHash,
+        previousTokenGraceUntil: input.previousTokenGraceUntil,
+        createdAt: input.createdAt,
+        expiresAt: input.expiresAt
       }
-      : null;
+    );
+
+    return updatedRows > 0;
+  }
+
+  async rotateRefreshTokenFromPrevious(input: {
+    userId: number;
+    previousTokenHash: string;
+    currentTokenHash: string;
+    newTokenHash: string;
+    previousTokenGraceUntil: string;
+    createdAt: string;
+    expiresAt: string;
+    now: string;
+  }) {
+    const updatedRows = await this.entityManager.nativeUpdate(
+      RefreshTokenEntity,
+      {
+        user: input.userId,
+        tokenHash: input.currentTokenHash,
+        previousTokenHash: input.previousTokenHash,
+        previousTokenGraceUntil: { $gt: input.now },
+        revokedAt: null
+      },
+      {
+        tokenHash: input.newTokenHash,
+        previousTokenHash: input.currentTokenHash,
+        previousTokenGraceUntil: input.previousTokenGraceUntil,
+        createdAt: input.createdAt,
+        expiresAt: input.expiresAt
+      }
+    );
+
+    return updatedRows > 0;
+  }
+
+  async revokeRefreshTokensForUser(userId: number, revokedAt: string) {
+    await this.entityManager.nativeUpdate(
+      RefreshTokenEntity,
+      { user: userId, revokedAt: null },
+      { revokedAt, previousTokenGraceUntil: null }
+    );
+  }
+
+  async findRefreshTokenByHash(tokenHash: string) {
+    const entity = await this.entityManager.findOne(
+      RefreshTokenEntity,
+      { $or: [{ tokenHash }, { previousTokenHash: tokenHash }] },
+      { populate: ['user'] }
+    );
+
+    if (!entity) {
+      return null;
+    }
+
+    return {
+      userId: entity.user.id,
+      tokenHash: entity.tokenHash,
+      previousTokenHash: entity.previousTokenHash,
+      previousTokenGraceUntil: entity.previousTokenGraceUntil,
+      expiresAt: entity.expiresAt,
+      revokedAt: entity.revokedAt,
+      matchType: entity.tokenHash === tokenHash ? ('current' as const) : ('previous' as const)
+    };
   }
 }
