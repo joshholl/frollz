@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, h, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, h, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue';
 import { RouterView, useRoute, useRouter } from 'vue-router';
 import {
   NBadge,
+  NBreadcrumb,
+  NBreadcrumbItem,
   NButton,
   NDrawer,
   NDrawerContent,
@@ -22,6 +24,7 @@ import {
   CircleDot,
   Contrast2,
   Frame,
+  Home,
   Movie,
   Photo,
   Rectangle,
@@ -72,6 +75,15 @@ const subNavIconByPath = {
   '/film/large-format-4x5': Rectangle,
   '/film/large-format-8x10': Rectangle
 } as const;
+
+type BreadcrumbItem = {
+  key: string;
+  label: string;
+  to?: string;
+  isCurrent?: boolean;
+  icon?: Component;
+  ariaLabel?: string;
+};
 
 const navRoutes = computed(() =>
   router
@@ -251,7 +263,104 @@ const selectedKey = computed(() => {
   return lastActiveSection.value;
 });
 
-const headerTitle = computed(() => String(route.meta.title ?? 'Frollz2'));
+const routePathSegments = computed(() => route.path.split('/').filter(Boolean));
+
+const lastPathSegment = computed(() => {
+  const segments = routePathSegments.value;
+  const rawSegment = segments.at(-1);
+
+  if (!rawSegment) {
+    return 'frollz';
+  }
+
+  return decodeURIComponent(rawSegment);
+});
+
+const selectedRouteRecord = computed(() => {
+  if (!selectedKey.value) {
+    return null;
+  }
+
+  return navRoutes.value.find((record) => record.path === selectedKey.value) ?? null;
+});
+
+const directMatchedNavRecord = computed(() =>
+  navRoutes.value.find((record) => record.path === route.path) ?? null
+);
+
+const navRouteByPath = computed(() => {
+  const byPath = new Map<string, (typeof navRoutes.value)[number]>();
+  for (const record of navRoutes.value) {
+    byPath.set(record.path, record);
+  }
+  return byPath;
+});
+
+const breadcrumbItems = computed<BreadcrumbItem[]>(() => {
+  const items: BreadcrumbItem[] = [
+    {
+      key: 'home',
+      label: 'frollz',
+      to: '/',
+      icon: Home,
+      ariaLabel: 'frollz home'
+    }
+  ];
+
+  const currentRecord = selectedRouteRecord.value;
+  if (!currentRecord) {
+    items.push({
+      key: `current-${route.path}`,
+      label: lastPathSegment.value,
+      isCurrent: true
+    });
+    return items;
+  }
+
+  const isDirectMatch = directMatchedNavRecord.value?.path === currentRecord.path;
+  const parentPath = typeof currentRecord.meta.navParent === 'string' ? currentRecord.meta.navParent : null;
+
+  if (parentPath) {
+    const parentRecord = navRouteByPath.value.get(parentPath);
+
+    if (parentRecord) {
+      items.push({
+        key: parentRecord.path,
+        label: String(parentRecord.meta.title ?? parentRecord.name ?? parentRecord.path),
+        to: parentRecord.path
+      });
+    }
+
+    if (isDirectMatch) {
+      items.push({
+        key: currentRecord.path,
+        label: String(currentRecord.meta.title ?? currentRecord.name ?? currentRecord.path),
+        isCurrent: true
+      });
+      return items;
+    }
+  } else if (isDirectMatch) {
+    items.push({
+      key: currentRecord.path,
+      label: String(currentRecord.meta.title ?? currentRecord.name ?? currentRecord.path),
+      isCurrent: true
+    });
+    return items;
+  } else {
+    items.push({
+      key: currentRecord.path,
+      label: String(currentRecord.meta.title ?? currentRecord.name ?? currentRecord.path),
+      to: currentRecord.path
+    });
+  }
+
+  items.push({
+    key: `current-${route.path}`,
+    label: lastPathSegment.value,
+    isCurrent: true
+  });
+  return items;
+});
 
 function syncViewportState(): void {
   isMobile.value = window.innerWidth < MOBILE_BREAKPOINT;
@@ -366,6 +475,14 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('resize', syncViewportState);
 });
+
+watch(
+  () => route.path,
+  () => {
+    document.title = `${lastPathSegment.value} | frollz`;
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
@@ -384,7 +501,7 @@ onBeforeUnmount(() => {
     <NLayout>
       <NLayoutHeader bordered class="app-shell__header">
         <NSpace justify="space-between" align="center" :wrap="false" style="width: 100%;">
-          <NSpace align="center" :wrap="false">
+          <NSpace align="center" :wrap="false" class="app-shell__header-left">
             <NButton v-if="isMobile" aria-label="Menu" secondary circle @click="isMobileMenuOpen = true">
               <template #icon>
                 <NIcon>
@@ -400,9 +517,27 @@ onBeforeUnmount(() => {
                 </NIcon>
               </template>
             </NButton>
-            <NText strong class="app-shell__title">{{ headerTitle }}</NText>
+            <nav class="app-shell__breadcrumb-wrap" aria-label="Breadcrumb">
+              <NBreadcrumb separator=">" class="app-shell__breadcrumb">
+                <NBreadcrumbItem v-for="crumb in breadcrumbItems" :key="crumb.key">
+                  <RouterLink v-if="crumb.to && !crumb.isCurrent" :to="crumb.to" class="app-shell__breadcrumb-link"
+                    :aria-label="crumb.ariaLabel ?? crumb.label">
+                    <NIcon v-if="crumb.icon" size="16" aria-hidden="true">
+                      <component :is="crumb.icon" />
+                    </NIcon>
+                    <span>{{ crumb.label }}</span>
+                  </RouterLink>
+                  <span v-else class="app-shell__breadcrumb-current" :aria-current="crumb.isCurrent ? 'page' : undefined">
+                    <NIcon v-if="crumb.icon" size="16" aria-hidden="true">
+                      <component :is="crumb.icon" />
+                    </NIcon>
+                    <span>{{ crumb.label }}</span>
+                  </span>
+                </NBreadcrumbItem>
+              </NBreadcrumb>
+            </nav>
           </NSpace>
-          <NSpace align="center" :wrap="false">
+          <NSpace align="center" :wrap="false" class="app-shell__header-right">
             <NText v-if="authStore.user" depth="3" class="app-shell__user">{{ authStore.user.email }}</NText>
             <NButton tertiary type="error" @click="handleLogout">Logout</NButton>
           </NSpace>
@@ -445,11 +580,49 @@ onBeforeUnmount(() => {
   align-items: center;
   display: flex;
   min-height: 64px;
-  padding: 0 16px;
+  padding: 8px 12px;
 }
 
-.app-shell__title {
-  letter-spacing: 0.01em;
+.app-shell__header-left {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.app-shell__header-right {
+  flex: 0 0 auto;
+}
+
+.app-shell__breadcrumb-wrap {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-shell__breadcrumb {
+  min-width: 0;
+}
+
+.app-shell__breadcrumb-link,
+.app-shell__breadcrumb-current {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  max-width: 32vw;
+}
+
+.app-shell__breadcrumb-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-shell__breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.app-shell__breadcrumb-link span,
+.app-shell__breadcrumb-current span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-shell__user {
@@ -487,12 +660,19 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 900px) {
-  .app-shell__header {
-    padding: 0 12px;
-  }
-
   .app-shell__user {
     display: none;
+  }
+}
+
+@media (min-width: 901px) {
+  .app-shell__header {
+    padding: 0 16px;
+  }
+
+  .app-shell__breadcrumb-link,
+  .app-shell__breadcrumb-current {
+    max-width: 220px;
   }
 }
 </style>
