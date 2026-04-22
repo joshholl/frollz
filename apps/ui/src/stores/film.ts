@@ -5,11 +5,13 @@ import {
   filmDetailSchema,
   filmJourneyEventSchema,
   filmSummarySchema,
+  filmUnitSchema,
   type CreateFilmJourneyEventRequest,
   type FilmDetail,
   type FilmJourneyEvent,
   type FilmListQuery,
   type FilmSummary,
+  type FilmUnit,
   type FilmUpdateRequest,
   type FilmCreateRequest
 } from '@frollz2/schema';
@@ -21,6 +23,7 @@ export const useFilmStore = defineStore('film', () => {
   const films = ref<FilmSummary[]>([]);
   const currentFilm = ref<FilmDetail | null>(null);
   const currentEvents = ref<FilmJourneyEvent[]>([]);
+  const currentUnits = ref<FilmUnit[]>([]);
   const isLoading = ref(false);
   const isDetailLoading = ref(false);
   const filmsError = ref<string | null>(null);
@@ -79,10 +82,13 @@ export const useFilmStore = defineStore('film', () => {
         currentFilm.value = filmDetailSchema.parse(await readApiData(response));
         const eventsResponse = await request(`/api/v1/film/${id}/events`);
         currentEvents.value = filmJourneyEventSchema.array().parse(await readApiData(eventsResponse));
+        const unitsResponse = await request(`/api/v1/film/${id}/units`);
+        currentUnits.value = filmUnitSchema.array().parse(await readApiData(unitsResponse));
       } catch (error) {
         detailError.value = error instanceof Error ? error.message : 'Failed to load film detail';
         currentFilm.value = null;
         currentEvents.value = [];
+        currentUnits.value = [];
         throw error;
       } finally {
         isDetailLoading.value = false;
@@ -135,6 +141,7 @@ export const useFilmStore = defineStore('film', () => {
     films,
     currentFilm,
     currentEvents,
+    currentUnits,
     isLoading,
     isDetailLoading,
     filmsError,

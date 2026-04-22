@@ -90,4 +90,11 @@ export class FilmController {
     return this.filmService.listEvents(user.userId, id);
   }
 
+  @Get(':id/units')
+  @ApiOperation({ summary: 'List all units for a film package' })
+  @ApiResponse({ status: 200, description: 'Film unit list' })
+  listUnits(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+    return this.filmService.listUnits(user.userId, id);
+  }
+
 }

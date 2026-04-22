@@ -50,6 +50,7 @@ const eventForm = reactive<{
   filmStateCode: FilmStateCode | null;
   notes: string;
   storageLocationId: number | null;
+  filmUnitId: number | null;
   deviceId: number | null;
   slotSideNumber: number | null;
   intendedPushPull: number | null;
@@ -62,6 +63,7 @@ const eventForm = reactive<{
   filmStateCode: null,
   notes: '',
   storageLocationId: null,
+  filmUnitId: null,
   deviceId: null,
   slotSideNumber: null,
   intendedPushPull: null,
@@ -168,6 +170,15 @@ const deviceOptions = computed(() =>
     .map((device) => ({
       label: humanizeDevice(device),
       value: device.id
+    }))
+);
+
+const availableUnitOptions = computed(() =>
+  filmStore.currentUnits
+    .filter((unit) => unit.firstLoadedAt === null)
+    .map((unit) => ({
+      label: `Unit #${unit.ordinal}`,
+      value: unit.id
     }))
 );
 
@@ -292,6 +303,7 @@ function goBack(): void {
 function onChangeFilmState(code: string | null): void {
   eventForm.filmStateCode = code as FilmStateCode | null;
   eventForm.storageLocationId = null;
+  eventForm.filmUnitId = null;
   eventForm.deviceId = null;
   eventForm.slotSideNumber = null;
   eventForm.intendedPushPull = null;
@@ -322,6 +334,9 @@ function validateEventForm(): Record<string, string> {
   if (eventForm.filmStateCode === 'loaded' && !eventForm.deviceId) {
     errors.deviceId = 'Select a device.';
   }
+  if (eventForm.filmStateCode === 'loaded' && !eventForm.filmUnitId) {
+    errors.filmUnitId = 'Select a film unit.';
+  }
   if (eventForm.filmStateCode === 'loaded' && eventForm.deviceId) {
     const selectedDevice = deviceStore.devices.find((entry) => entry.id === eventForm.deviceId);
     if (selectedDevice?.deviceTypeCode === 'film_holder') {
@@ -351,6 +366,7 @@ function buildEventData(): Record<string, unknown> {
 
         if (!selectedDevice) {
           return {
+            filmUnitId: eventForm.filmUnitId,
             deviceId: eventForm.deviceId,
             slotSideNumber: eventForm.slotSideNumber,
             intendedPushPull: eventForm.intendedPushPull
@@ -360,6 +376,7 @@ function buildEventData(): Record<string, unknown> {
         if (selectedDevice.deviceTypeCode === 'camera') {
           return {
             loadTargetType: 'camera_direct',
+            filmUnitId: eventForm.filmUnitId,
             cameraId: selectedDevice.id,
             intendedPushPull: eventForm.intendedPushPull
           };
@@ -368,6 +385,7 @@ function buildEventData(): Record<string, unknown> {
         if (selectedDevice.deviceTypeCode === 'interchangeable_back') {
           return {
             loadTargetType: 'interchangeable_back',
+            filmUnitId: eventForm.filmUnitId,
             interchangeableBackId: selectedDevice.id,
             intendedPushPull: eventForm.intendedPushPull
           };
@@ -375,6 +393,7 @@ function buildEventData(): Record<string, unknown> {
 
         return {
           loadTargetType: 'film_holder_slot',
+          filmUnitId: eventForm.filmUnitId,
           filmHolderId: selectedDevice.id,
           slotNumber: Number(eventForm.slotSideNumber ?? 1),
           intendedPushPull: eventForm.intendedPushPull
@@ -579,6 +598,20 @@ onBeforeUnmount(() => {
         </NFormItem>
 
         <template v-if="eventForm.filmStateCode === 'loaded'">
+          <NFormItem
+            label="Film unit"
+            required
+            :label-props="{ for: 'event-film-unit-input' }"
+            :feedback="eventState.fieldErrors.filmUnitId || ''"
+          >
+            <NSelect
+              :value="eventForm.filmUnitId"
+              :options="availableUnitOptions"
+              placeholder="Select unit"
+              :input-props="{ id: 'event-film-unit-input', name: 'filmUnitId' }"
+              @update:value="(value) => { eventForm.filmUnitId = value; }"
+            />
+          </NFormItem>
           <NFormItem
             label="Device"
             required

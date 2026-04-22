@@ -7,6 +7,7 @@ import type {
   FilmJourneyEvent,
   FilmListQuery,
   FilmSummary,
+  FilmUnit,
   FilmUpdateRequest
 } from '@frollz2/schema';
 import { filmJourneyEventPayloadSchema } from '@frollz2/schema';
@@ -175,6 +176,16 @@ export class FilmService {
     }
 
     return this.filmRepository.listEvents(userId, filmId);
+  }
+
+  async listUnits(userId: number, filmId: number): Promise<FilmUnit[]> {
+    const film = await this.filmRepository.findByIdSummary(userId, filmId);
+
+    if (!film) {
+      throw new DomainError('NOT_FOUND', 'Film not found');
+    }
+
+    return this.filmRepository.listUnits(userId, filmId);
   }
 
   async createEvent(userId: number, filmId: number, input: CreateFilmJourneyEventRequest): Promise<FilmJourneyEvent> {

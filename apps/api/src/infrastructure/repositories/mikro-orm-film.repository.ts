@@ -2,8 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import { filmJourneyEventDataLoadedSchema, type DeviceLoadTimelineEvent } from '@frollz2/schema';
 import { FilmRepository } from './film.repository.js';
-import { FilmEntity, FilmJourneyEventEntity } from '../entities/index.js';
-import { mapFilmDetailEntity, mapFilmJourneyEventEntity, mapFilmSummaryEntity } from '../mappers/index.js';
+import { FilmEntity, FilmJourneyEventEntity, FilmUnitEntity } from '../entities/index.js';
+import { mapFilmDetailEntity, mapFilmJourneyEventEntity, mapFilmSummaryEntity, mapFilmUnitEntity } from '../mappers/index.js';
 
 function parseLoadedEventData(raw: unknown): { deviceId: number; slotSideNumber: number | null } | null {
   const parsed = filmJourneyEventDataLoadedSchema.safeParse(raw);
@@ -160,6 +160,19 @@ export class MikroOrmFilmRepository extends FilmRepository {
     );
 
     return events.map(mapFilmJourneyEventEntity);
+  }
+
+  async listUnits(userId: number, filmId: number) {
+    const units = await this.entityManager.find(
+      FilmUnitEntity,
+      { user: userId, legacyFilm: filmId },
+      {
+        orderBy: { ordinal: 'asc', id: 'asc' },
+        populate: ['user', 'filmStock', 'legacyFilm', 'currentState', 'boundHolderDevice']
+      }
+    );
+
+    return units.map(mapFilmUnitEntity);
   }
 
   async listDeviceLoadEvents(userId: number, deviceId: number): Promise<DeviceLoadTimelineEvent[]> {
