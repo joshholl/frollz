@@ -4,8 +4,8 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { DomainErrorFilter } from './common/filters/domain-error.filter.js';
+import { loadEnvFiles } from './config/load-env.js';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js';
-import { requireAuthJwtSecret } from './modules/auth/auth.constants.js';
 
 function parseAllowedOrigins(): string[] {
   const rawOrigins = process.env['ALLOWED_ORIGINS'];
@@ -21,6 +21,18 @@ function parseAllowedOrigins(): string[] {
 }
 
 async function bootstrap(): Promise<void> {
+  const loadedEnvFiles = loadEnvFiles();
+  const isDevelopment = process.env['NODE_ENV'] === 'development';
+
+  if (isDevelopment) {
+    if (loadedEnvFiles.length > 0) {
+      console.log(`[env] loaded files: ${loadedEnvFiles.join(', ')}`);
+    } else {
+      console.log('[env] no .env files found; using process environment only');
+    }
+  }
+
+  const { requireAuthJwtSecret } = await import('./modules/auth/auth.constants.js');
   requireAuthJwtSecret();
 
   const { AppModule } = await import('./app.module.js');

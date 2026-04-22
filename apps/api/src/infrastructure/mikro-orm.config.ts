@@ -1,4 +1,5 @@
 import { defineConfig } from '@mikro-orm/sqlite';
+import { loadEnvFiles } from '../config/load-env.js';
 import {
   DevelopmentProcessEntity,
   EmulsionEntity,
@@ -19,6 +20,8 @@ import {
   StorageLocationEntity,
   UserEntity
 } from './entities/index.js';
+
+loadEnvFiles();
 
 export default defineConfig({
   metadataCache: { enabled: true, pretty: true },
