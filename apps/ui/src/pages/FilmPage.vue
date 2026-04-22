@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, h, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   NAlert,
   NButton,
   NCard,
-  NDataTable,
   NDatePicker,
   NDrawer,
   NDrawerContent,
@@ -13,22 +12,19 @@ import {
   NFlex,
   NForm,
   NFormItem,
-  NGrid,
-  NGridItem,
   NInput,
   NSelect,
-  NSpace,
   NTag,
   NText
 } from 'naive-ui';
-import type { DataTableColumns } from 'naive-ui';
-import type { FilmCreateRequest, FilmListQuery, FilmSummary } from '@frollz2/schema';
+import type { FilmCreateRequest } from '@frollz2/schema';
 import { createIdempotencyKey } from '../composables/idempotency.js';
 import { useReferenceStore } from '../stores/reference.js';
 import { useFilmStore } from '../stores/film.js';
 import PageShell from '../components/PageShell.vue';
+import MiniDashboardLayout from '../components/MiniDashboardLayout.vue';
 import { useUiFeedback } from '../composables/useUiFeedback.js';
-import type { FormState, TableState } from '../composables/ui-state.js';
+import type { FormState } from '../composables/ui-state.js';
 
 const referenceStore = useReferenceStore();
 const filmStore = useFilmStore();
@@ -39,16 +35,6 @@ const feedback = useUiFeedback();
 const isCreateDrawerOpen = ref(false);
 const isCreatingFilm = ref(false);
 const expirationTimestamp = ref<number | null>(null);
-
-const filters = reactive<{
-  stateCode: string | null;
-  filmFormatId: number | null;
-  emulsionId: number | null;
-}>({
-  stateCode: null,
-  filmFormatId: null,
-  emulsionId: null
-});
 
 const createForm = reactive<{
   name: string;
@@ -68,34 +54,6 @@ const createState = ref<FormState>({
   formError: null
 });
 
-const lockedFilmFormatCodes = computed<string[]>(() => {
-  if (!Array.isArray(route.meta.filmFormatFilters)) {
-    return [];
-  }
-
-  return route.meta.filmFormatFilters.filter((code): code is string => typeof code === 'string');
-});
-const isLockedBreakout = computed(() => lockedFilmFormatCodes.value.length > 0);
-const pageSubtitle = computed(() =>
-  isLockedBreakout.value
-    ? 'Route-locked category view from navigation.'
-    : 'Track each roll through its lifecycle and quickly continue work.'
-);
-const displayedFilms = computed(() => {
-  if (!isLockedBreakout.value) {
-    return filmStore.films;
-  }
-
-  return filmStore.films.filter((film) => lockedFilmFormatCodes.value.includes(film.filmFormat.code));
-});
-
-const tableState = computed<TableState>(() => ({
-  loading: filmStore.isLoading,
-  empty: !filmStore.isLoading && displayedFilms.value.length === 0,
-  error: filmStore.filmsError,
-  retry: refresh
-}));
-
 const stateTypeByCode: Record<string, 'default' | 'info' | 'primary' | 'warning' | 'success'> = {
   purchased: 'default',
   stored: 'info',
@@ -108,105 +66,59 @@ const stateTypeByCode: Record<string, 'default' | 'info' | 'primary' | 'warning'
   archived: 'default'
 };
 
-const activeFilterCount = computed(
-  () =>
-    isLockedBreakout.value
-      ? 0
-      : Number(Boolean(filters.stateCode)) + Number(Boolean(filters.filmFormatId)) + Number(Boolean(filters.emulsionId))
-);
-
-const activeFilters = computed(() => {
-  if (isLockedBreakout.value) {
+const lockedFilmFormatCodes = computed<string[]>(() => {
+  if (!Array.isArray(route.meta.filmFormatFilters)) {
     return [];
   }
 
-  const items: string[] = [];
-
-  if (filters.stateCode) {
-    const state = referenceStore.filmStates.find((entry) => entry.code === filters.stateCode);
-    items.push(`State: ${state?.label ?? filters.stateCode}`);
-  }
-
-  if (filters.filmFormatId) {
-    const format = referenceStore.filmFormats.find((entry) => entry.id === filters.filmFormatId);
-    items.push(`Format: ${format?.label ?? filters.filmFormatId}`);
-  }
-
-  if (filters.emulsionId) {
-    const emulsion = referenceStore.emulsions.find((entry) => entry.id === filters.emulsionId);
-    items.push(`Emulsion: ${emulsion ? `${emulsion.manufacturer} ${emulsion.brand}` : filters.emulsionId}`);
-  }
-
-  return items;
+  return route.meta.filmFormatFilters.filter((code): code is string => typeof code === 'string');
 });
 
-const columns = computed<DataTableColumns<FilmSummary>>(() => [
-  { title: 'Name', key: 'name' },
+const isLockedBreakout = computed(() => lockedFilmFormatCodes.value.length > 0);
+
+const pageSubtitle = computed(() =>
+  isLockedBreakout.value
+    ? 'Route-locked category dashboard from navigation.'
+    : 'Film inventory dashboard with the latest rolls and key status counts.'
+);
+
+const displayedFilms = computed(() => {
+  if (!isLockedBreakout.value) {
+    return filmStore.films;
+  }
+
+  return filmStore.films.filter((film) => lockedFilmFormatCodes.value.includes(film.filmFormat.code));
+});
+
+const recentFilms = computed(() => displayedFilms.value.slice(-10));
+
+const stats = computed(() => [
+  { label: 'Total visible films', value: displayedFilms.value.length, helper: 'Current route scope' },
   {
-    title: 'Emulsion',
-    key: 'emulsion',
-    render: (row) => `${row.emulsion.manufacturer} ${row.emulsion.brand}`
+    label: 'Loaded films',
+    value: displayedFilms.value.filter((film) => film.currentStateCode === 'loaded').length,
+    helper: 'Currently loaded in devices'
   },
   {
-    title: 'Format',
-    key: 'filmFormat',
-    render: (row) => row.filmFormat.code
+    label: 'Exposed films',
+    value: displayedFilms.value.filter((film) => film.currentStateCode === 'exposed').length,
+    helper: 'Awaiting next transition'
   },
   {
-    title: 'Package',
-    key: 'packageType',
-    render: (row) => row.packageType.code
-  },
-  {
-    title: 'State',
-    key: 'currentStateCode',
-    render: (row) => h(NTag, { type: stateTypeByCode[row.currentStateCode] ?? 'default' }, { default: () => row.currentState.label })
-  },
-  {
-    title: 'Actions',
-    key: 'actions',
-    render: (row) =>
-      h(NSpace, { wrapItem: false }, {
-        default: () => [
-          h(
-            NButton,
-            {
-              size: 'small',
-              tertiary: true,
-              onClick: () => {
-                void router.push(`/film/${row.id}`);
-              }
-            },
-            { default: () => 'Open timeline' }
-          ),
-          h(
-            NButton,
-            {
-              size: 'small',
-              type: 'primary',
-              secondary: true,
-              onClick: () => {
-                void router.push({ path: `/film/${row.id}`, query: { openEvent: '1' } });
-              }
-            },
-            { default: () => 'Open event composer' }
-          )
-        ]
-      })
+    label: 'Sent for development',
+    value: displayedFilms.value.filter((film) => film.currentStateCode === 'sent_for_dev').length,
+    helper: 'In lab processing stage'
   }
 ]);
 
-const stateOptions = computed(() =>
-  referenceStore.filmStates.map((state) => ({ label: state.label, value: state.code }))
-);
-const formatOptions = computed(() =>
-  referenceStore.filmFormats.map((format) => ({ label: format.label, value: format.id }))
-);
 const emulsionOptions = computed(() =>
   referenceStore.emulsions.map((emulsion) => ({
     label: `${emulsion.manufacturer} ${emulsion.brand} ${emulsion.isoSpeed}`,
     value: emulsion.id
   }))
+);
+const formatOptions = computed(() =>
+  referenceStore.filmFormats.map((format) => ({ label: format.label, value: format.id }))
 );
 const packageTypeOptions = computed(() => {
   if (!createForm.filmFormatId) {
@@ -236,15 +148,18 @@ const createFieldErrors = computed<Record<string, string>>(() => {
   return nextErrors;
 });
 
+async function refresh(): Promise<void> {
+  try {
+    await filmStore.loadFilms();
+  } catch (error) {
+    feedback.error(feedback.toErrorMessage(error, 'Could not refresh film inventory.'));
+  }
+}
+
 onMounted(async () => {
   try {
     if (!referenceStore.loaded) {
       await referenceStore.loadAll();
-    }
-    if (isLockedBreakout.value) {
-      filters.stateCode = null;
-      filters.filmFormatId = null;
-      filters.emulsionId = null;
     }
     await refresh();
   } catch (error) {
@@ -255,49 +170,9 @@ onMounted(async () => {
 watch(
   () => route.fullPath,
   () => {
-    if (isLockedBreakout.value) {
-      filters.stateCode = null;
-      filters.filmFormatId = null;
-      filters.emulsionId = null;
-    }
     void refresh();
   }
 );
-
-async function refresh(): Promise<void> {
-  try {
-    await filmStore.loadFilms(isLockedBreakout.value ? {} : buildQuery());
-  } catch (error) {
-    feedback.error(feedback.toErrorMessage(error, 'Could not refresh film inventory.'));
-  }
-}
-
-function buildQuery(): FilmListQuery {
-  return {
-    ...(filters.stateCode ? { stateCode: filters.stateCode } : {}),
-    ...(filters.filmFormatId ? { filmFormatId: filters.filmFormatId } : {}),
-    ...(filters.emulsionId ? { emulsionId: filters.emulsionId } : {})
-  };
-}
-
-async function applyFilters(): Promise<void> {
-  if (isLockedBreakout.value) {
-    return;
-  }
-
-  await refresh();
-}
-
-function resetFilters(): void {
-  if (isLockedBreakout.value) {
-    return;
-  }
-
-  filters.stateCode = null;
-  filters.filmFormatId = null;
-  filters.emulsionId = null;
-  void refresh();
-}
 
 function resetCreateForm(): void {
   createForm.name = '';
@@ -354,44 +229,44 @@ async function submitCreateFilm(): Promise<void> {
       <NButton tertiary @click="refresh">Refresh</NButton>
     </template>
 
-    <NCard v-if="!isLockedBreakout" title="Filters" size="small">
-      <NGrid cols="1 1 3" x-gap="12" y-gap="12">
-        <NGridItem>
-          <NSelect v-model:value="filters.stateCode" :options="stateOptions" clearable placeholder="Filter by state" />
-        </NGridItem>
-        <NGridItem>
-          <NSelect v-model:value="filters.filmFormatId" :options="formatOptions" clearable placeholder="Filter by format" />
-        </NGridItem>
-        <NGridItem>
-          <NSelect
-            v-model:value="filters.emulsionId"
-            :options="emulsionOptions"
-            clearable
-            filterable
-            placeholder="Filter by emulsion"
+    <MiniDashboardLayout left-panel-title="Recently added films" right-panel-title="Film statistics">
+      <template #left>
+        <NCard :loading="filmStore.isLoading">
+          <NAlert v-if="filmStore.filmsError" type="error" :show-icon="true" style="margin-bottom: 10px;">
+            {{ filmStore.filmsError }}
+          </NAlert>
+          <NEmpty
+            v-if="!filmStore.isLoading && !filmStore.filmsError && recentFilms.length === 0"
+            description="No films are available yet."
           />
-        </NGridItem>
-      </NGrid>
-      <NFlex justify="space-between" align="center" style="margin-top: 12px;">
-        <NSpace>
-          <NButton tertiary @click="applyFilters">Apply filters</NButton>
-          <NButton tertiary :disabled="activeFilterCount === 0" @click="resetFilters">Clear all</NButton>
-        </NSpace>
-        <NSpace>
-          <NTag v-for="filter in activeFilters" :key="filter" type="info" size="small">{{ filter }}</NTag>
-        </NSpace>
-      </NFlex>
-    </NCard>
+          <NFlex v-else vertical size="small">
+            <NCard v-for="film in recentFilms" :key="film.id" size="small" embedded>
+              <NFlex justify="space-between" align="center" :wrap="false">
+                <NText strong>{{ film.name }}</NText>
+                <NTag :type="stateTypeByCode[film.currentStateCode] ?? 'default'" size="small">
+                  {{ film.currentState.label }}
+                </NTag>
+              </NFlex>
+              <NText depth="3">{{ film.emulsion.manufacturer }} {{ film.emulsion.brand }} · ISO {{ film.emulsion.isoSpeed }}</NText>
+              <NText depth="3">{{ film.filmFormat.code }} · {{ film.packageType.label }}</NText>
+              <NFlex justify="end">
+                <NButton tertiary size="small" @click="router.push(`/film/${film.id}`)">Open timeline</NButton>
+              </NFlex>
+            </NCard>
+          </NFlex>
+        </NCard>
+      </template>
 
-    <NCard title="Your films">
-      <NFlex vertical size="medium">
-        <NAlert v-if="tableState.error" type="error" :show-icon="true">
-          {{ tableState.error }}
-        </NAlert>
-        <NDataTable :columns="columns" :data="displayedFilms" :loading="filmStore.isLoading" :row-key="(row) => row.id" />
-        <NEmpty v-if="tableState.empty && !tableState.error" description="No films match these filters yet." />
-      </NFlex>
-    </NCard>
+      <template #right>
+        <NCard v-for="card in stats" :key="card.label" size="small">
+          <NFlex vertical size="small">
+            <NText depth="3">{{ card.label }}</NText>
+            <NText style="font-size: 1.45rem; font-weight: 700;">{{ card.value }}</NText>
+            <NText depth="3">{{ card.helper }}</NText>
+          </NFlex>
+        </NCard>
+      </template>
+    </MiniDashboardLayout>
   </PageShell>
 
   <NDrawer v-model:show="isCreateDrawerOpen" placement="right" width="420">
@@ -451,12 +326,12 @@ async function submitCreateFilm(): Promise<void> {
         </NFormItem>
         <NFlex justify="space-between" align="center">
           <NText depth="3">Required fields are marked with an asterisk.</NText>
-          <NSpace>
+          <NFlex>
             <NButton tertiary @click="isCreateDrawerOpen = false">Cancel</NButton>
             <NButton type="primary" attr-type="submit" :loading="isCreatingFilm" :disabled="isCreatingFilm">
               Create film
             </NButton>
-          </NSpace>
+          </NFlex>
         </NFlex>
       </NForm>
     </NDrawerContent>

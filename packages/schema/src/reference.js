@@ -11,7 +11,7 @@ export const filmFormatCodes = [
     'InstaxWide',
     'InstaxSquare'
 ];
-export const developmentProcessCodes = ['C41', 'E6', 'ECN2', 'BW'];
+export const developmentProcessCodes = ['C41', 'E6', 'ECN2', 'BW', 'BWReversal'];
 export const filmStateCodes = [
     'purchased',
     'stored',

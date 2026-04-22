@@ -1,6 +1,6 @@
 import { z } from 'zod';
 export declare const filmFormatCodes: readonly ["35mm", "120", "220", "4x5", "2x3", "8x10", "InstaxMini", "InstaxWide", "InstaxSquare"];
-export declare const developmentProcessCodes: readonly ["C41", "E6", "ECN2", "BW"];
+export declare const developmentProcessCodes: readonly ["C41", "E6", "ECN2", "BW", "BWReversal"];
 export declare const filmStateCodes: readonly ["purchased", "stored", "loaded", "exposed", "removed", "sent_for_dev", "developed", "scanned", "archived"];
 export declare const storageLocationCodes: readonly ["freezer", "refrigerator", "shelf", "other"];
 export declare const slotStateCodes: readonly ["empty", "loaded", "exposed", "removed"];
@@ -22,6 +22,7 @@ export declare const developmentProcessCodeSchema: z.ZodEnum<{
     E6: "E6";
     ECN2: "ECN2";
     BW: "BW";
+    BWReversal: "BWReversal";
 }>;
 export declare const filmStateCodeSchema: z.ZodEnum<{
     purchased: "purchased";
@@ -79,6 +80,7 @@ export declare const developmentProcessSchema: z.ZodObject<{
         E6: "E6";
         ECN2: "ECN2";
         BW: "BW";
+    BWReversal: "BWReversal";
     }>;
     label: z.ZodString;
 }, z.core.$strip>;
@@ -170,6 +172,7 @@ export declare const emulsionSchema: z.ZodObject<{
             E6: "E6";
             ECN2: "ECN2";
             BW: "BW";
+    BWReversal: "BWReversal";
         }>;
         label: z.ZodString;
     }, z.core.$strip>;
@@ -213,6 +216,7 @@ export declare const referenceTablesSchema: z.ZodObject<{
             E6: "E6";
             ECN2: "ECN2";
             BW: "BW";
+    BWReversal: "BWReversal";
         }>;
         label: z.ZodString;
     }, z.core.$strip>>;
@@ -304,6 +308,7 @@ export declare const referenceTablesSchema: z.ZodObject<{
                 E6: "E6";
                 ECN2: "ECN2";
                 BW: "BW";
+    BWReversal: "BWReversal";
             }>;
             label: z.ZodString;
         }, z.core.$strip>;

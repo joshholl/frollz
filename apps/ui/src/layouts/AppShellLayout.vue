@@ -171,10 +171,15 @@ function toMenuOption(record: (typeof navRoutes.value)[number], includeBadge: bo
   const option: MenuOption = {
     key: record.path,
     label: () =>
-      h('div', { class: 'app-shell__menu-label' }, [
+      h('div', {
+        class: 'app-shell__menu-label',
+        onClick: (event: MouseEvent) => {
+          handleMenuLabelClick(event, record.path);
+        }
+      }, [
         h('span', { class: 'app-shell__menu-text' }, String(record.meta.title ?? record.name ?? record.path)),
         ...(typeof count === 'number'
-          ? [h(NBadge, { class: 'app-shell__menu-badge', value: count, showZero: true, offset: [16  , 0] })]
+          ? [h(NBadge, { class: 'app-shell__menu-badge', value: count, showZero: true, offset: [16, 0] })]
           : [])
       ])
   };
@@ -247,6 +252,29 @@ function toggleDesktopSidebar(): void {
 function handleMenuSelect(key: string): void {
   isMobileMenuOpen.value = false;
   void router.push(key);
+}
+
+function toggleParentExpansion(parentKey: string): void {
+  if (expandedKeys.value.includes(parentKey)) {
+    expandedKeys.value = expandedKeys.value.filter((key) => key !== parentKey);
+    return;
+  }
+
+  expandedKeys.value = [...expandedKeys.value, parentKey];
+}
+
+function handleMenuLabelClick(event: MouseEvent, key: string): void {
+  event.stopPropagation();
+  const isParent = childRoutesByParent.value.has(key);
+
+  if (isParent) {
+    toggleParentExpansion(key);
+  }
+
+  isMobileMenuOpen.value = false;
+  if (route.path !== key) {
+    void router.push(key);
+  }
 }
 
 function handleExpandedKeys(nextKeys: string[]): void {

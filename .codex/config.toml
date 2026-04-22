@@ -49,3 +49,24 @@ args = [ "-y", "@modelcontextprotocol/server-docker" ]
 [mcp_servers.chrome-devtools]
 command = "npx"
 args = [ "-y", "chrome-devtools-mcp@latest", "--no-usage-statistics" ]
+
+[mcp_servers.chrome-devtools.tools.lighthouse_audit]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.click]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.take_snapshot]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.emulate]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.evaluate_script]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.fill]
+approval_mode = "approve"
+
+[mcp_servers.chrome-devtools.tools.performance_start_trace]
+approval_mode = "approve"

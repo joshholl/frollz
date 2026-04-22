@@ -12,18 +12,18 @@ type FilmSummary = {
 
 const referencePayload = {
   data: {
-    filmFormats: [{ id: 1, code: '135', label: '35mm' }],
-    developmentProcesses: [{ id: 1, code: 'c41', label: 'C-41' }],
-    packageTypes: [{ id: 1, filmFormatId: 1, code: 'roll', label: 'Roll', filmFormat: { id: 1, code: '135', label: '35mm' } }],
+    filmFormats: [{ id: 1, code: '35mm', label: '35mm' }],
+    developmentProcesses: [{ id: 1, code: 'C41', label: 'C-41' }],
+    packageTypes: [{ id: 1, filmFormatId: 1, code: 'roll', label: 'Roll', filmFormat: { id: 1, code: '35mm', label: '35mm' } }],
     filmStates: [
       { id: 1, code: 'purchased', label: 'Purchased' },
       { id: 2, code: 'stored', label: 'Stored' },
       { id: 3, code: 'loaded', label: 'Loaded' }
     ],
-    storageLocations: [{ id: 1, code: 'fridge', label: 'Fridge' }],
+    storageLocations: [{ id: 1, code: 'refrigerator', label: 'Refrigerator' }],
     slotStates: [{ id: 1, code: 'empty', label: 'Empty' }],
     deviceTypes: [{ id: 1, code: 'camera', label: 'Camera' }],
-    holderTypes: [{ id: 1, code: 'sheet', label: 'Sheet' }],
+    holderTypes: [{ id: 1, code: 'standard', label: 'Standard' }],
     emulsions: [
       {
         id: 1,
@@ -31,9 +31,9 @@ const referencePayload = {
         brand: 'Portra',
         isoSpeed: 400,
         developmentProcessId: 1,
-        developmentProcess: { id: 1, code: 'c41', label: 'C-41' },
+        developmentProcess: { id: 1, code: 'C41', label: 'C-41' },
         balance: 'Daylight',
-        filmFormats: [{ id: 1, code: '135', label: '35mm' }]
+        filmFormats: [{ id: 1, code: '35mm', label: '35mm' }]
       }
     ]
   }
@@ -103,7 +103,7 @@ test('auth flow shows error and succeeds with visible feedback', async ({ page }
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 });
 
-test('film create flow validates required fields and refreshes table', async ({ page }) => {
+test('film create flow validates required fields from dashboard create action', async ({ page }) => {
   await mockLogin(page);
 
   const films: FilmSummary[] = [];
@@ -121,7 +121,7 @@ test('film create flow validates required fields and refreshes table', async ({ 
         currentStateCode: 'purchased',
         currentState: { code: 'purchased', label: 'Purchased' },
         emulsion: { manufacturer: 'Kodak', brand: 'Portra', isoSpeed: 400 },
-        filmFormat: { code: '135' },
+        filmFormat: { code: '35mm' },
         packageType: { code: 'roll' }
       };
 
@@ -175,7 +175,7 @@ test('event composer opens from inventory and supports conditional fields', asyn
             filmStateCode: 'stored',
             occurredAt: new Date().toISOString(),
             notes: null,
-            eventData: { storageLocationCode: 'fridge' }
+            eventData: { storageLocationCode: 'refrigerator' }
           }
         }
       });
@@ -201,17 +201,17 @@ test('event composer opens from inventory and supports conditional fields', asyn
             currentStateId: 1,
             currentStateCode: 'purchased',
             currentState: { id: 1, code: 'purchased', label: 'Purchased' },
-            filmFormat: { id: 1, code: '135', label: '35mm' },
-            packageType: { id: 1, filmFormatId: 1, code: 'roll', label: 'Roll' },
+            filmFormat: { id: 1, code: '35mm', label: '35mm' },
+            packageType: { id: 1, filmFormatId: 1, code: 'roll', label: 'Roll', filmFormat: { id: 1, code: '35mm', label: '35mm' } },
             emulsion: {
               id: 1,
               manufacturer: 'Kodak',
               brand: 'Portra',
               isoSpeed: 400,
               developmentProcessId: 1,
-              developmentProcess: { id: 1, code: 'c41', label: 'C-41' },
+              developmentProcess: { id: 1, code: 'C41', label: 'C-41' },
               balance: 'Daylight',
-              filmFormats: [{ id: 1, code: '135', label: '35mm' }]
+              filmFormats: [{ id: 1, code: '35mm', label: '35mm' }]
             },
             latestEvent: null
           }
@@ -240,12 +240,12 @@ test('event composer opens from inventory and supports conditional fields', asyn
               brand: 'Portra',
               isoSpeed: 400,
               developmentProcessId: 1,
-              developmentProcess: { id: 1, code: 'c41', label: 'C-41' },
+              developmentProcess: { id: 1, code: 'C41', label: 'C-41' },
               balance: 'Daylight',
-              filmFormats: [{ id: 1, code: '135', label: '35mm' }]
+              filmFormats: [{ id: 1, code: '35mm', label: '35mm' }]
             },
-            filmFormat: { id: 1, code: '135', label: '35mm' },
-            packageType: { id: 1, filmFormatId: 1, code: 'roll', label: 'Roll' }
+            filmFormat: { id: 1, code: '35mm', label: '35mm' },
+            packageType: { id: 1, filmFormatId: 1, code: 'roll', label: 'Roll', filmFormat: { id: 1, code: '35mm', label: '35mm' } }
           }
         ]
       }
@@ -261,6 +261,120 @@ test('event composer opens from inventory and supports conditional fields', asyn
   await page.getByRole('button', { name: 'Add transition event' }).click();
   await expect(page.getByRole('heading', { name: 'Add journey event' })).toBeVisible();
   await expect(page.getByTestId('event-target-state')).toBeVisible();
+});
+
+test('mini dashboards render recent tail-window lists and stats cards', async ({ page }) => {
+  await mockLogin(page);
+
+  const expandedReferencePayload = {
+    data: {
+      filmFormats: [{ id: 1, code: '35mm', label: '35mm' }],
+      developmentProcesses: [
+        { id: 1, code: 'C41', label: 'C-41' },
+        { id: 2, code: 'BW', label: 'Black and White' }
+      ],
+      packageTypes: [{ id: 1, filmFormatId: 1, code: 'roll', label: 'Roll', filmFormat: { id: 1, code: '35mm', label: '35mm' } }],
+      filmStates: [
+        { id: 1, code: 'purchased', label: 'Purchased' },
+        { id: 2, code: 'stored', label: 'Stored' },
+        { id: 3, code: 'loaded', label: 'Loaded' },
+        { id: 4, code: 'exposed', label: 'Exposed' },
+        { id: 5, code: 'sent_for_dev', label: 'Sent for Development' }
+      ],
+      storageLocations: [{ id: 1, code: 'refrigerator', label: 'Refrigerator' }],
+      slotStates: [{ id: 1, code: 'empty', label: 'Empty' }],
+      deviceTypes: [
+        { id: 1, code: 'camera', label: 'Camera' },
+        { id: 2, code: 'interchangeable_back', label: 'Interchangeable back' },
+        { id: 3, code: 'film_holder', label: 'Film holder' }
+      ],
+      holderTypes: [{ id: 1, code: 'standard', label: 'Standard' }],
+      emulsions: Array.from({ length: 12 }, (_, index) => ({
+        id: index + 1,
+        manufacturer: 'Maker',
+        brand: `Stock ${index + 1}`,
+        isoSpeed: 100 + index,
+        developmentProcessId: index % 2 === 0 ? 1 : 2,
+        developmentProcess: index % 2 === 0 ? { id: 1, code: 'C41', label: 'C-41' } : { id: 2, code: 'BW', label: 'Black and White' },
+        balance: 'Daylight',
+        filmFormats: [{ id: 1, code: '35mm', label: '35mm' }]
+      }))
+    }
+  };
+
+  await page.route('**/api/v1/reference', async (route) => {
+    await route.fulfill({ json: expandedReferencePayload });
+  });
+
+  await page.route('**/api/v1/film*', async (route) => {
+    await route.fulfill({
+      json: {
+        data: Array.from({ length: 12 }, (_, index) => ({
+          id: index + 1,
+          userId: 1,
+          name: `Film ${index + 1}`,
+          emulsionId: 1,
+          packageTypeId: 1,
+          filmFormatId: 1,
+          expirationDate: null,
+          currentStateId: (index % 5) + 1,
+          currentStateCode: ['purchased', 'stored', 'loaded', 'exposed', 'sent_for_dev'][index % 5],
+          currentState: [
+            { id: 1, code: 'purchased', label: 'Purchased' },
+            { id: 2, code: 'stored', label: 'Stored' },
+            { id: 3, code: 'loaded', label: 'Loaded' },
+            { id: 4, code: 'exposed', label: 'Exposed' },
+            { id: 5, code: 'sent_for_dev', label: 'Sent for Development' }
+          ][index % 5],
+          emulsion: expandedReferencePayload.data.emulsions[0],
+          filmFormat: { id: 1, code: '35mm', label: '35mm' },
+          packageType: { id: 1, filmFormatId: 1, code: 'roll', label: 'Roll', filmFormat: { id: 1, code: '35mm', label: '35mm' } }
+        }))
+      }
+    });
+  });
+
+  await page.route('**/api/v1/devices', async (route) => {
+    await route.fulfill({
+      json: {
+        data: Array.from({ length: 11 }, (_, index) => ({
+          id: index + 1,
+          userId: 1,
+          deviceTypeId: 1,
+          deviceTypeCode: 'camera',
+          filmFormatId: 1,
+          frameSize: '36x24',
+          make: 'Nikon',
+          model: `F${index + 1}`,
+          serialNumber: null,
+          dateAcquired: null
+        }))
+      }
+    });
+  });
+
+  await loginThroughUi(page);
+
+  await page.goto('/film');
+  await expect(page.getByRole('heading', { name: 'Recently added films' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Film statistics' })).toBeVisible();
+  await expect(page.getByText(/^Film 12$/)).toBeVisible();
+  await expect(page.getByText(/^Film 1$/)).toHaveCount(0);
+  await expect(page.getByText('Total visible films')).toBeVisible();
+
+  await page.goto('/devices');
+  await expect(page.getByRole('heading', { name: 'Recently added devices' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Device statistics' })).toBeVisible();
+  await expect(page.getByText(/^Nikon F11$/)).toBeVisible();
+  await expect(page.getByText(/^Nikon F1$/)).toHaveCount(0);
+  await expect(page.getByText('Total visible devices')).toBeVisible();
+
+  await page.goto('/emulsions');
+  await expect(page.getByRole('heading', { name: 'Recently added emulsions' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Emulsion statistics' })).toBeVisible();
+  await expect(page.getByText(/Maker Stock 12/)).toHaveCount(1);
+  await expect(page.getByText(/Maker Stock 1(?!\d)/)).toHaveCount(0);
+  await expect(page.getByText('Total visible emulsions')).toBeVisible();
 });
 
 test('mobile navigation uses drawer menu', async ({ page }) => {
