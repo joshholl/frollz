@@ -1,5 +1,6 @@
 import type { EntityClass, EntityManager } from '@mikro-orm/core';
-import { MikroORM } from '@mikro-orm/sqlite';
+import { MikroORM as SqliteMikroORM } from '@mikro-orm/sqlite';
+import type { MikroORM } from '@mikro-orm/core';
 import bcrypt from 'bcrypt';
 import { pathToFileURL } from 'node:url';
 import ormConfig from './mikro-orm.config.js';
@@ -122,10 +123,12 @@ async function ensureByCode<TEntity extends { code: string }>(
   return entity;
 }
 
-export async function seedDatabase(orm: MikroORM): Promise<void> {
+export async function seedDatabase(orm: MikroORM, options: { skipMigrations?: boolean } = {}): Promise<void> {
   const em = orm.em.fork();
 
-  await orm.migrator.up();
+  if (!options.skipMigrations) {
+    await orm.migrator.up();
+  }
 
   const [filmFormatMap, developmentProcessMap] = await Promise.all([
     Promise.all(filmFormats.map(async (seed) => [seed.code, await ensureByCode(em, FilmFormatEntity, seed)] as const)),
@@ -234,7 +237,8 @@ export async function seedDatabase(orm: MikroORM): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const orm = await MikroORM.init(ormConfig);
+  // SQLite-only bootstrap. PostgreSQL seeding will be wired in a follow-up phase.
+  const orm = await SqliteMikroORM.init(ormConfig);
 
   try {
     await seedDatabase(orm);

@@ -1,13 +1,12 @@
 {
   "extends": "../../packages/typescript-config/node.json",
   "compilerOptions": {
+    "declaration": true,
+    "noEmit": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "declaration": true,
-    "noEmit": false,
     "lib": [
       "ES2022",
-      "decorators.legacy"
     ],
     "rootDir": "src",
     "outDir": "dist",

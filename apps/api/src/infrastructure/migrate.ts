@@ -3,6 +3,7 @@ import { MikroORM } from '@mikro-orm/sqlite';
 import ormConfig from './mikro-orm.config.js';
 
 async function main(): Promise<void> {
+  // SQLite-only bootstrap. PostgreSQL migration execution will be wired in a follow-up phase.
   const orm = await MikroORM.init(ormConfig);
   try {
     await orm.migrator.up();

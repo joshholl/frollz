@@ -14,9 +14,11 @@ import {
   NSpace,
   NText,
   NThing,
-  NMessageProvider
+  NMessageProvider,
+  darkTheme
 } from 'naive-ui';
 import { useAuthStore } from './stores/auth.js';
+import { themeOverrides } from './theme.js';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -75,17 +77,11 @@ function handleMenuSelect(key: string): void {
 </script>
 
 <template>
-  <NConfigProvider>
+  <NConfigProvider :theme="darkTheme" :theme-overrides="themeOverrides" :ripple="true">
     <NMessageProvider>
       <NLayout has-sider>
-        <NLayoutSider
-          v-if="authStore.isAuthenticated && !isMobile"
-          bordered
-          collapse-mode="width"
-          :collapsed-width="64"
-          :width="220"
-          class="app-sider"
-        >
+        <NLayoutSider v-if="authStore.isAuthenticated && !isMobile" bordered collapse-mode="width" :collapsed-width="64"
+          :width="220" class="app-sider">
           <NSpace vertical size="large" align="stretch">
             <NThing title="Frollz2" description="Film workflow tracker" />
             <NMenu :value="selectedKey" :options="menuOptions" @update:value="handleMenuSelect" />
@@ -96,12 +92,8 @@ function handleMenuSelect(key: string): void {
           <NLayoutHeader bordered class="app-header">
             <NSpace justify="space-between" align="center">
               <NSpace align="center">
-                <NButton
-                  v-if="authStore.isAuthenticated && isMobile"
-                  aria-label="Open navigation menu"
-                  secondary
-                  @click="isMobileMenuOpen = true"
-                >
+                <NButton v-if="authStore.isAuthenticated && isMobile" aria-label="Open navigation menu" secondary
+                  @click="isMobileMenuOpen = true">
                   Menu
                 </NButton>
                 <NText strong>Analog Film Tracker</NText>

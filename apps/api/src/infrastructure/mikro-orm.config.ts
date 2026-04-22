@@ -1,5 +1,4 @@
 import { defineConfig } from '@mikro-orm/sqlite';
-import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
 import {
   DevelopmentProcessEntity,
   EmulsionEntity,
@@ -22,8 +21,9 @@ import {
 } from './entities/index.js';
 
 export default defineConfig({
-  metadataProvider: TsMorphMetadataProvider,
   metadataCache: { enabled: true, pretty: true },
+  // PostgreSQL stub: keep SQLite as bootstrap runtime for now.
+  // Future work can switch on DATABASE_URL scheme and return a PostgreSQL config.
   discovery: { tsConfigPath: './tsconfig.json' },
   dbName: process.env['DATABASE_URL'] ?? 'frollz2.sqlite',
   migrations: {

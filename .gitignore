@@ -45,4 +45,6 @@ frollz-ui/coverage
 **/.turbo/**
 
 # ── codebase-memory MCP tool output (generated, not for version control) ──────
-.codebase-memory/
+.codebase-memory/*.sqlite
+**/*.sqlite
+**/*/.env
