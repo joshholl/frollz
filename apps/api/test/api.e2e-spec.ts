@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  deviceLoadTimelineEventSchema,
   emulsionSchema,
   filmDetailSchema,
   filmJourneyEventSchema,
@@ -805,6 +806,193 @@ describe('API integration', () => {
     });
 
     expect(deleteResponse.statusCode).toBe(409);
+  });
+
+  it('lists device load events in newest-first order with holder side and user isolation', async () => {
+    const ownerTokens = await registerUser(`device-load-owner-${Date.now()}@example.com`);
+    const otherTokens = await registerUser(`device-load-other-${Date.now()}@example.com`);
+    const ownerHeaders = { authorization: `Bearer ${ownerTokens.accessToken}` };
+    const otherHeaders = { authorization: `Bearer ${otherTokens.accessToken}` };
+    const refs = await loadCoreReferenceData(ownerHeaders);
+
+    const holderCreateResponse = await harness.app.inject({
+      method: 'POST',
+      url: '/api/v1/devices',
+      headers: { ...ownerHeaders, 'content-type': 'application/json' },
+      payload: {
+        deviceTypeCode: 'film_holder',
+        deviceTypeId: refs.deviceType.id,
+        filmFormatId: refs.filmFormat.id,
+        frameSize: '6x7',
+        name: 'A12',
+        brand: 'Hasselblad',
+        holderTypeId: refs.holderType.id
+      }
+    });
+    const holder = filmDeviceSchema.parse(holderCreateResponse.json());
+
+    const cameraCreateResponse = await harness.app.inject({
+      method: 'POST',
+      url: '/api/v1/devices',
+      headers: { ...ownerHeaders, 'content-type': 'application/json' },
+      payload: {
+        deviceTypeCode: 'camera',
+        deviceTypeId: refs.cameraType.id,
+        filmFormatId: refs.filmFormat.id,
+        frameSize: '36x24',
+        make: 'Nikon',
+        model: 'F3',
+        serialNumber: null,
+        dateAcquired: null
+      }
+    });
+    const camera = filmDeviceSchema.parse(cameraCreateResponse.json());
+
+    const holderFilm = await createFilmForUser(ownerHeaders, 'Holder timeline roll');
+    await harness.app.inject({
+      method: 'POST',
+      url: `/api/v1/film/${holderFilm.film.id}/events`,
+      headers: { ...ownerHeaders, 'content-type': 'application/json' },
+      payload: {
+        filmStateCode: 'stored',
+        occurredAt: '2026-01-02T10:00:00.000Z',
+        eventData: {
+          storageLocationId: refs.freezer.id,
+          storageLocationCode: refs.freezer.code
+        }
+      }
+    });
+    await harness.app.inject({
+      method: 'POST',
+      url: `/api/v1/film/${holderFilm.film.id}/events`,
+      headers: { ...ownerHeaders, 'content-type': 'application/json' },
+      payload: {
+        filmStateCode: 'loaded',
+        occurredAt: '2026-01-02T12:00:00.000Z',
+        eventData: {
+          deviceId: holder.id,
+          slotSideNumber: 2,
+          intendedPushPull: null
+        }
+      }
+    });
+
+    const cameraFilm = await createFilmForUser(ownerHeaders, 'Camera timeline roll');
+    const cameraLoadedResponse = await harness.app.inject({
+      method: 'POST',
+      url: `/api/v1/film/${cameraFilm.film.id}/events`,
+      headers: { ...ownerHeaders, 'content-type': 'application/json' },
+      payload: {
+        filmStateCode: 'stored',
+        occurredAt: '2030-01-02T13:00:00.000Z',
+        eventData: {
+          storageLocationId: refs.refrigerator.id,
+          storageLocationCode: refs.refrigerator.code
+        }
+      }
+    });
+    expect(cameraLoadedResponse.statusCode).toBe(201);
+    await harness.app.inject({
+      method: 'POST',
+      url: `/api/v1/film/${cameraFilm.film.id}/events`,
+      headers: { ...ownerHeaders, 'content-type': 'application/json' },
+      payload: {
+        filmStateCode: 'loaded',
+        occurredAt: '2030-01-02T14:00:00.000Z',
+        eventData: {
+          deviceId: camera.id,
+          slotSideNumber: null,
+          intendedPushPull: null
+        }
+      }
+    });
+    const cameraExposedResponse = await harness.app.inject({
+      method: 'POST',
+      url: `/api/v1/film/${cameraFilm.film.id}/events`,
+      headers: { ...ownerHeaders, 'content-type': 'application/json' },
+      payload: {
+        filmStateCode: 'exposed',
+        occurredAt: '2030-01-02T14:30:00.000Z',
+        eventData: {}
+      }
+    });
+    expect(cameraExposedResponse.statusCode).toBe(201);
+    const cameraRemovedResponse = await harness.app.inject({
+      method: 'POST',
+      url: `/api/v1/film/${cameraFilm.film.id}/events`,
+      headers: { ...ownerHeaders, 'content-type': 'application/json' },
+      payload: {
+        filmStateCode: 'removed',
+        occurredAt: '2030-01-02T14:45:00.000Z',
+        eventData: {}
+      }
+    });
+    expect(cameraRemovedResponse.statusCode).toBe(201);
+
+    const newerHolderFilm = await createFilmForUser(ownerHeaders, 'Holder timeline newest');
+    await harness.app.inject({
+      method: 'POST',
+      url: `/api/v1/film/${newerHolderFilm.film.id}/events`,
+      headers: { ...ownerHeaders, 'content-type': 'application/json' },
+      payload: {
+        filmStateCode: 'stored',
+        occurredAt: '2026-01-02T15:00:00.000Z',
+        eventData: {
+          storageLocationId: refs.freezer.id,
+          storageLocationCode: refs.freezer.code
+        }
+      }
+    });
+    await harness.app.inject({
+      method: 'POST',
+      url: `/api/v1/film/${newerHolderFilm.film.id}/events`,
+      headers: { ...ownerHeaders, 'content-type': 'application/json' },
+      payload: {
+        filmStateCode: 'loaded',
+        occurredAt: '2026-01-02T16:00:00.000Z',
+        eventData: {
+          deviceId: holder.id,
+          slotSideNumber: 1,
+          intendedPushPull: null
+        }
+      }
+    });
+
+    const holderEventsResponse = await harness.app.inject({
+      method: 'GET',
+      url: `/api/v1/devices/${holder.id}/load-events`,
+      headers: ownerHeaders
+    });
+
+    expect(holderEventsResponse.statusCode).toBe(200);
+    const holderEvents = deviceLoadTimelineEventSchema.array().parse(holderEventsResponse.json());
+    expect(holderEvents).toHaveLength(2);
+    expect(holderEvents.map((event) => event.filmName)).toEqual(['Holder timeline newest', 'Holder timeline roll']);
+    expect(holderEvents[0]?.stockLabel).toBe('24 exposures');
+    expect(holderEvents[0]?.removedAt).toBeNull();
+    expect(holderEvents[0]?.slotSideNumber).toBe(1);
+    expect(holderEvents[1]?.removedAt).toBeNull();
+    expect(holderEvents[1]?.slotSideNumber).toBe(2);
+
+    const cameraEventsResponse = await harness.app.inject({
+      method: 'GET',
+      url: `/api/v1/devices/${camera.id}/load-events`,
+      headers: ownerHeaders
+    });
+    expect(cameraEventsResponse.statusCode).toBe(200);
+    const cameraEvents = deviceLoadTimelineEventSchema.array().parse(cameraEventsResponse.json());
+    expect(cameraEvents).toHaveLength(1);
+    expect(cameraEvents[0]?.filmName).toBe('Camera timeline roll');
+    expect(cameraEvents[0]?.stockLabel).toBe('24 exposures');
+    expect(cameraEvents[0]?.removedAt).toBe('2030-01-02T14:45:00.000Z');
+    expect(cameraEvents[0]?.slotSideNumber).toBeNull();
+
+    const forbiddenResponse = await harness.app.inject({
+      method: 'GET',
+      url: `/api/v1/devices/${holder.id}/load-events`,
+      headers: otherHeaders
+    });
+    expect(forbiddenResponse.statusCode).toBe(404);
   });
 
   it('returns 404 when one user requests another user film', async () => {

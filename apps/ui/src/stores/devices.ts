@@ -1,6 +1,15 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { filmHolderSlotSchema, filmDeviceSchema, type FilmHolderSlot, type FilmDevice, type CreateFilmDeviceRequest, type UpdateFilmDeviceRequest } from '@frollz2/schema';
+import {
+  deviceLoadTimelineEventSchema,
+  filmHolderSlotSchema,
+  filmDeviceSchema,
+  type DeviceLoadTimelineEvent,
+  type FilmHolderSlot,
+  type FilmDevice,
+  type CreateFilmDeviceRequest,
+  type UpdateFilmDeviceRequest
+} from '@frollz2/schema';
 import { useApi } from '../composables/useApi.js';
 import { readApiData } from '../composables/api-envelope.js';
 
@@ -9,6 +18,7 @@ export const useDeviceStore = defineStore('device', () => {
   const devices = ref<FilmDevice[]>([]);
   const currentDevice = ref<FilmDevice | null>(null);
   const currentSlots = ref<FilmHolderSlot[]>([]);
+  const currentLoadEvents = ref<DeviceLoadTimelineEvent[]>([]);
   const isLoading = ref(false);
   const isLoadingDetail = ref(false);
   const listError = ref<string | null>(null);
@@ -48,11 +58,14 @@ export const useDeviceStore = defineStore('device', () => {
 
     isLoadingDetail.value = true;
     detailError.value = null;
+    currentLoadEvents.value = [];
     loadDeviceInFlightId = id;
     loadDeviceInFlight = (async () => {
       try {
         const response = await request(`/api/v1/devices/${id}`);
         currentDevice.value = filmDeviceSchema.parse(await readApiData(response));
+        const loadEventsResponse = await request(`/api/v1/devices/${id}/load-events`);
+        currentLoadEvents.value = deviceLoadTimelineEventSchema.array().parse(await readApiData(loadEventsResponse));
         if (currentDevice.value.deviceTypeCode === 'film_holder') {
           currentSlots.value = filmHolderSlotSchema.array().parse(currentDevice.value.slots);
         } else {
@@ -62,6 +75,7 @@ export const useDeviceStore = defineStore('device', () => {
         detailError.value = error instanceof Error ? error.message : 'Failed to load device detail';
         currentDevice.value = null;
         currentSlots.value = [];
+        currentLoadEvents.value = [];
         throw error;
       } finally {
         isLoadingDetail.value = false;
@@ -100,6 +114,7 @@ export const useDeviceStore = defineStore('device', () => {
     await request(`/api/v1/devices/${id}`, { method: 'DELETE' });
     currentDevice.value = null;
     currentSlots.value = [];
+    currentLoadEvents.value = [];
     await loadDevices();
   }
 
@@ -107,6 +122,7 @@ export const useDeviceStore = defineStore('device', () => {
     devices,
     currentDevice,
     currentSlots,
+    currentLoadEvents,
     isLoading,
     isLoadingDetail,
     listError,

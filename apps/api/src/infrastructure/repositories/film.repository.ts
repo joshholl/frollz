@@ -1,4 +1,5 @@
 import type {
+  DeviceLoadTimelineEvent,
   FilmDetail,
   FilmJourneyEvent,
   FilmListQuery,
@@ -16,6 +17,8 @@ export abstract class FilmRepository {
   abstract update(userId: number, filmId: number, input: FilmUpdateRequest): Promise<FilmSummary | null>;
 
   abstract listEvents(userId: number, filmId: number): Promise<FilmJourneyEvent[]>;
+
+  abstract listDeviceLoadEvents(userId: number, deviceId: number): Promise<DeviceLoadTimelineEvent[]>;
 
   abstract findOccupiedFilmForDeviceId(userId: number, deviceId: number): Promise<number | null>;
 }

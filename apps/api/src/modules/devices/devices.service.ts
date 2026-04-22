@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { CreateFilmDeviceRequest, FilmHolderSlot, FilmDevice, UpdateFilmDeviceRequest } from '@frollz2/schema';
+import type { CreateFilmDeviceRequest, DeviceLoadTimelineEvent, FilmHolderSlot, FilmDevice, UpdateFilmDeviceRequest } from '@frollz2/schema';
 import { DomainError } from '../../domain/errors.js';
 import { FilmRepository } from '../../infrastructure/repositories/film.repository.js';
 import { DeviceRepository } from '../../infrastructure/repositories/device.repository.js';
@@ -56,5 +56,15 @@ export class DevicesService {
 
   listHolderSlots(userId: number, filmDeviceId: number): Promise<FilmHolderSlot[]> {
     return this.deviceRepository.listHolderSlots(userId, filmDeviceId);
+  }
+
+  async listLoadEvents(userId: number, deviceId: number): Promise<DeviceLoadTimelineEvent[]> {
+    const device = await this.deviceRepository.findById(userId, deviceId);
+
+    if (!device) {
+      throw new DomainError('NOT_FOUND', 'Device not found');
+    }
+
+    return this.filmRepository.listDeviceLoadEvents(userId, deviceId);
   }
 }

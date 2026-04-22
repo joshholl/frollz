@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  developmentProcessCodeSchema,
   emulsionSchema,
   filmFormatSchema,
   filmStateCodeSchema,
@@ -114,6 +115,18 @@ export const filmJourneyEventSchema = z.object({
   eventData: z.record(z.string(), z.unknown())
 });
 
+export const deviceLoadTimelineEventSchema = z.object({
+  eventId: idSchema,
+  filmId: idSchema,
+  filmName: z.string().min(1),
+  emulsionName: z.string().min(1),
+  stockLabel: z.string().nullable(),
+  developmentProcessCode: developmentProcessCodeSchema,
+  occurredAt: isoDateTimeSchema,
+  removedAt: isoDateTimeSchema.nullable(),
+  slotSideNumber: z.number().int().nullable()
+});
+
 export const createFilmJourneyEventRequestSchema = z.object({
   filmStateCode: filmStateCodeSchema,
   occurredAt: isoDateTimeSchema,
@@ -219,6 +232,7 @@ export type FilmCreateRequest = z.infer<typeof filmCreateRequestSchema>;
 export type FilmUpdateRequest = z.infer<typeof filmUpdateRequestSchema>;
 export type FilmListQuery = z.infer<typeof filmListQuerySchema>;
 export type FilmJourneyEvent = z.infer<typeof filmJourneyEventSchema>;
+export type DeviceLoadTimelineEvent = z.infer<typeof deviceLoadTimelineEventSchema>;
 export type FilmJourneyEventPayload = z.infer<typeof filmJourneyEventPayloadSchema>;
 export type CreateFilmJourneyEventRequest = z.infer<typeof createFilmJourneyEventRequestSchema>;
 export type FilmHolderSlot = z.infer<typeof filmHolderSlotSchema>;

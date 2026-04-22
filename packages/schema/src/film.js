@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { emulsionSchema, filmFormatSchema, filmStateCodeSchema, filmStateSchema, holderTypeSchema, packageTypeSchema, deviceTypeSchema, slotStateSchema, storageLocationSchema } from './reference.js';
+import { developmentProcessCodeSchema, emulsionSchema, filmFormatSchema, filmStateCodeSchema, filmStateSchema, holderTypeSchema, packageTypeSchema, deviceTypeSchema, slotStateSchema, storageLocationSchema } from './reference.js';
 import { idSchema, isoDateTimeSchema, nullableTextSchema } from './common.js';
 export const filmTransitionMap = new Map([
     ['purchased', ['stored', 'loaded']],
@@ -93,6 +93,17 @@ export const filmJourneyEventSchema = z.object({
     recordedAt: isoDateTimeSchema,
     notes: z.string().nullable(),
     eventData: z.record(z.string(), z.unknown())
+});
+export const deviceLoadTimelineEventSchema = z.object({
+    eventId: idSchema,
+    filmId: idSchema,
+    filmName: z.string().min(1),
+    emulsionName: z.string().min(1),
+    stockLabel: z.string().nullable(),
+    developmentProcessCode: developmentProcessCodeSchema,
+    occurredAt: isoDateTimeSchema,
+    removedAt: isoDateTimeSchema.nullable(),
+    slotSideNumber: z.number().int().nullable()
 });
 export const createFilmJourneyEventRequestSchema = z.object({
     filmStateCode: filmStateCodeSchema,

@@ -29,6 +29,13 @@ export class DevicesController {
     return this.devicesService.findById(user.userId, id);
   }
 
+  @Get(':id/load-events')
+  @ApiOperation({ summary: 'List film load events for a device' })
+  @ApiResponse({ status: 200, description: 'Device load events' })
+  listLoadEvents(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+    return this.devicesService.listLoadEvents(user.userId, id);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a device' })
   @ApiResponse({ status: 201, description: 'Device created' })

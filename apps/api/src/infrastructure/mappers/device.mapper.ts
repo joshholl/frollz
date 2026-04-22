@@ -2,12 +2,17 @@ import type { FilmHolderSlot, FilmDevice } from '@frollz2/schema';
 import { holderTypeSchema, slotStateSchema } from '@frollz2/schema';
 import type { FilmHolderSlotEntity, FilmDeviceEntity } from '../entities/index.js';
 
+function normalizeSideNumber(value: number): number {
+  return Number.isInteger(value) && value > 0 ? value : 1;
+}
+
 export function mapFilmHolderSlotEntity(entity: FilmHolderSlotEntity): FilmHolderSlot {
   return {
     id: entity.id,
     userId: entity.user.id,
     filmDeviceId: entity.filmHolder.filmDevice.id,
-    sideNumber: entity.sideNumber,
+    // Backward compatibility for legacy rows that may contain 0/invalid side numbers.
+    sideNumber: normalizeSideNumber(entity.sideNumber),
     slotStateId: entity.slotState.id,
     slotStateCode: slotStateSchema.shape.code.parse(entity.slotState.code),
     loadedFilmId: entity.loadedFilm ? entity.loadedFilm.id : null,
