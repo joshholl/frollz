@@ -1,5 +1,10 @@
-import { defineConfig } from '@mikro-orm/sqlite';
+import type { Options } from '@mikro-orm/core';
+import { PostgreSqlDriver } from '@mikro-orm/postgresql';
+import { SqliteDriver } from '@mikro-orm/sqlite';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { loadEnvFiles } from '../config/load-env.js';
+import { resolveDatabaseRuntime, resolvePostgresConfig, resolveSqliteDatabasePath } from './database-runtime.js';
 import {
   DevelopmentProcessEntity,
   EmulsionEntity,
