@@ -1,33 +1,27 @@
 <script setup lang="ts">
-import { computed, h, onMounted, reactive, ref } from 'vue';
+import { computed, h, onMounted, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import {
   NAlert,
   NButton,
   NCard,
-  NDatePicker,
-  NDrawer,
-  NDrawerContent,
   NEmpty,
   NFlex,
-  NForm,
-  NFormItem,
   NInput,
   NSelect,
   NTag,
   NText
 } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
-import type { FilmCreateRequest, FilmSummary } from '@frollz2/schema';
-import { createIdempotencyKey } from '../composables/idempotency.js';
+import type { FilmSummary } from '@frollz2/schema';
 import { useReferenceStore } from '../stores/reference.js';
 import { useFilmStore } from '../stores/film.js';
 import PageShell from '../components/PageShell.vue';
 import InventorySplitLayout from '../components/inventory/InventorySplitLayout.vue';
 import EntityTablePanel from '../components/inventory/EntityTablePanel.vue';
 import KpiCardGrid from '../components/inventory/KpiCardGrid.vue';
+import FilmCreateDrawer from '../components/film/FilmCreateDrawer.vue';
 import { useUiFeedback } from '../composables/useUiFeedback.js';
-import type { FormState } from '../composables/ui-state.js';
 import { usePagedEntityTable } from '../composables/usePagedEntityTable.js';
 import {
   buildChildKpis,
@@ -49,29 +43,8 @@ const route = useRoute();
 const feedback = useUiFeedback();
 
 const isCreateDrawerOpen = ref(false);
-const isCreatingFilm = ref(false);
-const pendingCreateKey = ref<string>(createIdempotencyKey());
-const expirationTimestamp = ref<number | null>(null);
 const childStateFilter = ref<string | null>(null);
 const childSearchTerm = ref('');
-
-const createForm = reactive<{
-  name: string;
-  emulsionId: number | null;
-  filmFormatId: number | null;
-  packageTypeId: number | null;
-}>({
-  name: '',
-  emulsionId: null,
-  filmFormatId: null,
-  packageTypeId: null
-});
-
-const createState = ref<FormState>({
-  loading: false,
-  fieldErrors: {},
-  formError: null
-});
 
 const stateTypeByCode: Record<string, 'default' | 'info' | 'primary' | 'warning' | 'success'> = {
   purchased: 'default',
@@ -183,43 +156,6 @@ const childTableColumns = computed<DataTableColumns<FilmSummary>>(() => [
   }
 ]);
 
-const emulsionOptions = computed(() =>
-  referenceStore.emulsions.map((emulsion) => ({
-    label: `${emulsion.manufacturer} ${emulsion.brand} ${emulsion.isoSpeed}`,
-    value: emulsion.id
-  }))
-);
-const formatOptions = computed(() =>
-  referenceStore.filmFormats.map((format) => ({ label: format.label, value: format.id }))
-);
-const packageTypeOptions = computed(() => {
-  if (!createForm.filmFormatId) {
-    return [];
-  }
-
-  return referenceStore.packageTypesByFormat(createForm.filmFormatId).map((packageType) => ({
-    label: packageType.label,
-    value: packageType.id
-  }));
-});
-
-const createFieldErrors = computed<Record<string, string>>(() => {
-  const nextErrors: Record<string, string> = {};
-  if (!createForm.name.trim()) {
-    nextErrors.name = 'Film name is required.';
-  }
-  if (!createForm.emulsionId) {
-    nextErrors.emulsionId = 'Select an emulsion.';
-  }
-  if (!createForm.filmFormatId) {
-    nextErrors.filmFormatId = 'Select a film format.';
-  }
-  if (!createForm.packageTypeId) {
-    nextErrors.packageTypeId = 'Select a package type.';
-  }
-  return nextErrors;
-});
-
 async function refresh(): Promise<void> {
   try {
     await filmStore.loadFilms();
@@ -243,56 +179,8 @@ function onChildStateFilterChange(value: string | null): void {
   childStateFilter.value = value === '__all__' ? null : value;
 }
 
-function resetCreateForm(): void {
-  createForm.name = '';
-  createForm.emulsionId = null;
-  createForm.filmFormatId = null;
-  createForm.packageTypeId = null;
-  expirationTimestamp.value = null;
-  createState.value.fieldErrors = {};
-  createState.value.formError = null;
-}
-
 function openCreateDrawer(): void {
-  pendingCreateKey.value = createIdempotencyKey();
   isCreateDrawerOpen.value = true;
-}
-
-async function submitCreateFilm(): Promise<void> {
-  if (isCreatingFilm.value) {
-    return;
-  }
-
-  createState.value.fieldErrors = createFieldErrors.value;
-  if (Object.keys(createState.value.fieldErrors).length > 0) {
-    createState.value.formError = 'Please complete all required fields.';
-    return;
-  }
-
-  const payload: FilmCreateRequest = {
-    name: createForm.name.trim(),
-    emulsionId: createForm.emulsionId as number,
-    filmFormatId: createForm.filmFormatId as number,
-    packageTypeId: createForm.packageTypeId as number,
-    expirationDate: expirationTimestamp.value ? new Date(expirationTimestamp.value).toISOString() : null
-  };
-
-  isCreatingFilm.value = true;
-  createState.value.loading = true;
-  createState.value.formError = null;
-
-  try {
-    await filmStore.createFilm(payload, pendingCreateKey.value);
-    isCreateDrawerOpen.value = false;
-    pendingCreateKey.value = createIdempotencyKey();
-    resetCreateForm();
-    feedback.success('Film created successfully.');
-  } catch (error) {
-    createState.value.formError = feedback.toErrorMessage(error, 'Could not create film.');
-  } finally {
-    isCreatingFilm.value = false;
-    createState.value.loading = false;
-  }
 }
 </script>
 
@@ -376,89 +264,7 @@ async function submitCreateFilm(): Promise<void> {
     </InventorySplitLayout>
   </PageShell>
 
-  <NDrawer v-model:show="isCreateDrawerOpen" placement="right" width="min(100vw, 420px)">
-    <NDrawerContent title="Add film" closable>
-      <NForm label-placement="top" @submit.prevent="submitCreateFilm">
-        <NAlert v-if="createState.formError" type="error" :show-icon="true" style="margin-bottom: 10px;">
-          {{ createState.formError }}
-        </NAlert>
-
-        <NFormItem
-          label="Name"
-          required
-          :label-props="{ for: 'film-create-name-input' }"
-          :feedback="createState.fieldErrors.name || ''"
-        >
-          <NInput
-            v-model:value="createForm.name"
-            placeholder="Film label"
-            :input-props="{ id: 'film-create-name-input', name: 'name' }"
-          />
-        </NFormItem>
-        <NFormItem
-          label="Emulsion"
-          required
-          :label-props="{ for: 'film-create-emulsion-input' }"
-          :feedback="createState.fieldErrors.emulsionId || ''"
-        >
-          <NSelect
-            v-model:value="createForm.emulsionId"
-            :options="emulsionOptions"
-            filterable
-            placeholder="Select emulsion"
-            data-testid="create-film-emulsion"
-            :input-props="{ id: 'film-create-emulsion-input', name: 'emulsionId' }"
-          />
-        </NFormItem>
-        <NFormItem
-          label="Film format"
-          required
-          :label-props="{ for: 'film-create-format-input' }"
-          :feedback="createState.fieldErrors.filmFormatId || ''"
-        >
-          <NSelect
-            v-model:value="createForm.filmFormatId"
-            :options="formatOptions"
-            placeholder="Select format"
-            data-testid="create-film-format"
-            :input-props="{ id: 'film-create-format-input', name: 'filmFormatId' }"
-            @update:value="createForm.packageTypeId = null"
-          />
-        </NFormItem>
-        <NFormItem
-          label="Package type"
-          required
-          :label-props="{ for: 'film-create-package-input' }"
-          :feedback="createState.fieldErrors.packageTypeId || ''"
-        >
-          <NSelect
-            v-model:value="createForm.packageTypeId"
-            :options="packageTypeOptions"
-            placeholder="Select package"
-            data-testid="create-film-package"
-            :input-props="{ id: 'film-create-package-input', name: 'packageTypeId' }"
-          />
-        </NFormItem>
-        <NFormItem label="Expiration date" :label-props="{ for: 'film-create-expiration-input' }">
-          <NDatePicker
-            v-model:value="expirationTimestamp"
-            type="datetime"
-            clearable
-            :input-props="{ id: 'film-create-expiration-input', name: 'expirationDate' }"
-          />
-        </NFormItem>
-        <NFlex justify="space-between" align="center">
-          <NText depth="3">Required fields are marked with an asterisk.</NText>
-          <NFlex>
-            <NButton tertiary @click="isCreateDrawerOpen = false">Cancel</NButton>
-            <NButton type="primary" attr-type="submit" :loading="isCreatingFilm" :disabled="isCreatingFilm">
-              Create film
-            </NButton>
-          </NFlex>
-        </NFlex>
-      </NForm>
-    </NDrawerContent>
-  </NDrawer>
+  <FilmCreateDrawer v-model:show="isCreateDrawerOpen" />
 </template>
 
 <style scoped>
