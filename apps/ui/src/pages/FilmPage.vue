@@ -1,19 +1,17 @@
 <script setup lang="ts">
 import { computed, h, onMounted, ref } from 'vue';
-import { RouterLink, useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import {
   NAlert,
   NButton,
   NCard,
-  NEmpty,
-  NFlex,
   NInput,
   NSelect,
-  NTag,
-  NText
+  NTag
 } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import type { FilmSummary } from '@frollz2/schema';
+import AppRouteTextLink from '../components/AppRouteTextLink.vue';
 import { useReferenceStore } from '../stores/reference.js';
 import { useFilmStore } from '../stores/film.js';
 import PageShell from '../components/PageShell.vue';
@@ -21,6 +19,7 @@ import InventorySplitLayout from '../components/inventory/InventorySplitLayout.v
 import EntityTablePanel from '../components/inventory/EntityTablePanel.vue';
 import KpiCardGrid from '../components/inventory/KpiCardGrid.vue';
 import FilmCreateDrawer from '../components/film/FilmCreateDrawer.vue';
+import RecentFilmsCard from '../components/film/RecentFilmsCard.vue';
 import { useUiFeedback } from '../composables/useUiFeedback.js';
 import { usePagedEntityTable } from '../composables/usePagedEntityTable.js';
 import {
@@ -38,7 +37,6 @@ type FilmStatsCard = {
 
 const referenceStore = useReferenceStore();
 const filmStore = useFilmStore();
-const router = useRouter();
 const route = useRoute();
 const feedback = useUiFeedback();
 
@@ -123,18 +121,12 @@ const childTableColumns = computed<DataTableColumns<FilmSummary>>(() => [
     title: 'Name',
     key: 'name',
     render: (row) => h(
-      RouterLink,
+      AppRouteTextLink,
       {
         to: `/film/${row.id}`,
-        class: 'film-table__name-link',
-        style: {
-          color: 'var(--n-primary-color)',
-          fontWeight: 600,
-          textDecorationColor: 'var(--n-primary-color)'
-        },
-        'data-testid': `film-row-link-${row.id}`
+        label: row.name,
+        testId: `film-row-link-${row.id}`
       },
-      { default: () => row.name }
     )
   },
   {
@@ -235,25 +227,7 @@ function openCreateDrawer(): void {
           </EntityTablePanel>
 
           <template v-else>
-            <NEmpty
-              v-if="!filmStore.isLoading && !filmStore.filmsError && recentFilms.length === 0"
-              description="No films are available yet."
-            />
-            <NFlex v-else vertical size="small">
-              <NCard v-for="film in recentFilms" :key="film.id" size="small" embedded>
-                <NFlex justify="space-between" align="center" :wrap="false">
-                  <NText strong>{{ film.name }}</NText>
-                  <NTag :type="stateTypeByCode[film.currentStateCode] ?? 'default'" size="small">
-                    {{ film.currentState.label }}
-                  </NTag>
-                </NFlex>
-                <NText depth="3">{{ film.emulsion.manufacturer }} {{ film.emulsion.brand }} · ISO {{ film.emulsion.isoSpeed }}</NText>
-                <NText depth="3">{{ film.filmFormat.code }} · {{ film.packageType.label }}</NText>
-                <NFlex justify="end">
-                  <NButton tertiary size="small" @click="router.push(`/film/${film.id}`)">Open timeline</NButton>
-                </NFlex>
-              </NCard>
-            </NFlex>
+            <RecentFilmsCard :films="recentFilms" :loading="filmStore.isLoading" :state-type-by-code="stateTypeByCode" />
           </template>
         </NCard>
       </template>
@@ -266,24 +240,3 @@ function openCreateDrawer(): void {
 
   <FilmCreateDrawer v-model:show="isCreateDrawerOpen" />
 </template>
-
-<style scoped>
-.film-table__name-link {
-  color: var(--n-primary-color);
-  text-decoration: none;
-}
-
-.film-table__name-link:hover {
-  text-decoration: underline;
-}
-
-.film-table__name-link:visited {
-  color: var(--n-primary-color);
-}
-
-.film-table__name-link:focus-visible {
-  border-radius: 4px;
-  outline: 2px solid var(--n-primary-color);
-  outline-offset: 2px;
-}
-</style>
