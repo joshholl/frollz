@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 import { NCard, NEmpty, NText, NTimeline, NTimelineItem } from 'naive-ui';
 import type { FilmDevice, FilmJourneyEvent } from '@frollz2/schema';
+import { useResponsiveTimelinePlacement } from '../../composables/useResponsiveTimelinePlacement.js';
 
 type StorageLocation = {
   id: number;
@@ -38,8 +39,6 @@ const tagColorByType: Record<
   success: { dotColor: '#18a058' }
 };
 
-const isCompactTimeline = ref(false);
-const timelinePlacement = computed<'left' | 'right'>(() => (isCompactTimeline.value ? 'left' : 'right'));
 const timelineEvents = computed(() =>
   [...props.events]
     .sort((left, right) => {
@@ -60,8 +59,7 @@ const timelineEvents = computed(() =>
       dotColor: tagColorByType[stateTypeByCode[event.filmStateCode] ?? 'default'].dotColor
     }))
 );
-
-let timelineMediaQuery: MediaQueryList | null = null;
+const { timelinePlacement } = useResponsiveTimelinePlacement();
 
 function parseOccurredAt(value: string): number {
   const parsed = Date.parse(value);
@@ -93,10 +91,6 @@ function normalizeOptionalText(value: string | null | undefined): string | null 
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
-}
-
-function syncTimelinePlacement(eventOrQuery: MediaQueryList | MediaQueryListEvent): void {
-  isCompactTimeline.value = eventOrQuery.matches;
 }
 
 function formatDateTime(value: string): string {
@@ -180,17 +174,6 @@ function toReadableEventField(key: string, value: unknown): { label: string; val
 function isDeviceReferenceKey(key: string): boolean {
   return /(?:device|receiver)Id$/i.test(key);
 }
-
-onMounted(() => {
-  timelineMediaQuery = window.matchMedia('(max-width: 768px)');
-  syncTimelinePlacement(timelineMediaQuery);
-  timelineMediaQuery.addEventListener('change', syncTimelinePlacement);
-});
-
-onBeforeUnmount(() => {
-  timelineMediaQuery?.removeEventListener('change', syncTimelinePlacement);
-  timelineMediaQuery = null;
-});
 </script>
 
 <template>

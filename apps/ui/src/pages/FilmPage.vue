@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router';
 import {
   NAlert,
   NButton,
-  NCard,
   NInput,
   NSelect,
   NTag
@@ -15,8 +14,8 @@ import AppRouteTextLink from '../components/AppRouteTextLink.vue';
 import { useReferenceStore } from '../stores/reference.js';
 import { useFilmStore } from '../stores/film.js';
 import PageShell from '../components/PageShell.vue';
+import EntityTableCard from '../components/inventory/EntityTableCard.vue';
 import InventorySplitLayout from '../components/inventory/InventorySplitLayout.vue';
-import EntityTablePanel from '../components/inventory/EntityTablePanel.vue';
 import KpiCardGrid from '../components/inventory/KpiCardGrid.vue';
 import FilmCreateDrawer from '../components/film/FilmCreateDrawer.vue';
 import RecentFilmsCard from '../components/film/RecentFilmsCard.vue';
@@ -188,48 +187,51 @@ function openCreateDrawer(): void {
       :right-panel-title="isLockedBreakout ? 'Format KPIs' : 'Film statistics'"
     >
       <template #left>
-        <NCard :loading="filmStore.isLoading">
-          <NAlert v-if="filmStore.filmsError" type="error" :show-icon="true" style="margin-bottom: 10px;">
-            {{ filmStore.filmsError }}
-          </NAlert>
-
-          <EntityTablePanel
-            v-if="isLockedBreakout"
-            :columns="childTableColumns"
-            :data="childTableState.pagedRows.value"
-            :loading="filmStore.isLoading"
-            :row-key="(row) => row.id"
-            :page="childTableState.page.value"
-            :page-size="childTableState.pageSize.value"
-            :item-count="childTableState.totalRows.value"
-            :page-sizes="childTableState.pageSizes"
-            empty-description="No films match the current filters."
-            table-test-id="film-child-table"
-            pagination-test-id="film-child-pagination"
-            @update:page="(value) => { childTableState.page.value = value; }"
-            @update:page-size="(value) => { childTableState.pageSize.value = value; }"
-          >
-            <template #filters>
-              <NSelect
-                :value="childStateFilter ?? '__all__'"
-                :options="childStateFilterOptions"
-                style="min-width: 200px;"
-                data-testid="film-child-state-filter"
-                @update:value="onChildStateFilterChange"
-              />
-              <NInput
-                v-model:value="childSearchTerm"
-                clearable
-                placeholder="Search by film or emulsion"
-                data-testid="film-child-search"
-              />
-            </template>
-          </EntityTablePanel>
-
-          <template v-else>
-            <RecentFilmsCard :films="recentFilms" :loading="filmStore.isLoading" :state-type-by-code="stateTypeByCode" />
+        <EntityTableCard
+          v-if="isLockedBreakout"
+          :columns="childTableColumns"
+          :data="childTableState.pagedRows.value"
+          :loading="filmStore.isLoading"
+          :row-key="(row) => row.id"
+          :page="childTableState.page.value"
+          :page-size="childTableState.pageSize.value"
+          :item-count="childTableState.totalRows.value"
+          :page-sizes="childTableState.pageSizes"
+          empty-description="No films match the current filters."
+          table-test-id="film-child-table"
+          pagination-test-id="film-child-pagination"
+          @update:page="(value) => { childTableState.page.value = value; }"
+          @update:page-size="(value) => { childTableState.pageSize.value = value; }"
+        >
+          <template #before>
+            <NAlert v-if="filmStore.filmsError" type="error" :show-icon="true" style="margin-bottom: 10px;">
+              {{ filmStore.filmsError }}
+            </NAlert>
           </template>
-        </NCard>
+
+          <template #filters>
+            <NSelect
+              :value="childStateFilter ?? '__all__'"
+              :options="childStateFilterOptions"
+              style="min-width: 200px;"
+              data-testid="film-child-state-filter"
+              @update:value="onChildStateFilterChange"
+            />
+            <NInput
+              v-model:value="childSearchTerm"
+              clearable
+              placeholder="Search by film or emulsion"
+              data-testid="film-child-search"
+            />
+          </template>
+        </EntityTableCard>
+
+        <RecentFilmsCard
+          v-else
+          :films="recentFilms"
+          :loading="filmStore.isLoading"
+          :state-type-by-code="stateTypeByCode"
+        />
       </template>
 
       <template #right>

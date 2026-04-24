@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed, h, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { NAlert, NCard, NInput, NTag } from 'naive-ui';
+import { NAlert, NInput, NTag } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import type { FilmDevice } from '@frollz2/schema';
 import AppRouteTextLink from '../components/AppRouteTextLink.vue';
 import { useReferenceStore } from '../stores/reference.js';
 import { useDeviceStore } from '../stores/devices.js';
 import PageShell from '../components/PageShell.vue';
+import EntityTableCard from '../components/inventory/EntityTableCard.vue';
 import InventorySplitLayout from '../components/inventory/InventorySplitLayout.vue';
-import EntityTablePanel from '../components/inventory/EntityTablePanel.vue';
 import KpiCardGrid from '../components/inventory/KpiCardGrid.vue';
 import { usePagedEntityTable } from '../composables/usePagedEntityTable.js';
 import { useUiFeedback } from '../composables/useUiFeedback.js';
@@ -115,32 +115,30 @@ onMounted(async () => {
 
     <InventorySplitLayout left-panel-title="Devices in this category" right-panel-title="Category KPIs">
       <template #left>
-        <NCard>
-          <EntityTablePanel
-            :columns="columns"
-            :data="tableState.pagedRows.value"
-            :loading="deviceStore.isLoading"
-            :row-key="(row) => row.id"
-            :page="tableState.page.value"
-            :page-size="tableState.pageSize.value"
-            :item-count="tableState.totalRows.value"
-            :page-sizes="tableState.pageSizes"
-            empty-description="No devices match the current filters."
-            table-test-id="devices-child-table"
-            pagination-test-id="devices-child-pagination"
-            @update:page="(value) => { tableState.page.value = value; }"
-            @update:page-size="(value) => { tableState.pageSize.value = value; }"
-          >
-            <template #filters>
-              <NInput
-                v-model:value="searchTerm"
-                clearable
-                placeholder="Search make, model, system, holder"
-                data-testid="devices-child-search"
-              />
-            </template>
-          </EntityTablePanel>
-        </NCard>
+        <EntityTableCard
+          :columns="columns"
+          :data="tableState.pagedRows.value"
+          :loading="deviceStore.isLoading"
+          :row-key="(row) => row.id"
+          :page="tableState.page.value"
+          :page-size="tableState.pageSize.value"
+          :item-count="tableState.totalRows.value"
+          :page-sizes="tableState.pageSizes"
+          empty-description="No devices match the current filters."
+          table-test-id="devices-child-table"
+          pagination-test-id="devices-child-pagination"
+          @update:page="(value) => { tableState.page.value = value; }"
+          @update:page-size="(value) => { tableState.pageSize.value = value; }"
+        >
+          <template #filters>
+            <NInput
+              v-model:value="searchTerm"
+              clearable
+              placeholder="Search make, model, system, holder"
+              data-testid="devices-child-search"
+            />
+          </template>
+        </EntityTableCard>
       </template>
 
       <template #right>

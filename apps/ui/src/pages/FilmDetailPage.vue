@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { NAlert, NButton, NEmpty, NSpin } from 'naive-ui';
 import type { CreateFilmJourneyEventRequest } from '@frollz2/schema';
 import { filmTransitionMap } from '@frollz2/schema';
+import DetailPageShell from '../components/DetailPageShell.vue';
 import { useFilmStore } from '../stores/film.js';
 import { useReferenceStore } from '../stores/reference.js';
 import { useDeviceStore } from '../stores/devices.js';
-import PageShell from '../components/PageShell.vue';
 import EntityDetailHeaderCard from '../components/inventory/EntityDetailHeaderCard.vue';
 import InventorySplitLayout from '../components/inventory/InventorySplitLayout.vue';
 import FilmEventDrawer from '../components/film/FilmEventDrawer.vue';
@@ -15,7 +15,6 @@ import FilmTimelineCard from '../components/film/FilmTimelineCard.vue';
 import { useUiFeedback } from '../composables/useUiFeedback.js';
 
 const route = useRoute();
-const router = useRouter();
 const filmStore = useFilmStore();
 const referenceStore = useReferenceStore();
 const deviceStore = useDeviceStore();
@@ -58,15 +57,6 @@ function formatDateTime(value: string): string {
   }).format(parsed);
 }
 
-function goBack(): void {
-  if (window.history.length > 1) {
-    router.back();
-    return;
-  }
-
-  router.push('/film');
-}
-
 function openEventDrawer(): void {
   isEventDrawerOpen.value = true;
 }
@@ -91,16 +81,17 @@ onMounted(async () => {
 </script>
 
 <template>
-  <PageShell title="Film Detail" subtitle="Review state history and add the next transition.">
+  <DetailPageShell
+    title="Film Detail"
+    subtitle="Review state history and add the next transition."
+    fallback-path="/film"
+    :error-message="filmStore.detailError"
+  >
     <template #actions>
-      <NButton tertiary @click="goBack">Back</NButton>
       <NButton type="primary" @click="openEventDrawer">Add transition event</NButton>
     </template>
 
-    <NAlert v-if="filmStore.detailError" type="error" :show-icon="true" style="margin-bottom: 12px;">
-      {{ filmStore.detailError }}
-    </NAlert>
-    <NAlert v-else-if="selectedFilm && !((filmTransitionMap.get(isLargeFormatFilm ? 'purchased' : selectedFilm.currentStateCode) ?? []).length > 0)" type="warning" :show-icon="true" style="margin-bottom: 12px;">
+    <NAlert v-if="selectedFilm && !filmStore.detailError && !((filmTransitionMap.get(isLargeFormatFilm ? 'purchased' : selectedFilm.currentStateCode) ?? []).length > 0)" type="warning" :show-icon="true" style="margin-bottom: 12px;">
       No forward transitions are available from the current state.
     </NAlert>
 
@@ -126,7 +117,7 @@ onMounted(async () => {
         </template>
       </InventorySplitLayout>
     </NSpin>
-  </PageShell>
+  </DetailPageShell>
 
   <FilmEventDrawer
     v-model:show="isEventDrawerOpen"

@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { NAlert, NButton, NEmpty } from 'naive-ui';
-import PageShell from '../components/PageShell.vue';
+import { useRoute } from 'vue-router';
+import { NEmpty, NSpin } from 'naive-ui';
+import DetailPageShell from '../components/DetailPageShell.vue';
 import EntityDetailHeaderCard from '../components/inventory/EntityDetailHeaderCard.vue';
 import { useReferenceStore } from '../stores/reference.js';
 import { useUiFeedback } from '../composables/useUiFeedback.js';
 
 const route = useRoute();
-const router = useRouter();
 const referenceStore = useReferenceStore();
 const feedback = useUiFeedback();
 
@@ -33,15 +32,6 @@ const detailItems = computed(() => {
   ];
 });
 
-function goBack(): void {
-  if (window.history.length > 1) {
-    router.back();
-    return;
-  }
-
-  router.push('/emulsions');
-}
-
 onMounted(async () => {
   try {
     if (!referenceStore.loaded) {
@@ -56,27 +46,26 @@ onMounted(async () => {
 </script>
 
 <template>
-  <PageShell title="Emulsion Detail" subtitle="Read-only reference detail for this stock.">
-    <template #actions>
-      <NButton tertiary @click="goBack">Back</NButton>
-    </template>
+  <DetailPageShell
+    title="Emulsion Detail"
+    subtitle="Read-only reference detail for this stock."
+    fallback-path="/emulsions"
+    :error-message="referenceStore.emulsionDetailError"
+  >
+    <NSpin :show="referenceStore.isLoadingEmulsionDetail">
+      <EntityDetailHeaderCard
+        v-if="selectedEmulsion"
+        :title="`${selectedEmulsion.manufacturer} ${selectedEmulsion.brand}`"
+        :subtitle="`ISO ${selectedEmulsion.isoSpeed}`"
+        :tag-label="selectedEmulsion.developmentProcess.label"
+        tag-type="info"
+        :details="detailItems"
+      />
 
-    <NAlert v-if="referenceStore.emulsionDetailError" type="error" :show-icon="true">
-      {{ referenceStore.emulsionDetailError }}
-    </NAlert>
-
-    <EntityDetailHeaderCard
-      v-if="selectedEmulsion"
-      :title="`${selectedEmulsion.manufacturer} ${selectedEmulsion.brand}`"
-      :subtitle="`ISO ${selectedEmulsion.isoSpeed}`"
-      :tag-label="selectedEmulsion.developmentProcess.label"
-      tag-type="info"
-      :details="detailItems"
-    />
-
-    <NEmpty
-      v-if="!referenceStore.isLoadingEmulsionDetail && !selectedEmulsion"
-      description="Emulsion not found."
-    />
-  </PageShell>
+      <NEmpty
+        v-if="!referenceStore.isLoadingEmulsionDetail && !selectedEmulsion"
+        description="Emulsion not found."
+      />
+    </NSpin>
+  </DetailPageShell>
 </template>

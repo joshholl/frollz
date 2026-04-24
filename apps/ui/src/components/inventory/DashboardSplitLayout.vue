@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NGrid, NGridItem, NScrollbar, NSpace, NThing } from 'naive-ui';
+import { NGrid, NGridItem, NSpace, NThing } from 'naive-ui';
 
 defineProps<{
   leftPanelTitle: string;
@@ -8,27 +8,50 @@ defineProps<{
 </script>
 
 <template>
-  <NGrid cols="1 s:1 l:12" responsive="screen" :x-gap="16" :y-gap="16">
-    <NGridItem span="1 l:8">
-      <NSpace vertical :size="10">
+  <NGrid
+    cols="1 m:1 l:12"
+    responsive="screen"
+    item-responsive
+    :x-gap="16"
+    :y-gap="16"
+  >
+    <NGridItem span="1 l:7 xl:8">
+      <NSpace vertical :size="10" class="dashboard-split-layout__column">
         <slot name="left-header">
           <NThing :title="leftPanelTitle" />
         </slot>
-        <NScrollbar x-scrollable style="max-height: 540px; min-height: 420px;">
+        <div class="dashboard-split-layout__panel dashboard-split-layout__panel--left">
           <slot name="left" />
-        </NScrollbar>
+        </div>
       </NSpace>
     </NGridItem>
 
-    <NGridItem span="1 l:4">
-      <NSpace vertical :size="10">
+    <NGridItem span="1 l:5 xl:4">
+      <NSpace vertical :size="10" class="dashboard-split-layout__column">
         <slot name="right-header">
           <NThing :title="rightPanelTitle" />
         </slot>
-        <NSpace vertical :size="12">
+        <div class="dashboard-split-layout__panel dashboard-split-layout__panel--right">
           <slot name="right" />
-        </NSpace>
+        </div>
       </NSpace>
     </NGridItem>
   </NGrid>
 </template>
+
+<style scoped>
+.dashboard-split-layout__column {
+  height: 100%;
+}
+
+.dashboard-split-layout__panel {
+  min-width: 0;
+}
+
+.dashboard-split-layout__panel--left,
+.dashboard-split-layout__panel--right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+</style>
