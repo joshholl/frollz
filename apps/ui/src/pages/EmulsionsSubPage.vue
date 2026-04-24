@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, h, onMounted, ref } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { NAlert, NCard, NInput, NTag } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import type { Emulsion } from '@frollz2/schema';
+import AppRouteTextLink from '../components/AppRouteTextLink.vue';
 import { useReferenceStore } from '../stores/reference.js';
 import PageShell from '../components/PageShell.vue';
 import InventorySplitLayout from '../components/inventory/InventorySplitLayout.vue';
@@ -54,17 +55,11 @@ const columns = computed<DataTableColumns<Emulsion>>(() => [
     title: 'Emulsion',
     key: 'brand',
     render: (row) => h(
-      RouterLink,
+      AppRouteTextLink,
       {
         to: `/emulsions/${row.id}`,
-        class: 'emulsion-table__link',
-        style: {
-          color: 'var(--n-primary-color)',
-          fontWeight: 600,
-          textDecorationColor: 'var(--n-primary-color)'
-        }
+        label: `${row.manufacturer} ${row.brand}`
       },
-      { default: () => `${row.manufacturer} ${row.brand}` }
     )
   },
   {
@@ -137,24 +132,3 @@ onMounted(async () => {
     </InventorySplitLayout>
   </PageShell>
 </template>
-
-<style scoped>
-.emulsion-table__link {
-  color: var(--n-primary-color);
-  text-decoration: none;
-}
-
-.emulsion-table__link:hover {
-  text-decoration: underline;
-}
-
-.emulsion-table__link:visited {
-  color: var(--n-primary-color);
-}
-
-.emulsion-table__link:focus-visible {
-  border-radius: 4px;
-  outline: 2px solid var(--n-primary-color);
-  outline-offset: 2px;
-}
-</style>

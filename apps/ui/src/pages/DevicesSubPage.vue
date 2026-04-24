@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, h, onMounted, ref } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { NAlert, NCard, NInput, NTag } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import type { FilmDevice } from '@frollz2/schema';
+import AppRouteTextLink from '../components/AppRouteTextLink.vue';
 import { useReferenceStore } from '../stores/reference.js';
 import { useDeviceStore } from '../stores/devices.js';
 import PageShell from '../components/PageShell.vue';
@@ -59,17 +60,11 @@ const columns = computed<DataTableColumns<FilmDevice>>(() => [
     title: 'Device',
     key: 'name',
     render: (row) => h(
-      RouterLink,
+      AppRouteTextLink,
       {
         to: `/devices/${row.id}`,
-        class: 'device-table__link',
-        style: {
-          color: 'var(--n-primary-color)',
-          fontWeight: 600,
-          textDecorationColor: 'var(--n-primary-color)'
-        }
+        label: devicePrimaryLabel(row)
       },
-      { default: () => devicePrimaryLabel(row) }
     )
   },
   {
@@ -154,24 +149,3 @@ onMounted(async () => {
     </InventorySplitLayout>
   </PageShell>
 </template>
-
-<style scoped>
-.device-table__link {
-  color: var(--n-primary-color);
-  text-decoration: none;
-}
-
-.device-table__link:hover {
-  text-decoration: underline;
-}
-
-.device-table__link:visited {
-  color: var(--n-primary-color);
-}
-
-.device-table__link:focus-visible {
-  border-radius: 4px;
-  outline: 2px solid var(--n-primary-color);
-  outline-offset: 2px;
-}
-</style>

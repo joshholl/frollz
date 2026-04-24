@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { NFlex, NSpace, NThing } from 'naive-ui';
+
 defineProps<{
   title: string;
   subtitle?: string;
@@ -8,18 +10,16 @@ defineProps<{
 
 <template>
   <section class="page-shell" :class="{ 'page-shell--compact': compact }">
-    <header class="page-shell__header">
-      <div>
-        <h1 class="page-shell__title">{{ title }}</h1>
-        <p v-if="subtitle" class="page-shell__subtitle">{{ subtitle }}</p>
-      </div>
-      <div v-if="$slots.actions" class="page-shell__actions">
+    <NFlex class="page-shell__header" justify="space-between" align="flex-start" :wrap="false">
+      <NThing v-if="subtitle" class="page-shell__heading" :title="title" :description="subtitle" />
+      <NThing v-else class="page-shell__heading" :title="title" />
+      <NFlex v-if="$slots.actions" class="page-shell__actions" justify="end">
         <slot name="actions" />
-      </div>
-    </header>
-    <div class="page-shell__body">
+      </NFlex>
+    </NFlex>
+    <NSpace vertical :size="16">
       <slot />
-    </div>
+    </NSpace>
   </section>
 </template>
 
@@ -36,36 +36,19 @@ defineProps<{
 }
 
 .page-shell__header {
-  align-items: flex-start;
-  display: flex;
   gap: 12px;
-  justify-content: space-between;
   margin-bottom: 18px;
 }
 
-.page-shell__title {
-  font-size: 1.25rem;
-  letter-spacing: 0.01em;
-  line-height: 1.25;
-  margin: 0;
-}
-
-.page-shell__subtitle {
-  color: #b9c5d4;
-  margin: 6px 0 0;
+.page-shell__heading {
   max-width: 74ch;
+  min-width: 0;
 }
 
 .page-shell__actions {
-  display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  justify-content: flex-end;
-}
-
-.page-shell__body {
-  display: grid;
-  gap: 16px;
+  min-width: fit-content;
 }
 
 @media (max-width: 900px) {
@@ -74,8 +57,8 @@ defineProps<{
   }
 
   .page-shell__header {
-    flex-direction: column;
     margin-bottom: 12px;
+    flex-wrap: wrap;
   }
 
   .page-shell__actions {
