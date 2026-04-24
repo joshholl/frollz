@@ -1,0 +1,116 @@
+:root {
+  /* Brand */
+  --brand-primary: #403d39;
+  --brand-secondary: #ccc5b9;
+  --brand-accent: #eb5e28;
+  --brand-dark: #8c867d;
+  --brand-dark-page: #252422;
+  --brand-positive: #4a7c59;
+  --brand-negative: #f25c54;
+  --brand-info: #b0a1ba;
+  --brand-warning: #f7b267;
+
+  /* Surfaces + text */
+  --surface-0: #f3efe8;
+  --surface-1: #f8f4ee;
+  --surface-2: #fffdf9;
+  --surface-3: #ece3d7;
+  --surface-overlay: #fffcf7d9;
+  --border-soft: #d8cfc0;
+  --border-strong: #c7bbab;
+  --text-strong: #2f2b27;
+  --text-default: #403d39;
+  --text-muted: #7a736a;
+
+  /* Interaction */
+  --interactive-primary: #403d39;
+  --interactive-primary-hover: #35322f;
+  --interactive-secondary: #ccc5b9;
+  --interactive-secondary-hover: #c0b7a9;
+  --interactive-accent: #eb5e28;
+  --interactive-accent-hover: #cf4f1f;
+  --interactive-focus-border: #c86a45;
+  --interactive-focus-ring: #f1b8a0;
+
+  /* Status backgrounds */
+  --status-positive-bg: #e7f3ea;
+  --status-negative-bg: #fde9e8;
+  --status-warning-bg: #fff1de;
+  --status-info-bg: #f3ecf7;
+
+  /* Shadows + radii */
+  --shadow-soft: 0 12px 30px -18px rgba(37, 36, 34, 0.32);
+  --shadow-strong: 0 20px 48px -24px rgba(37, 36, 34, 0.42);
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+}
+
+html,
+body,
+#q-app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text-default);
+  font-family: 'Plus Jakarta Sans', 'Avenir Next', 'Segoe UI', sans-serif;
+  background:
+    radial-gradient(1000px 500px at 2% -15%, #eb5e2826 0%, transparent 60%),
+    radial-gradient(900px 450px at 110% 0%, #b0a1ba2b 0%, transparent 58%),
+    linear-gradient(180deg, #f9f4ec 0%, var(--surface-0) 100%);
+}
+
+* {
+  scrollbar-color: #b3a896 #f1ebe2;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #f1ebe2;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid #f1ebe2;
+  border-radius: 999px;
+  background: #b3a896;
+}
+
+::selection {
+  color: #fff7f2;
+  background: #c05c35;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.text-h1,
+.text-h2,
+.text-h3,
+.text-h4,
+.text-h5,
+.text-h6 {
+  color: var(--brand-dark-page);
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+a,
+a:visited,
+.text-primary {
+  color: var(--interactive-primary);
+  transition: color 150ms ease;
+}
+
+a:hover {
+  color: var(--interactive-accent);
+}
