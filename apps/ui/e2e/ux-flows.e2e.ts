@@ -573,13 +573,13 @@ test('mobile navigation uses drawer menu', async ({ page }) => {
   await menuButton.click();
   await expect(page.getByText('Navigation')).toBeVisible();
 
-  const closeButton = page.locator('.n-drawer .n-base-close').first();
+  const closeButton = page.getByRole('button', { name: 'Close' });
   await expect(closeButton).toBeVisible();
   const closeButtonBox = await closeButton.boundingBox();
   expect(closeButtonBox?.width ?? 0).toBeGreaterThanOrEqual(44);
   expect(closeButtonBox?.height ?? 0).toBeGreaterThanOrEqual(44);
 
-  const drawerBody = page.locator('.n-drawer-body-content-wrapper').first();
+  const drawerBody = page.locator('.q-drawer').first();
   const drawerBox = await drawerBody.boundingBox();
   expect(drawerBox?.width ?? 9999).toBeLessThanOrEqual(390);
 });

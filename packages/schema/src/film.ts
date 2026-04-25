@@ -15,7 +15,7 @@ import { idSchema, isoDateTimeSchema, nullableTextSchema } from './common.js';
 
 export const cameraLoadModeSchema = z.enum(['direct', 'interchangeable_back', 'film_holder']);
 
-export const frameSizeCodeSchema = z.enum([
+export const FRAME_SIZE_CODES = [
   'full_frame',
   'half_frame',
   '645',
@@ -26,10 +26,16 @@ export const frameSizeCodeSchema = z.enum([
   '6x12',
   '6x17',
   '4x5',
+  '5x7',
   '8x10',
+  '11x14',
   '2x3',
-  'instax'
-]);
+  'instax_mini',
+  'instax_wide',
+  'instax_square'
+] as const;
+
+export const frameSizeCodeSchema = z.enum(FRAME_SIZE_CODES);
 
 export const filmTransitionMap = new Map<string, string[]>([
   ['purchased', ['stored', 'loaded']],
@@ -43,9 +49,33 @@ export const filmTransitionMap = new Map<string, string[]>([
   ['archived', []]
 ]);
 
+export const filmLotSummarySchema = z.object({
+  id: idSchema,
+  userId: idSchema,
+  emulsionId: idSchema,
+  packageTypeId: idSchema,
+  filmFormatId: idSchema,
+  quantity: z.number().int().positive(),
+  expirationDate: isoDateTimeSchema.nullable(),
+  filmCount: z.number().int().nonnegative(),
+  emulsion: emulsionSchema,
+  packageType: packageTypeSchema,
+  filmFormat: filmFormatSchema
+});
+
+export const filmLotCreateRequestSchema = z.object({
+  emulsionId: idSchema,
+  packageTypeId: idSchema,
+  filmFormatId: idSchema,
+  quantity: z.number().int().positive(),
+  expirationDate: isoDateTimeSchema.nullable().optional(),
+  films: z.array(z.object({ name: z.string().min(1) })).optional()
+});
+
 export const filmSummarySchema = z.object({
   id: idSchema,
   userId: idSchema,
+  filmLotId: idSchema,
   name: z.string().min(1),
   emulsionId: idSchema,
   packageTypeId: idSchema,
@@ -57,6 +87,10 @@ export const filmSummarySchema = z.object({
   packageType: packageTypeSchema,
   filmFormat: filmFormatSchema,
   currentState: filmStateSchema
+});
+
+export const filmLotDetailSchema = filmLotSummarySchema.extend({
+  films: z.array(filmSummarySchema)
 });
 
 export const filmDetailSchema = filmSummarySchema.extend({
@@ -79,7 +113,14 @@ export const filmUpdateRequestSchema = z.object({
 export const filmListQuerySchema = z.object({
   stateCode: filmStateCodeSchema.optional(),
   filmFormatId: z.coerce.number().int().positive().optional(),
-  emulsionId: z.coerce.number().int().positive().optional()
+  emulsionId: z.coerce.number().int().positive().optional(),
+  afterId: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional().default(50)
+});
+
+export const filmListResponseSchema = z.object({
+  items: z.array(filmSummarySchema),
+  nextCursor: idSchema.nullable()
 });
 
 export const filmJourneyEventDataPurchasedSchema = z.object({}).strict();
@@ -217,30 +258,11 @@ export const frameJourneyEventSchema = z.object({
 export const filmFrameSchema = z.object({
   id: idSchema,
   userId: idSchema,
-  filmStockId: idSchema,
+  filmId: idSchema,
   frameNumber: z.number().int().positive(),
   currentStateId: idSchema,
   currentStateCode: filmStateCodeSchema,
-  boundHolderDeviceId: idSchema.nullable(),
-  boundHolderSlotNumber: z.number().int().nullable(),
-  firstLoadedAt: isoDateTimeSchema.nullable(),
   currentState: filmStateSchema
-});
-
-export const filmStockSchema = z.object({
-  id: idSchema,
-  userId: idSchema,
-  name: z.string().min(1),
-  emulsionId: idSchema,
-  packageTypeId: idSchema,
-  filmFormatId: idSchema,
-  framesTotal: z.number().int().positive(),
-  framesAvailable: z.number().int().nonnegative(),
-  expirationDate: isoDateTimeSchema.nullable(),
-  emulsion: emulsionSchema,
-  packageType: packageTypeSchema,
-  filmFormat: filmFormatSchema,
-  frames: z.array(filmFrameSchema)
 });
 
 export const deviceLoadTimelineEventSchema = z.object({
@@ -392,13 +414,16 @@ export const updateFilmDeviceRequestSchema = z.object({
   holderTypeId: idSchema.optional()
 });
 
+export type FilmLotSummary = z.infer<typeof filmLotSummarySchema>;
+export type FilmLotDetail = z.infer<typeof filmLotDetailSchema>;
+export type FilmLotCreateRequest = z.infer<typeof filmLotCreateRequestSchema>;
 export type FilmSummary = z.infer<typeof filmSummarySchema>;
 export type FilmDetail = z.infer<typeof filmDetailSchema>;
-export type FilmStock = z.infer<typeof filmStockSchema>;
 export type FilmFrame = z.infer<typeof filmFrameSchema>;
 export type FilmCreateRequest = z.infer<typeof filmCreateRequestSchema>;
 export type FilmUpdateRequest = z.infer<typeof filmUpdateRequestSchema>;
 export type FilmListQuery = z.infer<typeof filmListQuerySchema>;
+export type FilmListResponse = z.infer<typeof filmListResponseSchema>;
 export type FilmJourneyEvent = z.infer<typeof filmJourneyEventSchema>;
 export type FrameJourneyEvent = z.infer<typeof frameJourneyEventSchema>;
 export type DeviceLoadTimelineEvent = z.infer<typeof deviceLoadTimelineEventSchema>;

@@ -1,18 +1,16 @@
-import { useMessage } from 'naive-ui';
+import { Notify } from 'quasar';
 
 export function useUiFeedback() {
-  const message = useMessage();
-
   function success(content: string): void {
-    message.success(content);
+    Notify.create({ type: 'positive', message: content });
   }
 
   function info(content: string): void {
-    message.info(content);
+    Notify.create({ type: 'info', message: content });
   }
 
   function error(content: string): void {
-    message.error(content);
+    Notify.create({ type: 'negative', message: content });
   }
 
   function toErrorMessage(errorValue: unknown, fallback = 'Something went wrong. Please try again.'): string {

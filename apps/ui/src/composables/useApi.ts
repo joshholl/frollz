@@ -1,6 +1,6 @@
 import { useAuthStore } from '../stores/auth.js';
 import { readApiError } from './api-envelope.js';
-import { router } from '../router/index.js';
+import { appRouter } from '../router/index.js';
 
 export function useApi() {
   const authStore = useAuthStore();
@@ -26,8 +26,8 @@ export function useApi() {
       // Never retry a mutation without an idempotency key — the server would execute it twice.
       if (isMutation && !hasIdempotencyKey) {
         authStore.clearTokens();
-        if (router.currentRoute.value.path !== '/login') {
-          await router.replace('/login');
+        if (appRouter && appRouter.currentRoute.value.path !== '/login') {
+          await appRouter.replace('/login');
         }
         return response;
       }
@@ -41,8 +41,8 @@ export function useApi() {
         response = await fetch(input, { ...init, headers: retryHeaders });
       } else {
         authStore.clearTokens();
-        if (router.currentRoute.value.path !== '/login') {
-          await router.replace('/login');
+        if (appRouter && appRouter.currentRoute.value.path !== '/login') {
+          await appRouter.replace('/login');
         }
       }
     }

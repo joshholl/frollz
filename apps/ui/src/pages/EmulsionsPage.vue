@@ -1,97 +1,90 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { NAlert, NCard, NEmpty, NFlex, NTag, NText } from 'naive-ui';
+import type { Emulsion } from '@frollz2/schema';
 import { useReferenceStore } from '../stores/reference.js';
-import PageShell from '../components/PageShell.vue';
-import MiniDashboardLayout from '../components/MiniDashboardLayout.vue';
-import { useUiFeedback } from '../composables/useUiFeedback.js';
 
-const referenceStore = useReferenceStore();
-const feedback = useUiFeedback();
 const route = useRoute();
+const referenceStore = useReferenceStore();
+const search = ref<string | null>('');
 
-const lockedDevelopmentProcess = computed(() =>
-  typeof route.meta.developmentProcessFilter === 'string' ? route.meta.developmentProcessFilter : null
-);
-
-const pageSubtitle = computed(() =>
-  lockedDevelopmentProcess.value
-    ? 'Reference dashboard filtered by development process.'
-    : 'Reference dashboard for available film stocks and processing methods.'
-);
-
-const visibleEmulsions = computed(() =>
-  lockedDevelopmentProcess.value
-    ? referenceStore.emulsions.filter((emulsion) => emulsion.developmentProcess.code === lockedDevelopmentProcess.value)
-    : referenceStore.emulsions
-);
-
-const recentEmulsions = computed(() => visibleEmulsions.value.slice(-10));
-
-const stats = computed(() => {
-  const total = visibleEmulsions.value.length;
-  const uniqueManufacturers = new Set(visibleEmulsions.value.map((emulsion) => emulsion.manufacturer)).size;
-  const uniqueProcesses = new Set(visibleEmulsions.value.map((emulsion) => emulsion.developmentProcess.code)).size;
-  const averageIso =
-    total === 0 ? 0 : Math.round(visibleEmulsions.value.reduce((sum, emulsion) => sum + emulsion.isoSpeed, 0) / total);
-
-  return [
-    { label: 'Total visible emulsions', value: total, helper: 'Current route scope' },
-    { label: 'Unique manufacturers', value: uniqueManufacturers, helper: 'Distinct brands in view' },
-    { label: 'Unique development processes', value: uniqueProcesses, helper: 'C-41, B&W, E-6, and more' },
-    { label: 'Average ISO', value: averageIso, helper: 'Rounded to nearest whole ISO' }
-  ];
+const processFilterCode = computed(() => {
+  const value = route.meta.developmentProcessFilter;
+  return typeof value === 'string' ? value : null;
 });
 
-onMounted(async () => {
-  try {
-    if (!referenceStore.loaded) {
-      await referenceStore.loadAll();
+const rows = computed(() => {
+  const query = (search.value ?? '').trim().toLowerCase();
+
+  return referenceStore.emulsions.filter((emulsion) => {
+    if (processFilterCode.value && emulsion.developmentProcess.code !== processFilterCode.value) {
+      return false;
     }
-  } catch (error) {
-    feedback.error(feedback.toErrorMessage(error, 'Could not load emulsion references.'));
+
+    if (!query) {
+      return true;
+    }
+
+    const haystack = `${emulsion.manufacturer} ${emulsion.brand} ${emulsion.developmentProcess.label} ${emulsion.isoSpeed}`.toLowerCase();
+    return haystack.includes(query);
+  });
+});
+
+const columns = [
+  {
+    name: 'name',
+    label: 'Emulsion',
+    field: (row: Emulsion) => `${row.manufacturer} ${row.brand}`,
+    sortable: true,
+    align: 'left'
+  },
+  {
+    name: 'iso',
+    label: 'ISO',
+    field: 'isoSpeed',
+    sortable: true,
+    align: 'left'
+  },
+  {
+    name: 'process',
+    label: 'Process',
+    field: (row: Emulsion) => row.developmentProcess.label,
+    sortable: true,
+    align: 'left'
+  },
+  {
+    name: 'formats',
+    label: 'Formats',
+    field: (row: Emulsion) => row.filmFormats.map((format) => format.label).join(', '),
+    align: 'left'
   }
+];
+
+onMounted(async () => {
+  await referenceStore.loadAll();
 });
 </script>
 
 <template>
-  <PageShell title="Emulsions" :subtitle="pageSubtitle">
-    <NAlert v-if="referenceStore.loadError" type="error" :show-icon="true">
-      {{ referenceStore.loadError }}
-    </NAlert>
+  <q-page class="q-pa-md column q-gutter-md">
+    <div class="row items-center justify-between q-gutter-sm">
+      <div>
+        <div class="text-h5">Emulsions</div>
+        <div class="text-subtitle2 text-grey-7">Reference library filtered by process and search.</div>
+      </div>
+      <q-btn color="primary" label="Refresh" @click="referenceStore.loadAll" />
+    </div>
 
-    <MiniDashboardLayout left-panel-title="Recently added emulsions" right-panel-title="Emulsion statistics">
-      <template #left>
-        <NCard :loading="referenceStore.isLoading">
-          <NEmpty
-            v-if="!referenceStore.isLoading && recentEmulsions.length === 0"
-            description="No emulsions are available."
-          />
-          <NFlex v-else vertical size="small">
-            <NCard v-for="emulsion in recentEmulsions" :key="emulsion.id" size="small" embedded>
-              <NFlex justify="space-between" align="center" :wrap="false">
-                <NText strong>{{ emulsion.manufacturer }} {{ emulsion.brand }}</NText>
-                <NTag size="small" type="primary">ISO {{ emulsion.isoSpeed }}</NTag>
-              </NFlex>
-              <NText depth="3">{{ emulsion.developmentProcess.label }} · {{ emulsion.balance }}</NText>
-              <NText depth="3">
-                Formats: {{ emulsion.filmFormats.map((format) => format.code).join(', ') || 'None' }}
-              </NText>
-            </NCard>
-          </NFlex>
-        </NCard>
-      </template>
+    <q-input v-model="search" filled label="Search emulsions" clearable />
 
-      <template #right>
-        <NCard v-for="card in stats" :key="card.label" size="small">
-          <NFlex vertical size="small">
-            <NText depth="3">{{ card.label }}</NText>
-            <NText style="font-size: 1.45rem; font-weight: 700;">{{ card.value }}</NText>
-            <NText depth="3">{{ card.helper }}</NText>
-          </NFlex>
-        </NCard>
+    <q-table :rows="rows" :columns="columns" row-key="id" flat bordered :loading="referenceStore.isLoading">
+      <template #body-cell-name="props">
+        <q-td :props="props">
+          <RouterLink :to="`/emulsions/${props.row.id}`" class="text-primary text-weight-medium">
+            {{ props.row.manufacturer }} {{ props.row.brand }}
+          </RouterLink>
+        </q-td>
       </template>
-    </MiniDashboardLayout>
-  </PageShell>
+    </q-table>
+  </q-page>
 </template>

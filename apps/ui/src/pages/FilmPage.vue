@@ -1,483 +1,266 @@
 <script setup lang="ts">
-import { computed, h, onMounted, reactive, ref } from 'vue';
-import { RouterLink, useRoute, useRouter } from 'vue-router';
-import {
-  NAlert,
-  NButton,
-  NCard,
-  NDatePicker,
-  NDrawer,
-  NDrawerContent,
-  NEmpty,
-  NFlex,
-  NForm,
-  NFormItem,
-  NInput,
-  NSelect,
-  NTag,
-  NText
-} from 'naive-ui';
-import type { DataTableColumns } from 'naive-ui';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import type { FilmCreateRequest, FilmSummary } from '@frollz2/schema';
-import { createIdempotencyKey } from '../composables/idempotency.js';
-import { useReferenceStore } from '../stores/reference.js';
 import { useFilmStore } from '../stores/film.js';
-import PageShell from '../components/PageShell.vue';
-import InventorySplitLayout from '../components/inventory/InventorySplitLayout.vue';
-import EntityTablePanel from '../components/inventory/EntityTablePanel.vue';
-import KpiCardGrid from '../components/inventory/KpiCardGrid.vue';
+import { useReferenceStore } from '../stores/reference.js';
 import { useUiFeedback } from '../composables/useUiFeedback.js';
-import type { FormState } from '../composables/ui-state.js';
-import { usePagedEntityTable } from '../composables/usePagedEntityTable.js';
-import {
-  buildChildKpis,
-  FILM_EXPIRING_SOON_DAYS,
-  filterAndSortFilmsForChildTable,
-  filterFilmsByFormatCodes
-} from './film-dashboard.js';
+import { createIdempotencyKey } from '../composables/idempotency.js';
 
-type FilmStatsCard = {
-  label: string;
-  value: number;
-  helper: string;
-};
-
-const referenceStore = useReferenceStore();
-const filmStore = useFilmStore();
-const router = useRouter();
 const route = useRoute();
+const filmStore = useFilmStore();
+const referenceStore = useReferenceStore();
 const feedback = useUiFeedback();
 
-const isCreateDrawerOpen = ref(false);
-const isCreatingFilm = ref(false);
-const pendingCreateKey = ref<string>(createIdempotencyKey());
-const expirationTimestamp = ref<number | null>(null);
-const childStateFilter = ref<string | null>(null);
-const childSearchTerm = ref('');
+const search = ref<string | null>('');
+const stateFilter = ref<string | null>(null);
+const isCreateDialogOpen = ref(false);
+const isCreating = ref(false);
+const idempotencyKey = ref(createIdempotencyKey());
 
-const createForm = reactive<{
-  name: string;
-  emulsionId: number | null;
-  filmFormatId: number | null;
-  packageTypeId: number | null;
-}>({
+const createForm = reactive({
   name: '',
-  emulsionId: null,
-  filmFormatId: null,
-  packageTypeId: null
+  emulsionId: null as number | null,
+  filmFormatId: null as number | null,
+  packageTypeId: null as number | null,
+  expirationDate: ''
 });
 
-const createState = ref<FormState>({
-  loading: false,
-  fieldErrors: {},
-  formError: null
+const lockedFormatFilters = computed(() => {
+  const value = route.meta.filmFormatFilters;
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 });
 
-const stateTypeByCode: Record<string, 'default' | 'info' | 'primary' | 'warning' | 'success'> = {
-  purchased: 'default',
-  stored: 'info',
-  loaded: 'primary',
-  exposed: 'warning',
-  removed: 'warning',
-  sent_for_dev: 'info',
-  developed: 'success',
-  scanned: 'success',
-  archived: 'default'
-};
-
-const lockedFilmFormatCodes = computed<string[]>(() => {
-  if (!Array.isArray(route.meta.filmFormatFilters)) {
-    return [];
-  }
-
-  return route.meta.filmFormatFilters.filter((code): code is string => typeof code === 'string');
-});
-
-const isLockedBreakout = computed(() => lockedFilmFormatCodes.value.length > 0);
-
-const pageSubtitle = computed(() =>
-  isLockedBreakout.value
-    ? 'Domain view for this film format with searchable table and inventory KPIs.'
-    : 'Film inventory dashboard with the latest rolls and key status counts.'
+const subtitle = computed(() =>
+  lockedFormatFilters.value.length > 0
+    ? 'Filtered view for selected film formats.'
+    : 'Track film stock and move rolls through state transitions.'
 );
 
-const displayedFilms = computed(() => {
-  return filterFilmsByFormatCodes(filmStore.films, lockedFilmFormatCodes.value);
+const rows = computed(() => {
+  const query = (search.value ?? '').trim().toLowerCase();
+
+  return filmStore.films.filter((film) => {
+    if (lockedFormatFilters.value.length > 0 && !lockedFormatFilters.value.includes(film.filmFormat.code)) {
+      return false;
+    }
+
+    if (stateFilter.value && film.currentStateCode !== stateFilter.value) {
+      return false;
+    }
+
+    if (!query) {
+      return true;
+    }
+
+    const haystack = `${film.name} ${film.emulsion.manufacturer} ${film.emulsion.brand} ${film.currentState.label}`.toLowerCase();
+    return haystack.includes(query);
+  });
 });
 
-const recentFilms = computed(() => displayedFilms.value.slice(-10));
-
-const parentStats = computed<FilmStatsCard[]>(() => [
-  { label: 'Total visible films', value: displayedFilms.value.length, helper: 'Current route scope' },
+const columns = [
   {
-    label: 'Loaded films',
-    value: displayedFilms.value.filter((film) => film.currentStateCode === 'loaded').length,
-    helper: 'Currently loaded in devices'
+    name: 'name',
+    label: 'Film',
+    field: 'name',
+    sortable: true,
+    align: 'left'
   },
   {
-    label: 'Exposed films',
-    value: displayedFilms.value.filter((film) => film.currentStateCode === 'exposed').length,
-    helper: 'Awaiting next transition'
+    name: 'state',
+    label: 'State',
+    field: (row: FilmSummary) => row.currentState.label,
+    sortable: true,
+    align: 'left'
   },
   {
-    label: 'Sent for development',
-    value: displayedFilms.value.filter((film) => film.currentStateCode === 'sent_for_dev').length,
-    helper: 'In lab processing stage'
+    name: 'emulsion',
+    label: 'Emulsion',
+    field: (row: FilmSummary) => `${row.emulsion.manufacturer} ${row.emulsion.brand}`,
+    sortable: true,
+    align: 'left'
+  },
+  {
+    name: 'format',
+    label: 'Format',
+    field: (row: FilmSummary) => row.filmFormat.label,
+    sortable: true,
+    align: 'left'
+  },
+  {
+    name: 'iso',
+    label: 'ISO',
+    field: (row: FilmSummary) => row.emulsion.isoSpeed,
+    sortable: true,
+    align: 'left'
   }
-]);
+];
 
-const childFilteredFilms = computed(() => {
-  return filterAndSortFilmsForChildTable(displayedFilms.value, childStateFilter.value, childSearchTerm.value);
-});
-
-const childTableState = usePagedEntityTable({
-  rows: childFilteredFilms,
-  resetPageOn: [childStateFilter, childSearchTerm, () => route.path],
-  initialPageSize: 10
-});
-
-const childKpis = computed<FilmStatsCard[]>(() => {
-  return buildChildKpis(displayedFilms.value, Date.now(), FILM_EXPIRING_SOON_DAYS);
-});
-
-const childStateFilterOptions = computed(() => [
-  { label: 'All states', value: '__all__' },
-  ...referenceStore.filmStates.map((state) => ({ label: state.label, value: state.code }))
-]);
-
-const childTableColumns = computed<DataTableColumns<FilmSummary>>(() => [
-  {
-    title: 'Name',
-    key: 'name',
-    render: (row) => h(
-      RouterLink,
-      {
-        to: `/film/${row.id}`,
-        class: 'film-table__name-link',
-        style: {
-          color: 'var(--n-primary-color)',
-          fontWeight: 600,
-          textDecorationColor: 'var(--n-primary-color)'
-        },
-        'data-testid': `film-row-link-${row.id}`
-      },
-      { default: () => row.name }
-    )
-  },
-  {
-    title: 'State',
-    key: 'state',
-    render: (row) => h(
-      NTag,
-      {
-        type: stateTypeByCode[row.currentStateCode] ?? 'default',
-        size: 'small'
-      },
-      { default: () => row.currentState.label }
-    )
-  },
-  {
-    title: 'Emulsion',
-    key: 'emulsion',
-    render: (row) => `${row.emulsion.manufacturer} ${row.emulsion.brand} · ISO ${row.emulsion.isoSpeed}`
-  }
-]);
+const stateOptions = computed(() =>
+  referenceStore.filmStates.map((state) => ({
+    label: state.label,
+    value: state.code
+  }))
+);
 
 const emulsionOptions = computed(() =>
   referenceStore.emulsions.map((emulsion) => ({
-    label: `${emulsion.manufacturer} ${emulsion.brand} ${emulsion.isoSpeed}`,
+    label: `${emulsion.manufacturer} ${emulsion.brand} ISO ${emulsion.isoSpeed}`,
     value: emulsion.id
   }))
 );
+
 const formatOptions = computed(() =>
-  referenceStore.filmFormats.map((format) => ({ label: format.label, value: format.id }))
+  referenceStore.filmFormats.map((format) => ({
+    label: format.label,
+    value: format.id
+  }))
 );
+
 const packageTypeOptions = computed(() => {
   if (!createForm.filmFormatId) {
     return [];
   }
 
-  return referenceStore.packageTypesByFormat(createForm.filmFormatId).map((packageType) => ({
-    label: packageType.label,
-    value: packageType.id
+  return referenceStore.packageTypesByFormat(createForm.filmFormatId).map((pkg) => ({
+    label: pkg.label,
+    value: pkg.id
   }));
 });
-
-const createFieldErrors = computed<Record<string, string>>(() => {
-  const nextErrors: Record<string, string> = {};
-  if (!createForm.name.trim()) {
-    nextErrors.name = 'Film name is required.';
-  }
-  if (!createForm.emulsionId) {
-    nextErrors.emulsionId = 'Select an emulsion.';
-  }
-  if (!createForm.filmFormatId) {
-    nextErrors.filmFormatId = 'Select a film format.';
-  }
-  if (!createForm.packageTypeId) {
-    nextErrors.packageTypeId = 'Select a package type.';
-  }
-  return nextErrors;
-});
-
-async function refresh(): Promise<void> {
-  try {
-    await filmStore.loadFilms();
-  } catch (error) {
-    feedback.error(feedback.toErrorMessage(error, 'Could not refresh film inventory.'));
-  }
-}
-
-onMounted(async () => {
-  try {
-    if (!referenceStore.loaded) {
-      await referenceStore.loadAll();
-    }
-    await refresh();
-  } catch (error) {
-    feedback.error(feedback.toErrorMessage(error, 'Could not load film inventory.'));
-  }
-});
-
-function onChildStateFilterChange(value: string | null): void {
-  childStateFilter.value = value === '__all__' ? null : value;
-}
 
 function resetCreateForm(): void {
   createForm.name = '';
   createForm.emulsionId = null;
   createForm.filmFormatId = null;
   createForm.packageTypeId = null;
-  expirationTimestamp.value = null;
-  createState.value.fieldErrors = {};
-  createState.value.formError = null;
+  createForm.expirationDate = '';
+  idempotencyKey.value = createIdempotencyKey();
 }
 
-function openCreateDrawer(): void {
-  pendingCreateKey.value = createIdempotencyKey();
-  isCreateDrawerOpen.value = true;
+function openCreateDialog(): void {
+  resetCreateForm();
+  isCreateDialogOpen.value = true;
 }
 
-async function submitCreateFilm(): Promise<void> {
-  if (isCreatingFilm.value) {
+async function submitCreate(): Promise<void> {
+  if (isCreating.value) {
     return;
   }
 
-  createState.value.fieldErrors = createFieldErrors.value;
-  if (Object.keys(createState.value.fieldErrors).length > 0) {
-    createState.value.formError = 'Please complete all required fields.';
+  if (!createForm.name.trim() || !createForm.emulsionId || !createForm.filmFormatId || !createForm.packageTypeId) {
+    feedback.error('Name, emulsion, format, and package are required.');
     return;
   }
 
   const payload: FilmCreateRequest = {
     name: createForm.name.trim(),
-    emulsionId: createForm.emulsionId as number,
-    filmFormatId: createForm.filmFormatId as number,
-    packageTypeId: createForm.packageTypeId as number,
-    expirationDate: expirationTimestamp.value ? new Date(expirationTimestamp.value).toISOString() : null
+    emulsionId: createForm.emulsionId,
+    filmFormatId: createForm.filmFormatId,
+    packageTypeId: createForm.packageTypeId,
+    expirationDate: createForm.expirationDate ? new Date(`${createForm.expirationDate}T00:00:00.000Z`).toISOString() : null
   };
 
-  isCreatingFilm.value = true;
-  createState.value.loading = true;
-  createState.value.formError = null;
-
+  isCreating.value = true;
   try {
-    await filmStore.createFilm(payload, pendingCreateKey.value);
-    isCreateDrawerOpen.value = false;
-    pendingCreateKey.value = createIdempotencyKey();
-    resetCreateForm();
-    feedback.success('Film created successfully.');
+    await filmStore.createFilm(payload, idempotencyKey.value);
+    feedback.success('Film created.');
+    isCreateDialogOpen.value = false;
   } catch (error) {
-    createState.value.formError = feedback.toErrorMessage(error, 'Could not create film.');
+    feedback.error(feedback.toErrorMessage(error, 'Failed to create film.'));
   } finally {
-    isCreatingFilm.value = false;
-    createState.value.loading = false;
+    isCreating.value = false;
   }
 }
+
+onMounted(async () => {
+  await Promise.allSettled([referenceStore.loadAll(), filmStore.loadFilms()]);
+});
 </script>
 
 <template>
-  <PageShell title="Film Inventory" :subtitle="pageSubtitle">
-    <template #actions>
-      <NButton type="primary" @click="openCreateDrawer">Add film</NButton>
-      <NButton tertiary @click="refresh">Refresh</NButton>
-    </template>
+  <q-page class="q-pa-md column q-gutter-md">
+    <div class="row items-center justify-between q-gutter-sm">
+      <div>
+        <div class="text-h5">Film Inventory</div>
+        <div class="text-subtitle2 text-grey-7">{{ subtitle }}</div>
+      </div>
+      <div class="row q-gutter-sm">
+        <q-btn color="primary" label="Add film" @click="openCreateDialog" />
+        <q-btn flat color="primary" label="Refresh" @click="filmStore.loadFilms" />
+      </div>
+    </div>
 
-    <InventorySplitLayout
-      :left-panel-title="isLockedBreakout ? 'Films in this format' : 'Recently added films'"
-      :right-panel-title="isLockedBreakout ? 'Format KPIs' : 'Film statistics'"
-    >
-      <template #left>
-        <NCard :loading="filmStore.isLoading">
-          <NAlert v-if="filmStore.filmsError" type="error" :show-icon="true" style="margin-bottom: 10px;">
-            {{ filmStore.filmsError }}
-          </NAlert>
+    <q-banner v-if="filmStore.filmsError" class="bg-red-1 text-negative" rounded>
+      {{ filmStore.filmsError }}
+    </q-banner>
 
-          <EntityTablePanel
-            v-if="isLockedBreakout"
-            :columns="childTableColumns"
-            :data="childTableState.pagedRows.value"
-            :loading="filmStore.isLoading"
-            :row-key="(row) => row.id"
-            :page="childTableState.page.value"
-            :page-size="childTableState.pageSize.value"
-            :item-count="childTableState.totalRows.value"
-            :page-sizes="childTableState.pageSizes"
-            empty-description="No films match the current filters."
-            table-test-id="film-child-table"
-            pagination-test-id="film-child-pagination"
-            @update:page="(value) => { childTableState.page.value = value; }"
-            @update:page-size="(value) => { childTableState.pageSize.value = value; }"
-          >
-            <template #filters>
-              <NSelect
-                :value="childStateFilter ?? '__all__'"
-                :options="childStateFilterOptions"
-                style="min-width: 200px;"
-                data-testid="film-child-state-filter"
-                @update:value="onChildStateFilterChange"
-              />
-              <NInput
-                v-model:value="childSearchTerm"
-                clearable
-                placeholder="Search by film or emulsion"
-                data-testid="film-child-search"
-              />
-            </template>
-          </EntityTablePanel>
+    <div class="row q-col-gutter-md">
+      <div class="col-xs-12 col-lg-6">
+        <q-input v-model="search" filled clearable label="Search films" />
+      </div>
+      <div class="col-xs-12 col-lg-6">
+        <q-select v-model="stateFilter" filled clearable emit-value map-options :options="stateOptions" label="Filter by state" />
+      </div>
+    </div>
 
-          <template v-else>
-            <NEmpty
-              v-if="!filmStore.isLoading && !filmStore.filmsError && recentFilms.length === 0"
-              description="No films are available yet."
+    <q-table :rows="rows" :columns="columns" row-key="id" flat bordered :loading="filmStore.isLoading">
+      <template #body-cell-name="props">
+        <q-td :props="props">
+          <RouterLink :to="`/film/${props.row.id}`" class="text-primary text-weight-medium">
+            {{ props.row.name }}
+          </RouterLink>
+        </q-td>
+      </template>
+      <template #body-cell-state="props">
+        <q-td :props="props">
+          <q-badge color="primary" outline>{{ props.row.currentState.label }}</q-badge>
+        </q-td>
+      </template>
+    </q-table>
+
+    <q-dialog v-model="isCreateDialogOpen">
+      <q-card class="full-width">
+        <q-card-section>
+          <div class="text-h6">Create film</div>
+        </q-card-section>
+
+        <q-card-section>
+          <q-form class="column q-gutter-md" @submit="submitCreate">
+            <q-input v-model="createForm.name" filled label="Film name" />
+            <q-select
+              v-model="createForm.emulsionId"
+              filled
+              emit-value
+              map-options
+              :options="emulsionOptions"
+              label="Emulsion"
             />
-            <NFlex v-else vertical size="small">
-              <NCard v-for="film in recentFilms" :key="film.id" size="small" embedded>
-                <NFlex justify="space-between" align="center" :wrap="false">
-                  <NText strong>{{ film.name }}</NText>
-                  <NTag :type="stateTypeByCode[film.currentStateCode] ?? 'default'" size="small">
-                    {{ film.currentState.label }}
-                  </NTag>
-                </NFlex>
-                <NText depth="3">{{ film.emulsion.manufacturer }} {{ film.emulsion.brand }} · ISO {{ film.emulsion.isoSpeed }}</NText>
-                <NText depth="3">{{ film.filmFormat.code }} · {{ film.packageType.label }}</NText>
-                <NFlex justify="end">
-                  <NButton tertiary size="small" @click="router.push(`/film/${film.id}`)">Open timeline</NButton>
-                </NFlex>
-              </NCard>
-            </NFlex>
-          </template>
-        </NCard>
-      </template>
+            <q-select
+              v-model="createForm.filmFormatId"
+              filled
+              emit-value
+              map-options
+              :options="formatOptions"
+              label="Film format"
+            />
+            <q-select
+              v-model="createForm.packageTypeId"
+              filled
+              emit-value
+              map-options
+              :options="packageTypeOptions"
+              label="Package type"
+            />
+            <q-input v-model="createForm.expirationDate" filled type="date" label="Expiration date (optional)" />
+          </q-form>
+        </q-card-section>
 
-      <template #right>
-        <KpiCardGrid :cards="isLockedBreakout ? childKpis : parentStats" />
-      </template>
-    </InventorySplitLayout>
-  </PageShell>
-
-  <NDrawer v-model:show="isCreateDrawerOpen" placement="right" width="min(100vw, 420px)">
-    <NDrawerContent title="Add film" closable>
-      <NForm label-placement="top" @submit.prevent="submitCreateFilm">
-        <NAlert v-if="createState.formError" type="error" :show-icon="true" style="margin-bottom: 10px;">
-          {{ createState.formError }}
-        </NAlert>
-
-        <NFormItem
-          label="Name"
-          required
-          :label-props="{ for: 'film-create-name-input' }"
-          :feedback="createState.fieldErrors.name || ''"
-        >
-          <NInput
-            v-model:value="createForm.name"
-            placeholder="Film label"
-            :input-props="{ id: 'film-create-name-input', name: 'name' }"
-          />
-        </NFormItem>
-        <NFormItem
-          label="Emulsion"
-          required
-          :label-props="{ for: 'film-create-emulsion-input' }"
-          :feedback="createState.fieldErrors.emulsionId || ''"
-        >
-          <NSelect
-            v-model:value="createForm.emulsionId"
-            :options="emulsionOptions"
-            filterable
-            placeholder="Select emulsion"
-            data-testid="create-film-emulsion"
-            :input-props="{ id: 'film-create-emulsion-input', name: 'emulsionId' }"
-          />
-        </NFormItem>
-        <NFormItem
-          label="Film format"
-          required
-          :label-props="{ for: 'film-create-format-input' }"
-          :feedback="createState.fieldErrors.filmFormatId || ''"
-        >
-          <NSelect
-            v-model:value="createForm.filmFormatId"
-            :options="formatOptions"
-            placeholder="Select format"
-            data-testid="create-film-format"
-            :input-props="{ id: 'film-create-format-input', name: 'filmFormatId' }"
-            @update:value="createForm.packageTypeId = null"
-          />
-        </NFormItem>
-        <NFormItem
-          label="Package type"
-          required
-          :label-props="{ for: 'film-create-package-input' }"
-          :feedback="createState.fieldErrors.packageTypeId || ''"
-        >
-          <NSelect
-            v-model:value="createForm.packageTypeId"
-            :options="packageTypeOptions"
-            placeholder="Select package"
-            data-testid="create-film-package"
-            :input-props="{ id: 'film-create-package-input', name: 'packageTypeId' }"
-          />
-        </NFormItem>
-        <NFormItem label="Expiration date" :label-props="{ for: 'film-create-expiration-input' }">
-          <NDatePicker
-            v-model:value="expirationTimestamp"
-            type="datetime"
-            clearable
-            :input-props="{ id: 'film-create-expiration-input', name: 'expirationDate' }"
-          />
-        </NFormItem>
-        <NFlex justify="space-between" align="center">
-          <NText depth="3">Required fields are marked with an asterisk.</NText>
-          <NFlex>
-            <NButton tertiary @click="isCreateDrawerOpen = false">Cancel</NButton>
-            <NButton type="primary" attr-type="submit" :loading="isCreatingFilm" :disabled="isCreatingFilm">
-              Create film
-            </NButton>
-          </NFlex>
-        </NFlex>
-      </NForm>
-    </NDrawerContent>
-  </NDrawer>
+        <q-card-actions align="right">
+          <q-btn v-close-popup flat label="Cancel" />
+          <q-btn color="primary" label="Create" :loading="isCreating" @click="submitCreate" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </q-page>
 </template>
 
-<style scoped>
-.film-table__name-link {
-  color: var(--n-primary-color);
-  text-decoration: none;
-}
-
-.film-table__name-link:hover {
-  text-decoration: underline;
-}
-
-.film-table__name-link:visited {
-  color: var(--n-primary-color);
-}
-
-.film-table__name-link:focus-visible {
-  border-radius: 4px;
-  outline: 2px solid var(--n-primary-color);
-  outline-offset: 2px;
-}
-</style>
