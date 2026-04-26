@@ -25,3 +25,19 @@ Feature: Film Inventory
     Given I am not authenticated
     When I navigate to "/film"
     Then I am redirected to the login page
+
+  Scenario: Add film form disables dependent fields until a format is chosen
+    Given I have opened the add film form from the unfiltered inventory
+    Then the emulsion and package type fields should be disabled
+
+  Scenario: Add film form filters options once a format is chosen
+    Given I have opened the add film form from the unfiltered inventory
+    When I select the format "35mm"
+    Then only emulsions compatible with "35mm" should be available
+    And only package types compatible with "35mm" should be available
+
+  Scenario: Add film form pre-filters options when opened from a filtered inventory
+    When I open the add film form from the inventory filtered to "35mm"
+    Then the format field should be locked to "35mm"
+    And only emulsions compatible with "35mm" should be available
+    And only package types compatible with "35mm" should be available

@@ -74,3 +74,4 @@ apps/ui/.quasar
 apps/ui/src/typed-router.d.ts
 apps/ui/test-results/
 
+apps/api/src/infrastructure/migrations/.snapshot-memory.json

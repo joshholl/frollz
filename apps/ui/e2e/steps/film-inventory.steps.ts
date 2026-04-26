@@ -1,5 +1,16 @@
 import { expect } from '@playwright/test';
-import { Given, Then, When, createCameraFixture, createFilmLotFixture, loadReferenceData, testState } from './fixtures.js';
+import { Given, Then, When, createCameraFixture, createFilmLotFixture, findFilmFormatByLabel, loadReferenceData, testState } from './fixtures.js';
+
+const FORMAT_ROUTE: Record<string, string> = {
+  '35mm': '/film/35mm',
+  '120': '/film/medium-format',
+  '4x5': '/film/large-format',
+  '2x3': '/film/large-format',
+  '8x10': '/film/large-format',
+  'InstaxMini': '/film/instant',
+  'InstaxWide': '/film/instant',
+  'InstaxSquare': '/film/instant',
+};
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -22,6 +33,11 @@ Given('a purchased film exists named {string}', async ({}, filmName: string) => 
   testState.filmIdsByName.set(filmName, id);
 });
 
+Given('I have opened the add film form from the unfiltered inventory', async ({ page }) => {
+  await page.goto('/film');
+  await page.getByRole('button', { name: /add film/i }).click();
+});
+
 When('I add a film named {string}', async ({ page }, filmName: string) => {
   const reference = await loadReferenceData();
   const emulsion = reference.emulsions.find((item) => `${item.manufacturer} ${item.brand}`.toLowerCase().includes('kodak portra'));
@@ -36,13 +52,19 @@ When('I add a film named {string}', async ({ page }, filmName: string) => {
   await page.getByRole('button', { name: /add film/i }).click();
   const createForm = page.getByTestId('film-create-form');
   await createForm.getByTestId('film-create-name').getByRole('textbox', { name: 'Film name', exact: true }).fill(filmName);
-  await createForm.getByTestId('film-create-emulsion').getByRole('combobox', { name: 'Emulsion', exact: true }).click();
-  await page.getByRole('option', { name: `${emulsion.manufacturer} ${emulsion.brand}`, exact: false }).click();
   await createForm.getByTestId('film-create-format').getByRole('combobox', { name: 'Film format', exact: true }).click();
   await page.getByRole('option', { name: format.label, exact: true }).click();
+  await createForm.getByTestId('film-create-emulsion').getByRole('combobox', { name: 'Emulsion', exact: true }).click();
+  await page.getByRole('option', { name: `${emulsion.manufacturer} ${emulsion.brand}`, exact: false }).click();
   await createForm.getByTestId('film-create-package').getByRole('combobox', { name: 'Package type', exact: true }).click();
   await page.getByRole('option', { name: packageType.label, exact: false }).click();
   await page.getByRole('button', { name: /^create$/i }).click();
+});
+
+When('I open the add film form from the inventory filtered to {string}', async ({ page }, formatCode: string) => {
+  const path = FORMAT_ROUTE[formatCode] ?? `/film/${formatCode.toLowerCase()}`;
+  await page.goto(path);
+  await page.getByRole('button', { name: /add film/i }).click();
 });
 
 When('I try to submit film with missing required fields', async ({ page }) => {
@@ -54,6 +76,16 @@ When('I try to submit film with missing required fields', async ({ page }) => {
 When('I open film detail for {string}', async ({ page }, filmName: string) => {
   await page.goto('/film');
   await page.getByRole('link', { name: filmName, exact: false }).first().click();
+});
+
+When('I select the format {string}', async ({ page }, formatCode: string) => {
+  const reference = await loadReferenceData();
+  const format = findFilmFormatByLabel(reference, formatCode);
+  const formatCombobox = page.getByTestId('film-create-form')
+    .getByTestId('film-create-format')
+    .getByRole('combobox', { name: 'Film format', exact: true });
+  await formatCombobox.click();
+  await page.getByRole('option', { name: format.label, exact: true }).click();
 });
 
 When('I record the film as stored in {string}', async ({ page }, location: string) => {
@@ -81,6 +113,54 @@ When('I record the film as loaded into device {string}', async ({ page }, device
     .first()
     .click();
   await page.getByRole('button', { name: /record event/i }).click();
+});
+
+Then('the emulsion and package type fields should be disabled', async ({ page }) => {
+  const form = page.getByTestId('film-create-form');
+  await expect(form.getByTestId('film-create-emulsion').getByRole('combobox', { name: 'Emulsion', exact: true })).toBeDisabled();
+  await expect(form.getByTestId('film-create-package').getByRole('combobox', { name: 'Package type', exact: true })).toBeDisabled();
+});
+
+Then('the format field should be locked to {string}', async ({ page }, formatCode: string) => {
+  const reference = await loadReferenceData();
+  const format = findFilmFormatByLabel(reference, formatCode);
+  const formatCombobox = page.getByTestId('film-create-form')
+    .getByTestId('film-create-format')
+    .getByRole('combobox', { name: 'Film format', exact: true });
+  await expect(formatCombobox).toBeDisabled();
+  await expect(formatCombobox).toContainText(format.label);
+});
+
+Then('only emulsions compatible with {string} should be available', async ({ page }, formatCode: string) => {
+  const reference = await loadReferenceData();
+  const format = findFilmFormatByLabel(reference, formatCode);
+  const compatible = reference.emulsions.filter((e) =>
+    e.filmFormats.some((f) => f.id === format.id),
+  );
+  const emulsionCombobox = page.getByTestId('film-create-form')
+    .getByTestId('film-create-emulsion')
+    .getByRole('combobox', { name: 'Emulsion', exact: true });
+  await emulsionCombobox.click();
+  await expect(page.getByRole('option')).toHaveCount(compatible.length);
+  for (const emulsion of compatible) {
+    await expect(page.getByRole('option', { name: `${emulsion.manufacturer} ${emulsion.brand}`, exact: false })).toBeVisible();
+  }
+  await page.keyboard.press('Escape');
+});
+
+Then('only package types compatible with {string} should be available', async ({ page }, formatCode: string) => {
+  const reference = await loadReferenceData();
+  const format = findFilmFormatByLabel(reference, formatCode);
+  const compatible = reference.packageTypes.filter((p) => p.filmFormatId === format.id);
+  const packageCombobox = page.getByTestId('film-create-form')
+    .getByTestId('film-create-package')
+    .getByRole('combobox', { name: 'Package type', exact: true });
+  await packageCombobox.click();
+  await expect(page.getByRole('option')).toHaveCount(compatible.length);
+  for (const pkg of compatible) {
+    await expect(page.getByRole('option', { name: pkg.label, exact: false })).toBeVisible();
+  }
+  await page.keyboard.press('Escape');
 });
 
 Then('I see {string} in the film table', async ({ page }, filmName: string) => {
