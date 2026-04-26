@@ -39,3 +39,40 @@ Feature: Device Management
     And I select that camera is not directly loadable
     When I select the format "120"
     Then the frame size field should be disabled
+
+  Scenario: Cannot select a frame size until a format has been selected for an interchangeable back
+    Given I have opened the add device form
+    And I have chosen the device type of "Interchangeable back"
+    When a format has not been selected
+    Then the frame size field should be disabled
+
+  Scenario: Frame size is enabled when a directly loadable camera has a format selected
+    Given I have opened the add device form
+    And I have chosen the device type of "Camera"
+    When a toggle for "Is this camera directly loadable?" is visible
+    And the toggle is set to "Yes"
+    Then the frame size field should be disabled
+    When I select the format "120"
+    Then the frame size field should be enabled
+
+  Scenario: Frame size stays disabled when a non-directly loadable camera has a format selected
+    Given I have opened the add device form
+    And I have chosen the device type of "Camera"
+    When a toggle for "Is this camera directly loadable?" is visible
+    And the toggle is set to "No"
+    And I select the format "120"
+    Then the frame size field should be disabled
+
+  Scenario: Open a the child <value> device page
+    Given the child page of <value> has been opened
+    When I have opened the add device form
+    Then the device type field should be locked to <value>
+    And the frame size field should be disabled
+    When I select the format "35mm"
+    Then the frame size field should be enabled
+
+    Examples:
+    | value |
+    | Cameras |
+    | Interchangeable Back |
+    | Film Holder |

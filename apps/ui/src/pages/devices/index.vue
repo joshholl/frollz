@@ -43,8 +43,10 @@ const frameSizeOptions = computed(() => {
   return [...getFrameSizeCodesForFormatCode(selectedFilmFormatCode.value)];
 });
 
+const isFormFieldDisabled = computed(() => !createForm.filmFormatId || !createForm.deviceTypeCode);
+
 const isFrameSizeDisabled = computed(() =>
-  !createForm.filmFormatId ||
+  isFormFieldDisabled.value ||
   (createForm.deviceTypeCode === 'camera' && createForm.loadMode !== 'direct')
 );
 
@@ -303,24 +305,25 @@ onMounted(async () => {
             <q-select v-model="createForm.frameSize" filled :options="frameSizeOptions" label="Frame size" :disable="isFrameSizeDisabled" />
 
             <template v-if="createForm.deviceTypeCode === 'camera'">
-              <q-toggle v-model="createForm.loadMode" true-value="direct" false-value="interchangeable_back" label="Directly loadable" />
-              <q-input v-model="createForm.make" filled label="Make" />
-              <q-input v-model="createForm.model" filled label="Model" />
+              <q-toggle v-model="createForm.loadMode" true-value="direct" false-value="interchangeable_back" label="Is this camera directly loadable?" :disable="isFormFieldDisabled" />
+              <q-input v-model="createForm.make" filled label="Make" :disable="isFormFieldDisabled" />
+              <q-input v-model="createForm.model" filled label="Model" :disable="isFormFieldDisabled" />
             </template>
 
             <template v-else-if="createForm.deviceTypeCode === 'interchangeable_back'">
-              <q-input v-model="createForm.name" filled label="Name" />
-              <q-input v-model="createForm.system" filled label="System" />
+              <q-input v-model="createForm.name" filled label="Name" :disable="isFormFieldDisabled" />
+              <q-input v-model="createForm.system" filled label="System" :disable="isFormFieldDisabled" />
             </template>
 
             <template v-else>
-              <q-input v-model="createForm.name" filled label="Holder name" />
-              <q-input v-model="createForm.brand" filled label="Brand" />
+              <q-input v-model="createForm.name" filled label="Holder name" :disable="isFormFieldDisabled" />
+              <q-input v-model="createForm.brand" filled label="Brand" :disable="isFormFieldDisabled" />
               <q-select
                 v-model="createForm.slotCount"
                 filled
                 :options="[1, 2]"
                 label="Slot count"
+                :disable="isFormFieldDisabled"
               />
               <q-select
                 v-model="createForm.holderTypeId"
@@ -329,6 +332,7 @@ onMounted(async () => {
                 map-options
                 :options="holderTypeOptions"
                 label="Holder type"
+                :disable="isFormFieldDisabled"
               />
             </template>
           </q-form>

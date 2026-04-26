@@ -51,7 +51,9 @@ Then('I see a device detail error containing {string}', async ({ page }, message
 });
 
 Given('I have opened the add device form', async ({ page }) => {
-  await page.goto('/devices');
+  if (!page.url().includes('/devices')) {
+    await page.goto('/devices');
+  }
   await page.getByRole('button', { name: /add device/i }).click();
 });
 
@@ -66,7 +68,28 @@ When('I select the format {string}', async ({ page }, formatLabel: string) => {
 });
 
 When('I select that camera is not directly loadable', async ({ page }) => {
-  await page.getByLabel('Directly loadable').click();
+  await page.getByLabel('Is this camera directly loadable?').click();
+});
+
+When('a toggle for {string} is visible', async ({ page }, toggleLabel: string) => {
+  await expect(page.getByLabel(toggleLabel)).toBeVisible();
+});
+
+When('the toggle is set to {string}', async ({ page }, value: string) => {
+  const toggle = page.getByLabel('Is this camera directly loadable?');
+  const isChecked = await toggle.isChecked();
+  const wantsYes = value.toLowerCase() === 'yes';
+  if (wantsYes !== isChecked) {
+    await toggle.click();
+  }
+});
+
+When('a format has not been selected', async ({ page }) => {
+  await expect(page.getByLabel('Film format')).toHaveValue('');
+});
+
+Then('the frame size field should be enabled', async ({ page }) => {
+  await expect(page.getByLabel('Frame size')).toBeEnabled();
 });
 
 When('I try to submit a device with missing required fields', async ({ page }) => {
@@ -92,4 +115,20 @@ Then('only frame sizes compatible with {string} should be available', async ({ p
 
 Then('I see a device form validation message containing {string}', async ({ page }, message: string) => {
   await expect(page.getByText(message, { exact: false })).toBeVisible();
+});
+
+const childPageRoutes: Record<string, string> = {
+  Cameras: '/devices/cameras',
+  'Interchangeable Back': '/devices/interchangeable-backs',
+  'Film Holder': '/devices/film-holders'
+};
+
+Given('the child page of {string} has been opened', async ({ page }, value: string) => {
+  const route = childPageRoutes[value];
+  if (!route) throw new Error(`Unknown child page value: "${value}"`);
+  await page.goto(route);
+});
+
+Then('the device type field should be locked to {string}', async ({ page }, _value: string) => {
+  await expect(page.getByLabel('Device type')).toBeDisabled();
 });
