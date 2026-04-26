@@ -50,6 +50,9 @@ frollz-ui/coverage
 **/*.sqlite
 **/*/.env
 
+# ── playwright-bdd generated test wrappers (generated at runtime) ──────
+**/.features-gen/
+
 
 report.html
 apps/api/src/infrastructure/migrations/.snapshot-frollz2.sqlite.json
