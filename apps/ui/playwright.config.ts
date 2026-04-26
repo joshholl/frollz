@@ -1,14 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
 import { defineBddConfig } from 'playwright-bdd';
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const configDir = dirname(fileURLToPath(import.meta.url));
+const repoRoot = resolve(configDir, '../..');
 
-const bddConfig = defineBddConfig({
+const bddOutputDir = defineBddConfig({
   features: 'e2e/features/**/*.feature',
   steps: 'e2e/steps/**/*.ts',
 });
+
+const API_URL = 'http://127.0.0.1:3001';
 
 export default defineConfig({
   testDir: './e2e',
@@ -19,13 +22,24 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:4173',
     trace: 'on-first-retry'
   },
-  webServer: {
-    command: 'pnpm dev --host 127.0.0.1 --port 4173',
-    cwd: configDir,
-    url: 'http://127.0.0.1:4173',
-    reuseExistingServer: true,
-    timeout: 120000
-  },
+  webServer: [
+    {
+      // Test API — in-memory SQLite, auto-migrated and seeded on startup
+      command: 'pnpm --filter @frollz2/api start:test',
+      cwd: repoRoot,
+      url: `${API_URL}/api/v1/auth/me`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+    {
+      // UI dev server proxied to the test API on port 3001
+      command: `cross-env API_TARGET=${API_URL} pnpm dev --host 127.0.0.1 --port 4173`,
+      cwd: configDir,
+      url: 'http://127.0.0.1:4173',
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+  ],
   projects: [
     {
       name: 'e2e',
@@ -33,13 +47,9 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] }
     },
     {
-      name: 'bdd-gen',
-      ...bddConfig
-    },
-    {
       name: 'bdd',
-      dependsOn: ['bdd-gen'],
-      testDir: bddConfig.outputDir,
+      testDir: bddOutputDir,
+      workers: 1,
       use: { ...devices['Desktop Chrome'] }
     }
   ]
