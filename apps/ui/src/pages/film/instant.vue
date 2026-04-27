@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import type { FilmSummary } from '@frollz2/schema';
+import FilmCreateDialog from '../../components/FilmCreateDialog.vue';
 import FilmInventoryTable from '../../components/FilmInventoryTable.vue';
 import { useFilmStore } from '../../stores/film.js';
 import { useReferenceStore } from '../../stores/reference.js';
@@ -110,61 +111,21 @@ onMounted(async () => {
       :extract-iso="extractIso"
     />
 
-    <q-dialog v-model="isCreateDialogOpen" data-testid="film-create-dialog">
-      <q-card class="full-width">
-        <q-card-section>
-          <div class="text-h6">Create film</div>
-        </q-card-section>
-
-        <q-card-section>
-          <q-form class="column q-gutter-md" data-testid="film-create-form" @submit="submitCreate">
-            <div data-testid="film-create-name">
-              <q-input v-model="createForm.name" filled label="Film name" />
-            </div>
-            <div data-testid="film-create-format">
-              <q-select
-                v-model="createForm.filmFormatId"
-                filled
-                emit-value
-                map-options
-                :options="formatOptions"
-                :disable="isFormatLocked"
-                label="Film format"
-              />
-            </div>
-            <div data-testid="film-create-emulsion">
-              <q-select
-                v-model="createForm.emulsionId"
-                filled
-                emit-value
-                map-options
-                :options="emulsionOptions"
-                :disable="isEmulsionDisabled"
-                label="Emulsion"
-              />
-            </div>
-            <div data-testid="film-create-package">
-              <q-select
-                v-model="createForm.packageTypeId"
-                filled
-                emit-value
-                map-options
-                :options="packageTypeOptions"
-                :disable="isPackageDisabled"
-                label="Package type"
-              />
-            </div>
-            <div data-testid="film-create-expiration">
-              <q-input v-model="createForm.expirationDate" filled type="date" label="Expiration date (optional)" />
-            </div>
-          </q-form>
-        </q-card-section>
-
-        <q-card-actions align="right">
-          <q-btn v-close-popup flat label="Cancel" />
-          <q-btn color="primary" label="Create" :loading="isCreating" @click="submitCreate" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <FilmCreateDialog
+      v-model="isCreateDialogOpen"
+      v-model:name="createForm.name"
+      v-model:emulsion-id="createForm.emulsionId"
+      v-model:film-format-id="createForm.filmFormatId"
+      v-model:package-type-id="createForm.packageTypeId"
+      v-model:expiration-date="createForm.expirationDate"
+      :format-options="formatOptions"
+      :emulsion-options="emulsionOptions"
+      :package-type-options="packageTypeOptions"
+      :is-format-locked="isFormatLocked"
+      :is-emulsion-disabled="isEmulsionDisabled"
+      :is-package-disabled="isPackageDisabled"
+      :is-creating="isCreating"
+      @submit="submitCreate"
+    />
   </q-page>
 </template>

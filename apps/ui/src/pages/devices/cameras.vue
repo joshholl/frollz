@@ -116,7 +116,7 @@ onMounted(async () => {
 
     <CreateDeviceDialog
       v-model="isCreateDialogOpen"
-      :device-type-filter="routeTypeFilter ?? undefined"
+      v-bind="routeTypeFilter ? { deviceTypeFilter: routeTypeFilter } : {}"
     />
   </q-page>
 </template>
