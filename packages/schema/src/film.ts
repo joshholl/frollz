@@ -198,6 +198,66 @@ export const filmJourneyEventDataScannedSchema = z.object({
 });
 export const filmJourneyEventDataArchivedSchema = z.object({}).strict();
 
+// Film event form schemas — shared base fields for all forms
+const eventFormBaseFields = {
+  occurredAt: z.string().min(1, 'Required'),
+  notes: z.string().optional(),
+};
+
+// Per-state event form schemas (empty eventData states)
+export const purchasedEventFormSchema = z.object(eventFormBaseFields);
+export const exposedEventFormSchema = z.object(eventFormBaseFields);
+export const removedEventFormSchema = z.object(eventFormBaseFields);
+export const archivedEventFormSchema = z.object(eventFormBaseFields);
+
+// Location-based
+export const storedEventFormSchema = z.object({
+  ...eventFormBaseFields,
+  storageLocationId: idSchema,
+});
+
+// Lab-based
+export const sentForDevEventFormSchema = z.object({
+  ...eventFormBaseFields,
+  labName: z.string().optional(),
+  labContact: z.string().optional(),
+  actualPushPull: z.number().int().optional(),
+});
+
+export const developedEventFormSchema = z.object({
+  ...eventFormBaseFields,
+  labName: z.string().optional(),
+  actualPushPull: z.number().int().optional(),
+});
+
+// Scan-based
+export const scannedEventFormSchema = z.object({
+  ...eventFormBaseFields,
+  scannerOrSoftware: z.string().optional(),
+  scanLink: z.string().optional(),
+});
+
+// Load (complex discriminated union for device types)
+export const loadedEventFormSchema = z.object({
+  ...eventFormBaseFields,
+  deviceId: idSchema,
+  slotNumber: z.union([z.literal(1), z.literal(2)]).optional(),
+  intendedPushPull: z.number().int().optional(),
+});
+
+// Export all as a map for easy lookup
+export const filmEventFormSchemas = {
+  purchased: purchasedEventFormSchema,
+  stored: storedEventFormSchema,
+  loaded: loadedEventFormSchema,
+  exposed: exposedEventFormSchema,
+  removed: removedEventFormSchema,
+  sent_for_dev: sentForDevEventFormSchema,
+  developed: developedEventFormSchema,
+  scanned: scannedEventFormSchema,
+  archived: archivedEventFormSchema,
+} as const;
+
 export const frameStateCodeSchema = z.enum([
   'purchased',
   'stored',
@@ -446,3 +506,14 @@ export type FilmDevice = z.infer<typeof filmDeviceSchema>;
 export type CreateFilmDeviceRequest = z.infer<typeof createFilmDeviceRequestSchema>;
 export type UpdateFilmDeviceRequest = z.infer<typeof updateFilmDeviceRequestSchema>;
 export type FrameSizeCode = z.infer<typeof frameSizeCodeSchema>;
+
+// Film event form types
+export type PurchasedEventForm = z.infer<typeof purchasedEventFormSchema>;
+export type StoredEventForm = z.infer<typeof storedEventFormSchema>;
+export type LoadedEventForm = z.infer<typeof loadedEventFormSchema>;
+export type ExposedEventForm = z.infer<typeof exposedEventFormSchema>;
+export type RemovedEventForm = z.infer<typeof removedEventFormSchema>;
+export type SentForDevEventForm = z.infer<typeof sentForDevEventFormSchema>;
+export type DevelopedEventForm = z.infer<typeof developedEventFormSchema>;
+export type ScannedEventForm = z.infer<typeof scannedEventFormSchema>;
+export type ArchivedEventForm = z.infer<typeof archivedEventFormSchema>;
