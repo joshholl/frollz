@@ -1,18 +1,12 @@
-import { Body, Controller, Get, Headers, Inject, Param, ParseIntPipe, Post } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { createEmulsionRequestSchema } from '@frollz2/schema';
-import { ZodSchemaPipe } from '../../common/pipes/zod-schema.pipe.js';
-import { IdempotencyService } from '../../common/services/idempotency.service.js';
-import { CurrentUser } from '../auth/current-user.decorator.js';
-import type { AuthenticatedUser } from '../auth/auth.types.js';
 import { ReferenceService } from './reference.service.js';
 
 @ApiTags('reference')
 @Controller('reference')
 export class ReferenceController {
   constructor(
-    @Inject(ReferenceService) private readonly referenceService: ReferenceService,
-    @Inject(IdempotencyService) private readonly idempotencyService: IdempotencyService
+    @Inject(ReferenceService) private readonly referenceService: ReferenceService
   ) { }
 
   @Get()
@@ -78,34 +72,4 @@ export class ReferenceController {
     return this.referenceService.listHolderTypes();
   }
 
-  @Get('emulsions')
-  @ApiOperation({ summary: 'List all emulsions' })
-  @ApiResponse({ status: 200, description: 'Emulsions' })
-  listEmulsions() {
-    return this.referenceService.listEmulsions();
-  }
-
-  @Get('emulsions/:id')
-  @ApiOperation({ summary: 'Get an emulsion by id' })
-  @ApiResponse({ status: 200, description: 'Emulsion' })
-  findEmulsionById(@Param('id', ParseIntPipe) id: number) {
-    return this.referenceService.findEmulsionById(id);
-  }
-
-  @Post('emulsions')
-  @ApiOperation({ summary: 'Create an emulsion' })
-  @ApiResponse({ status: 201, description: 'Emulsion created' })
-  createEmulsion(
-    @CurrentUser() user: AuthenticatedUser,
-    @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Body(new ZodSchemaPipe(createEmulsionRequestSchema)) body: typeof createEmulsionRequestSchema['_output']
-  ) {
-    return this.idempotencyService.execute({
-      userId: user.userId,
-      key: idempotencyKey,
-      scope: 'reference.emulsions.create',
-      requestPayload: body,
-      handler: () => this.referenceService.createEmulsion(body)
-    });
-  }
 }

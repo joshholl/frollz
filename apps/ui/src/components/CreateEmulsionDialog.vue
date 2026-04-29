@@ -4,6 +4,7 @@ import { createEmulsionRequestSchema } from '@frollz2/schema';
 import type { QForm } from 'quasar';
 import { createIdempotencyKey } from '../composables/idempotency.js';
 import { useUiFeedback } from '../composables/useUiFeedback.js';
+import { useEmulsionStore } from '../stores/emulsions.js';
 import { useReferenceStore } from '../stores/reference.js';
 
 const props = defineProps<{
@@ -16,6 +17,7 @@ const emit = defineEmits<{
 }>();
 
 const referenceStore = useReferenceStore();
+const emulsionStore = useEmulsionStore();
 const feedback = useUiFeedback();
 const isCreating = ref(false);
 const emulsionForm = ref<QForm | null>(null);
@@ -76,7 +78,7 @@ async function submit(): Promise<void> {
 
   isCreating.value = true;
   try {
-    await referenceStore.createEmulsion(result.data, idempotencyKey.value);
+    await emulsionStore.createEmulsion(result.data, idempotencyKey.value);
     feedback.success('Emulsion created.');
     emit('update:modelValue', false);
     emit('created');

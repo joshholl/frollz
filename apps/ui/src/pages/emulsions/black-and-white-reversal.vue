@@ -3,10 +3,10 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import type { Emulsion } from '@frollz2/schema';
-import { useReferenceStore } from '../../stores/reference.js';
+import { useEmulsionStore } from '../../stores/emulsions.js';
 
 const route = useRoute();
-const referenceStore = useReferenceStore();
+const emulsionStore = useEmulsionStore();
 const search = ref<string | null>('');
 
 const processFilterCode = computed(() => {
@@ -17,7 +17,7 @@ const processFilterCode = computed(() => {
 const rows = computed(() => {
   const query = (search.value ?? '').trim().toLowerCase();
 
-  return referenceStore.emulsions.filter((emulsion) => {
+  return emulsionStore.emulsions.filter((emulsion) => {
     if (processFilterCode.value && emulsion.developmentProcess.code !== processFilterCode.value) {
       return false;
     }
@@ -62,7 +62,7 @@ const columns = [
 ];
 
 onMounted(async () => {
-  await referenceStore.loadAll();
+  await emulsionStore.loadAll();
 });
 </script>
 
@@ -71,14 +71,14 @@ onMounted(async () => {
     <div class="row items-center justify-between q-gutter-sm">
       <div>
         <div class="text-h5">Emulsions</div>
-        <div class="text-subtitle2 text-grey-7">Reference library filtered by process and search.</div>
+        <div class="text-subtitle2 text-grey-7">Shared catalog filtered by process and search.</div>
       </div>
-      <q-btn color="primary" label="Refresh" @click="referenceStore.loadAll" />
+      <q-btn color="primary" label="Refresh" @click="emulsionStore.loadAll" />
     </div>
 
     <q-input v-model="search" filled label="Search emulsions" clearable />
 
-    <q-table :rows="rows" :columns="columns" row-key="id" flat bordered :loading="referenceStore.isLoading">
+    <q-table :rows="rows" :columns="columns" row-key="id" flat bordered :loading="emulsionStore.isLoading">
       <template #body-cell-name="props">
         <q-td :props="props">
           <RouterLink :to="`/emulsions/${props.row.id}`" class="text-primary text-weight-medium">
