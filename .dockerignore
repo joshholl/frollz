@@ -16,3 +16,15 @@ apps/api/temp
 apps/ui/test-results
 **/*.log
 **/.DS_Store
+# Additional build optimization
+*.md
+!README.md
+.env*
+!.env.example
+coverage
+.cache
+*.test.ts
+*.spec.ts
+docker-compose*.yml
+Dockerfile*
+.dockerignore
