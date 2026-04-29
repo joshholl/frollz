@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { exportDataSchema, type ExportData } from '@frollz2/schema';
 import { useApi } from '../composables/useApi.js';
 import { readApiData } from '../composables/api-envelope.js';
+import { createIdempotencyKey } from '../composables/idempotency.js';
 
 export const useAdminStore = defineStore('admin', () => {
   const { request } = useApi();
@@ -46,9 +47,23 @@ export const useAdminStore = defineStore('admin', () => {
     isImporting.value = true;
     importError.value = null;
     try {
+      // Read file as text and parse JSON
+      const fileText = await file.text();
+      const importPayload: ExportData = JSON.parse(fileText);
+
+      // Validate the import data structure
+      exportDataSchema.parse(importPayload);
+
+      // Generate idempotency key to prevent duplicate imports
+      const idempotencyKey = createIdempotencyKey();
+
       const response = await request('/api/v1/admin/import', {
         method: 'POST',
-        body: file
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey
+        },
+        body: JSON.stringify(importPayload)
       });
 
       if (!response.ok) {

@@ -14,13 +14,15 @@ async function handleExport() {
   }
 }
 
-function handleImport() {
+async function handleImport() {
   try {
     if (!adminStore.importDataFile) {
       feedback.error('Please select a file to import');
       return;
     }
-    adminStore.importData(adminStore.importDataFile);
+    await adminStore.importData(adminStore.importDataFile);
+    adminStore.importDataFile = null;
+    feedback.success('Data imported successfully');
   } catch (error) {
     feedback.error(feedback.toErrorMessage(error, 'Failed to import data'));
   }
