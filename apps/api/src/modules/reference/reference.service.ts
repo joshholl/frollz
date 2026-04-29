@@ -41,11 +41,4 @@ export class ReferenceService {
     return this.referenceRepository.listHolderTypes();
   }
 
-  listEmulsions() {
-    return this.referenceRepository.listEmulsions();
-  }
-
-  findEmulsionById(id: number) {
-    return this.referenceRepository.findEmulsionById(id);
-  }
 }

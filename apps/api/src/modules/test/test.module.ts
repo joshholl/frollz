@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module.js';
 import { DevicesModule } from '../devices/devices.module.js';
+import { EmulsionsModule } from '../emulsions/emulsions.module.js';
 import { FilmModule } from '../film/film.module.js';
 import { ReferenceModule } from '../reference/reference.module.js';
 import { TestController } from './test.controller.js';
 import { TestFixturesService } from './test-fixtures.service.js';
 
 @Module({
-  imports: [AuthModule, DevicesModule, FilmModule, ReferenceModule],
+  imports: [AuthModule, DevicesModule, EmulsionsModule, FilmModule, ReferenceModule],
   controllers: [TestController],
   providers: [TestFixturesService],
 })

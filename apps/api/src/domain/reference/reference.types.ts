@@ -1,6 +1,5 @@
 import type {
   DevelopmentProcess,
-  Emulsion,
   FilmFormat,
   FilmState,
   HolderType,
@@ -20,4 +19,3 @@ export type ReferenceStorageLocation = StorageLocation;
 export type ReferenceSlotState = SlotState;
 export type ReferenceDeviceType = DeviceType;
 export type ReferenceHolderType = HolderType;
-export type ReferenceEmulsion = Emulsion;

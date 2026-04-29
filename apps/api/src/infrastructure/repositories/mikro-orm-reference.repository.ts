@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
+import type { DevelopmentProcess, FilmFormat, FilmState, HolderType, PackageType, DeviceType, SlotState, StorageLocation } from '@frollz2/schema';
 import { ReferenceRepository } from './reference.repository.js';
 import {
   DevelopmentProcessEntity,
-  EmulsionEntity,
   FilmFormatEntity,
   FilmStateEntity,
   HolderTypeEntity,
@@ -12,8 +12,7 @@ import {
   SlotStateEntity,
   StorageLocationEntity
 } from '../entities/index.js';
-import { mapReferenceTables, mapEmulsionEntity } from '../mappers/index.js';
-import type { DevelopmentProcess, FilmFormat, FilmState, HolderType, PackageType, DeviceType, SlotState, StorageLocation } from '@frollz2/schema';
+import { mapReferenceTables } from '../mappers/index.js';
 
 @Injectable()
 export class MikroOrmReferenceRepository extends ReferenceRepository {
@@ -22,7 +21,7 @@ export class MikroOrmReferenceRepository extends ReferenceRepository {
   }
 
   async getAll() {
-    const [filmFormats, developmentProcesses, packageTypes, filmStates, storageLocations, slotStates, deviceTypes, holderTypes, emulsions] =
+    const [filmFormats, developmentProcesses, packageTypes, filmStates, storageLocations, slotStates, deviceTypes, holderTypes] =
       await Promise.all([
         this.entityManager.find(FilmFormatEntity, {}, { orderBy: { id: 'asc' } }),
         this.entityManager.find(DevelopmentProcessEntity, {}, { orderBy: { id: 'asc' } }),
@@ -31,8 +30,7 @@ export class MikroOrmReferenceRepository extends ReferenceRepository {
         this.entityManager.find(StorageLocationEntity, {}, { orderBy: { id: 'asc' } }),
         this.entityManager.find(SlotStateEntity, {}, { orderBy: { id: 'asc' } }),
         this.entityManager.find(DeviceTypeEntity, {}, { orderBy: { id: 'asc' } }),
-        this.entityManager.find(HolderTypeEntity, {}, { orderBy: { id: 'asc' } }),
-        this.entityManager.find(EmulsionEntity, {}, { populate: ['developmentProcess', 'filmFormats'], orderBy: { id: 'asc' } })
+        this.entityManager.find(HolderTypeEntity, {}, { orderBy: { id: 'asc' } })
       ]);
 
     return mapReferenceTables({
@@ -43,8 +41,7 @@ export class MikroOrmReferenceRepository extends ReferenceRepository {
       storageLocations,
       slotStates,
       deviceTypes,
-      holderTypes,
-      emulsions
+      holderTypes
     });
   }
 
@@ -120,15 +117,4 @@ export class MikroOrmReferenceRepository extends ReferenceRepository {
     }));
   }
 
-  async listEmulsions() {
-    return (await this.entityManager.find(EmulsionEntity, {}, { populate: ['developmentProcess', 'filmFormats'], orderBy: { id: 'asc' } })).map(
-      mapEmulsionEntity
-    );
-  }
-
-  async findEmulsionById(id: number) {
-    const entity = await this.entityManager.findOne(EmulsionEntity, { id }, { populate: ['developmentProcess', 'filmFormats'] });
-
-    return entity ? mapEmulsionEntity(entity) : null;
-  }
 }

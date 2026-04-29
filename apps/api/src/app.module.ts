@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { FilmModule } from './modules/film/film.module.js';
 import { DevicesModule } from './modules/devices/devices.module.js';
 import { ReferenceModule } from './modules/reference/reference.module.js';
+import { EmulsionsModule } from './modules/emulsions/emulsions.module.js';
 import { TestModule } from './modules/test/test.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { HealthController } from './presentation/controllers/health.controller.js';
@@ -21,6 +22,7 @@ const conditionalModules = process.env['NODE_ENV'] === 'test' ? [TestModule] : [
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100, skipIf: () => process.env['NODE_ENV'] === 'test' }]),
     AuthModule,
     ReferenceModule,
+    EmulsionsModule,
     FilmModule,
     DevicesModule,
     AdminModule,

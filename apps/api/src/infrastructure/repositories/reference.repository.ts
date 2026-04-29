@@ -1,6 +1,5 @@
 import type {
   DevelopmentProcess,
-  Emulsion,
   FilmFormat,
   FilmState,
   HolderType,
@@ -22,6 +21,4 @@ export abstract class ReferenceRepository {
   abstract listSlotStates(): Promise<SlotState[]>;
   abstract listDeviceTypes(): Promise<DeviceType[]>;
   abstract listHolderTypes(): Promise<HolderType[]>;
-  abstract listEmulsions(): Promise<Emulsion[]>;
-  abstract findEmulsionById(id: number): Promise<Emulsion | null>;
 }

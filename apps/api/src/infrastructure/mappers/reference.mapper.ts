@@ -123,7 +123,6 @@ export function mapReferenceTables(entities: {
   slotStates: SlotStateEntity[];
   deviceTypes: DeviceTypeEntity[];
   holderTypes: HolderTypeEntity[];
-  emulsions: EmulsionEntity[];
 }): ReferenceTables {
   return {
     filmFormats: entities.filmFormats.map(mapFilmFormatEntity),
@@ -133,7 +132,6 @@ export function mapReferenceTables(entities: {
     storageLocations: entities.storageLocations.map(mapStorageLocationEntity),
     slotStates: entities.slotStates.map(mapSlotStateEntity),
     deviceTypes: entities.deviceTypes.map(mapDeviceTypeEntity),
-    holderTypes: entities.holderTypes.map(mapHolderTypeEntity),
-    emulsions: entities.emulsions.map(mapEmulsionEntity)
+    holderTypes: entities.holderTypes.map(mapHolderTypeEntity)
   };
 }
