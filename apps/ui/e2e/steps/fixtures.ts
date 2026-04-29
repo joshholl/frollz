@@ -2,6 +2,7 @@ import { test as base } from 'playwright-bdd';
 import { createBdd } from 'playwright-bdd';
 import type {
   CreateFilmJourneyEventRequest,
+  Emulsion,
   FilmFormat,
   PackageType,
   ReferenceTables,
@@ -28,6 +29,7 @@ export const testState = {
   accessToken: null as string | null,
   refreshToken: null as string | null,
   referenceData: null as ReferenceTables | null,
+  emulsions: null as Emulsion[] | null,
   deviceIdsByName: new Map<string, number>(),
   filmIdsByName: new Map<string, number>(),
   lastCreatedDeviceId: null as number | null,
@@ -39,6 +41,7 @@ function resetState(): void {
   testState.accessToken = null;
   testState.refreshToken = null;
   testState.referenceData = null;
+  testState.emulsions = null;
   testState.deviceIdsByName.clear();
   testState.filmIdsByName.clear();
   testState.lastCreatedDeviceId = null;
@@ -125,6 +128,20 @@ export async function loadReferenceData(): Promise<ReferenceTables> {
   return reference;
 }
 
+export async function loadEmulsions(): Promise<Emulsion[]> {
+  if (testState.emulsions) {
+    return testState.emulsions;
+  }
+
+  if (!testState.accessToken) {
+    await loginAs();
+  }
+
+  const emulsions = await apiCall<Emulsion[]>('GET', 'emulsions');
+  testState.emulsions = emulsions;
+  return emulsions;
+}
+
 export async function createCameraFixture(params: {
   ownerEmail?: string;
   make: string;
@@ -176,7 +193,8 @@ export async function createFilmLotFixture(params: {
   expirationDate?: string | null;
 }): Promise<number> {
   const reference = await loadReferenceData();
-  const emulsion = reference.emulsions.find((item) => params.emulsionMatcher(`${item.manufacturer} ${item.brand}`));
+  const emulsions = await loadEmulsions();
+  const emulsion = emulsions.find((item) => params.emulsionMatcher(`${item.manufacturer} ${item.brand}`));
   const filmFormat = reference.filmFormats.find((item) => item.code === params.filmFormatCode);
 
   if (!emulsion || !filmFormat) {

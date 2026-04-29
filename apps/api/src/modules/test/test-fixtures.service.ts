@@ -14,6 +14,7 @@ import { seedDatabase } from '../../infrastructure/seed.js';
 import { UserEntity } from '../../infrastructure/entities/index.js';
 import { AuthService } from '../auth/auth.service.js';
 import { DevicesService } from '../devices/devices.service.js';
+import { EmulsionsService } from '../emulsions/emulsions.service.js';
 import { FilmService } from '../film/film.service.js';
 import { ReferenceService } from '../reference/reference.service.js';
 
@@ -60,6 +61,7 @@ export class TestFixturesService {
     @Inject(DevicesService) private readonly devicesService: DevicesService,
     @Inject(FilmService) private readonly filmService: FilmService,
     @Inject(ReferenceService) private readonly referenceService: ReferenceService,
+    @Inject(EmulsionsService) private readonly emulsionsService: EmulsionsService,
   ) {}
 
   assertTestEnvironment(): void {
@@ -164,6 +166,7 @@ export class TestFixturesService {
   async ensureReferenceData(): Promise<{ ok: boolean; counts: Record<string, number> }> {
     await seedDatabase(this.orm, { skipMigrations: true });
     const tables = await this.referenceService.getAll();
+    const emulsions = await this.emulsionsService.list();
 
     return {
       ok: true,
@@ -176,7 +179,7 @@ export class TestFixturesService {
         slotStates: tables.slotStates.length,
         deviceTypes: tables.deviceTypes.length,
         holderTypes: tables.holderTypes.length,
-        emulsions: tables.emulsions.length,
+        emulsions: emulsions.length,
       },
     };
   }

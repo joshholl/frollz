@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { MikroORM } from '@mikro-orm/core';
 import {
+  developmentProcessSchema,
   deviceLoadTimelineEventSchema,
   emulsionSchema,
   filmDetailSchema,
@@ -49,7 +50,7 @@ describe('API integration', () => {
   }
 
   async function loadCoreReferenceData(authHeaders: Record<string, string>) {
-    const emulsionResponse = await harness.app.inject({ method: 'GET', url: '/api/v1/reference/emulsions', headers: authHeaders });
+    const emulsionResponse = await harness.app.inject({ method: 'GET', url: '/api/v1/emulsions', headers: authHeaders });
     const emulsions = emulsionSchema.array().parse(emulsionResponse.json());
 
     const formatResponse = await harness.app.inject({ method: 'GET', url: '/api/v1/reference/film-formats', headers: authHeaders });
@@ -57,6 +58,8 @@ describe('API integration', () => {
 
     const packageTypesResponse = await harness.app.inject({ method: 'GET', url: '/api/v1/reference/package-types', headers: authHeaders });
     const packageTypes = packageTypeSchema.array().parse(packageTypesResponse.json());
+    const developmentProcessesResponse = await harness.app.inject({ method: 'GET', url: '/api/v1/reference/development-processes', headers: authHeaders });
+    const developmentProcesses = developmentProcessSchema.array().parse(developmentProcessesResponse.json());
 
     const deviceTypesResponse = await harness.app.inject({ method: 'GET', url: '/api/v1/reference/device-types', headers: authHeaders });
     const deviceTypes = deviceTypeSchema.array().parse(deviceTypesResponse.json());
@@ -71,6 +74,7 @@ describe('API integration', () => {
       filmFormat: filmFormats.find((item) => item.code === '35mm')!,
       emulsion: emulsions.find((item) => item.brand === 'Gold')!,
       packageType: packageTypes.find((item) => item.code === '24exp' && item.filmFormat.code === '35mm')!,
+      developmentProcess: developmentProcesses.find((item) => item.code.toLowerCase() === 'c41')!,
       deviceType: deviceTypes.find((item) => item.code === 'film_holder')!,
       cameraType: deviceTypes.find((item) => item.code === 'camera')!,
       holderType: holderTypes.find((item) => item.code === 'standard')!,
@@ -204,7 +208,7 @@ describe('API integration', () => {
   it('rejects unauthenticated access to reference endpoints', async () => {
     const response = await harness.app.inject({
       method: 'GET',
-      url: '/api/v1/reference/emulsions'
+      url: '/api/v1/emulsions'
     });
 
     expect(response.statusCode).toBe(401);
@@ -248,7 +252,7 @@ describe('API integration', () => {
 
     const referenceResponse = await harness.app.inject({
       method: 'GET',
-      url: '/api/v1/reference/emulsions',
+      url: '/api/v1/emulsions',
       headers: authHeaders
     });
     const emulsions = emulsionSchema.array().parse(referenceResponse.json());
@@ -713,6 +717,119 @@ describe('API integration', () => {
     expect(second.statusCode).toBe(409);
   });
 
+  it('creates an emulsion and returns it from the reference endpoint', async () => {
+    const email = `emulsion-create-${Date.now()}@example.com`;
+    const tokens = await registerUser(email);
+    const authHeaders = { authorization: `Bearer ${tokens.accessToken}` };
+    const refs = await loadCoreReferenceData(authHeaders);
+
+    const createResponse = await harness.app.inject({
+      method: 'POST',
+      url: '/api/v1/emulsions',
+      headers: { ...authHeaders, 'content-type': 'application/json' },
+      payload: {
+        manufacturer: 'Kodak',
+        brand: `Test Stock ${Date.now()}`,
+        isoSpeed: 200,
+        developmentProcessId: refs.developmentProcess.id,
+        filmFormatIds: [refs.filmFormat.id]
+      }
+    });
+
+    expect(createResponse.statusCode).toBe(201);
+    const created = emulsionSchema.parse(createResponse.json());
+    expect(created.manufacturer).toBe('Kodak');
+    expect(created.isoSpeed).toBe(200);
+    expect(created.developmentProcess.id).toBe(refs.developmentProcess.id);
+    expect(created.filmFormats.some((format) => format.id === refs.filmFormat.id)).toBe(true);
+  });
+
+  it('replays create emulsion responses for the same idempotency key without duplicating rows', async () => {
+    const email = `emulsion-idempotent-${Date.now()}@example.com`;
+    const tokens = await registerUser(email);
+    const authHeaders = { authorization: `Bearer ${tokens.accessToken}` };
+    const refs = await loadCoreReferenceData(authHeaders);
+    const idempotencyKey = `emulsions-create-${Date.now()}`;
+
+    const payload = {
+      manufacturer: 'Kodak',
+      brand: `Replay Stock ${Date.now()}`,
+      isoSpeed: 320,
+      developmentProcessId: refs.developmentProcess.id,
+      filmFormatIds: [refs.filmFormat.id]
+    };
+
+    const first = await harness.app.inject({
+      method: 'POST',
+      url: '/api/v1/emulsions',
+      headers: { ...authHeaders, 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+      payload
+    });
+    expect(first.statusCode).toBe(201);
+    const firstEmulsion = emulsionSchema.parse(first.json());
+
+    const second = await harness.app.inject({
+      method: 'POST',
+      url: '/api/v1/emulsions',
+      headers: { ...authHeaders, 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+      payload
+    });
+    expect(second.statusCode).toBe(201);
+    const secondEmulsion = emulsionSchema.parse(second.json());
+    expect(secondEmulsion.id).toBe(firstEmulsion.id);
+
+    const list = await harness.app.inject({
+      method: 'GET',
+      url: '/api/v1/emulsions',
+      headers: authHeaders
+    });
+    expect(list.statusCode).toBe(200);
+    const emulsions = emulsionSchema.array().parse(list.json());
+    const matching = emulsions.filter(
+      (item) =>
+        item.manufacturer === payload.manufacturer &&
+        item.brand === payload.brand &&
+        item.isoSpeed === payload.isoSpeed
+    );
+    expect(matching).toHaveLength(1);
+  });
+
+  it('returns 409 when an idempotency key is reused with a different create emulsion payload', async () => {
+    const email = `emulsion-idempotent-conflict-${Date.now()}@example.com`;
+    const tokens = await registerUser(email);
+    const authHeaders = { authorization: `Bearer ${tokens.accessToken}` };
+    const refs = await loadCoreReferenceData(authHeaders);
+    const idempotencyKey = `emulsions-create-conflict-${Date.now()}`;
+
+    const first = await harness.app.inject({
+      method: 'POST',
+      url: '/api/v1/emulsions',
+      headers: { ...authHeaders, 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+      payload: {
+        manufacturer: 'Ilford',
+        brand: `Conflict Stock A ${Date.now()}`,
+        isoSpeed: 100,
+        developmentProcessId: refs.developmentProcess.id,
+        filmFormatIds: [refs.filmFormat.id]
+      }
+    });
+    expect(first.statusCode).toBe(201);
+
+    const second = await harness.app.inject({
+      method: 'POST',
+      url: '/api/v1/emulsions',
+      headers: { ...authHeaders, 'content-type': 'application/json', 'idempotency-key': idempotencyKey },
+      payload: {
+        manufacturer: 'Ilford',
+        brand: `Conflict Stock B ${Date.now()}`,
+        isoSpeed: 400,
+        developmentProcessId: refs.developmentProcess.id,
+        filmFormatIds: [refs.filmFormat.id]
+      }
+    });
+    expect(second.statusCode).toBe(409);
+  });
+
   it('returns 422 for backwards and invalid skip transitions', async () => {
     const email = `transitions-${Date.now()}@example.com`;
     const tokens = await registerUser(email);
@@ -1065,7 +1182,7 @@ describe('API integration', () => {
     const second = await registerUser(`intruder-${Date.now()}@example.com`);
 
     const authHeaders = { authorization: `Bearer ${first.accessToken}` };
-    const emulsionResponse = await harness.app.inject({ method: 'GET', url: '/api/v1/reference/emulsions', headers: authHeaders });
+    const emulsionResponse = await harness.app.inject({ method: 'GET', url: '/api/v1/emulsions', headers: authHeaders });
     const emulsions = emulsionSchema.array().parse(emulsionResponse.json());
     const formatResponse = await harness.app.inject({ method: 'GET', url: '/api/v1/reference/film-formats', headers: authHeaders });
     const filmFormats = filmFormatSchema.array().parse(formatResponse.json());
@@ -1100,5 +1217,71 @@ describe('API integration', () => {
     });
 
     expect(response.statusCode).toBe(404);
+  });
+
+  it('updates and deletes an emulsion via /emulsions', async () => {
+    const email = `emulsion-mutate-${Date.now()}@example.com`;
+    const tokens = await registerUser(email);
+    const authHeaders = { authorization: `Bearer ${tokens.accessToken}` };
+    const refs = await loadCoreReferenceData(authHeaders);
+
+    const createResponse = await harness.app.inject({
+      method: 'POST',
+      url: '/api/v1/emulsions',
+      headers: { ...authHeaders, 'content-type': 'application/json' },
+      payload: {
+        manufacturer: 'BDD',
+        brand: `Mutable ${Date.now()}`,
+        isoSpeed: 250,
+        developmentProcessId: refs.developmentProcess.id,
+        filmFormatIds: [refs.filmFormat.id]
+      }
+    });
+    expect(createResponse.statusCode).toBe(201);
+    const created = emulsionSchema.parse(createResponse.json());
+
+    const updateResponse = await harness.app.inject({
+      method: 'PATCH',
+      url: `/api/v1/emulsions/${created.id}`,
+      headers: { ...authHeaders, 'content-type': 'application/json' },
+      payload: {
+        manufacturer: 'BDD',
+        brand: 'Mutated',
+        isoSpeed: 400,
+        developmentProcessId: refs.developmentProcess.id,
+        filmFormatIds: [refs.filmFormat.id]
+      }
+    });
+    expect(updateResponse.statusCode).toBe(200);
+    const updated = emulsionSchema.parse(updateResponse.json());
+    expect(updated.brand).toBe('Mutated');
+    expect(updated.isoSpeed).toBe(400);
+
+    const deleteResponse = await harness.app.inject({
+      method: 'DELETE',
+      url: `/api/v1/emulsions/${created.id}`,
+      headers: authHeaders
+    });
+    expect(deleteResponse.statusCode).toBe(204);
+  });
+
+  it('returns 409 when deleting an emulsion used by films', async () => {
+    const email = `emulsion-conflict-${Date.now()}@example.com`;
+    const tokens = await registerUser(email);
+    const authHeaders = { authorization: `Bearer ${tokens.accessToken}` };
+
+    const { refs } = await createFilmForUser(authHeaders, `Uses emulsion ${Date.now()}`);
+    const response = await harness.app.inject({
+      method: 'DELETE',
+      url: `/api/v1/emulsions/${refs.emulsion.id}`,
+      headers: authHeaders
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({
+      error: {
+        code: 'CONFLICT'
+      }
+    });
   });
 });

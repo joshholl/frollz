@@ -1,11 +1,13 @@
-import { Controller, Get, Inject, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ReferenceService } from './reference.service.js';
 
 @ApiTags('reference')
 @Controller('reference')
 export class ReferenceController {
-  constructor(@Inject(ReferenceService) private readonly referenceService: ReferenceService) { }
+  constructor(
+    @Inject(ReferenceService) private readonly referenceService: ReferenceService
+  ) { }
 
   @Get()
   @ApiOperation({ summary: 'Get all reference tables' })
@@ -70,17 +72,4 @@ export class ReferenceController {
     return this.referenceService.listHolderTypes();
   }
 
-  @Get('emulsions')
-  @ApiOperation({ summary: 'List all emulsions' })
-  @ApiResponse({ status: 200, description: 'Emulsions' })
-  listEmulsions() {
-    return this.referenceService.listEmulsions();
-  }
-
-  @Get('emulsions/:id')
-  @ApiOperation({ summary: 'Get an emulsion by id' })
-  @ApiResponse({ status: 200, description: 'Emulsion' })
-  findEmulsionById(@Param('id', ParseIntPipe) id: number) {
-    return this.referenceService.findEmulsionById(id);
-  }
 }

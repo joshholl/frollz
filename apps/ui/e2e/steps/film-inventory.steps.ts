@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { Given, Then, When, createCameraFixture, createFilmLotFixture, findFilmFormatByLabel, loadReferenceData, testState } from './fixtures.js';
+import { Given, Then, When, createCameraFixture, createFilmLotFixture, findFilmFormatByLabel, loadEmulsions, loadReferenceData, testState } from './fixtures.js';
 
 const FORMAT_ROUTE: Record<string, string> = {
   '35mm': '/film/35mm',
@@ -40,7 +40,8 @@ Given('I have opened the add film form from the unfiltered inventory', async ({ 
 
 When('I add a film named {string}', async ({ page }, filmName: string) => {
   const reference = await loadReferenceData();
-  const emulsion = reference.emulsions.find((item) => `${item.manufacturer} ${item.brand}`.toLowerCase().includes('kodak portra'));
+  const emulsions = await loadEmulsions();
+  const emulsion = emulsions.find((item) => `${item.manufacturer} ${item.brand}`.toLowerCase().includes('kodak portra'));
   const format = reference.filmFormats.find((item) => item.code === '35mm');
   const packageType = reference.packageTypes.find((item) => item.filmFormatId === format?.id && item.label.toLowerCase().includes('36'));
 
@@ -138,8 +139,9 @@ Then('the format field should be locked to {string}', async ({ page }, formatCod
 
 Then('only emulsions compatible with {string} should be available', async ({ page }, formatCode: string) => {
   const reference = await loadReferenceData();
+  const emulsions = await loadEmulsions();
   const format = findFilmFormatByLabel(reference, formatCode);
-  const compatible = reference.emulsions.filter((e) =>
+  const compatible = emulsions.filter((e) =>
     e.filmFormats.some((f) => f.id === format.id),
   );
   const emulsionCombobox = page.getByTestId('film-create-form')

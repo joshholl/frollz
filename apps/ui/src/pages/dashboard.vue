@@ -4,13 +4,15 @@ import { onMounted } from 'vue';
 import { useDeviceStore } from '../stores/devices.js';
 import { useFilmStore } from '../stores/film.js';
 import { useReferenceStore } from '../stores/reference.js';
+import { useEmulsionStore } from '../stores/emulsions.js';
 
 const filmStore = useFilmStore();
 const deviceStore = useDeviceStore();
 const referenceStore = useReferenceStore();
+const emulsionStore = useEmulsionStore();
 
 onMounted(async () => {
-  await Promise.allSettled([referenceStore.loadAll(), filmStore.loadFilms(), deviceStore.loadDevices()]);
+  await Promise.allSettled([referenceStore.loadAll(), emulsionStore.loadAll(), filmStore.loadFilms(), deviceStore.loadDevices()]);
 });
 
 const cards = [
@@ -58,7 +60,7 @@ const cards = [
         <q-card flat bordered>
           <q-card-section>
             <div class="text-subtitle2 text-grey-7">Emulsions</div>
-            <div class="text-h5">{{ referenceStore.emulsions.length }}</div>
+            <div class="text-h5">{{ emulsionStore.emulsions.length }}</div>
           </q-card-section>
         </q-card>
       </div>
