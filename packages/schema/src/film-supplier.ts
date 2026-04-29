@@ -18,10 +18,10 @@ export const filmSupplierSchema = z.object({
 
 export const createFilmSupplierRequestSchema = z.object({
   name: z.string().min(1),
-  contact: z.string().optional(),
-  email: z.string().email().optional(),
-  website: z.string().url().optional(),
-  notes: z.string().optional(),
+  contact: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  website: z.string().url().nullable().optional(),
+  notes: z.string().nullable().optional(),
   rating: filmSupplierRatingSchema.optional()
 });
 
