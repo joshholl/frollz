@@ -95,12 +95,15 @@ async function save(): Promise<void> {
 
 async function archive(id: number): Promise<void> {
   await filmSuppliersStore.updateFilmSupplier(id, { active: false });
-  await loadSuppliers();
+  // Filter out archived supplier if not showing inactive suppliers
+  if (!includeInactive.value) {
+    filmSuppliersStore.filmSuppliers = filmSuppliersStore.filmSuppliers.filter((s) => s.id !== id);
+  }
 }
 
 async function restore(id: number): Promise<void> {
   await filmSuppliersStore.updateFilmSupplier(id, { active: true });
-  await loadSuppliers();
+  // Store already updated; no need to reload
 }
 
 onMounted(async () => {
