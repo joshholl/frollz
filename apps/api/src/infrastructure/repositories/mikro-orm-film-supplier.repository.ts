@@ -56,7 +56,6 @@ export class MikroOrmFilmSupplierRepository extends FilmSupplierRepository {
     });
     this.entityManager.persist(entity);
     await this.entityManager.flush();
-    await this.entityManager.populate(entity, ['user']);
     return mapFilmSupplierEntity(entity);
   }
 
