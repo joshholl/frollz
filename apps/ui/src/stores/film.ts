@@ -92,7 +92,7 @@ export const useFilmStore = defineStore('film', () => {
         const response = await request(`/api/v1/film/${id}`);
         currentFilm.value = filmDetailSchema.parse(await readApiData(response));
         const eventsResponse = await request(`/api/v1/film/${id}/events`);
-        currentEvents.value = filmJourneyEventSchema.array().parse(await readApiData(eventsResponse));
+        currentEvents.value = filmJourneyEventSchema.array().parse(await readApiData(eventsResponse)).sort((a, b) => b.id - a.id);
         const framesResponse = await request(`/api/v1/film/${id}/frames`);
         currentFrames.value = filmFrameSchema.array().parse(await readApiData(framesResponse));
       } catch (error) {
