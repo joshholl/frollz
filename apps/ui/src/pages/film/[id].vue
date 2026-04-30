@@ -26,6 +26,29 @@ const frameColumns = [
   { name: 'state', label: 'State', field: (row: FilmFrame) => row.currentStateCode, align: 'left' as const }
 ];
 
+function formatCost(cost: { amount: number; currencyCode: string } | null): string {
+  if (!cost) {
+    return 'Not recorded';
+  }
+  return `${cost.currencyCode} ${cost.amount.toFixed(2)}`;
+}
+
+function formatKnownCost(): string {
+  const film = filmStore.currentFilm;
+  if (!film) {
+    return 'Not recorded';
+  }
+  const purchase = film.purchaseCostAllocated;
+  const development = film.developmentCost;
+  if (!purchase && !development) {
+    return 'Not recorded';
+  }
+  if (purchase && development && purchase.currencyCode === development.currencyCode) {
+    return `${purchase.currencyCode} ${(purchase.amount + development.amount).toFixed(2)}`;
+  }
+  return `${formatCost(purchase)} + ${formatCost(development)}`;
+}
+
 async function load(): Promise<void> {
   if (!Number.isFinite(filmId.value)) {
     return;
@@ -65,6 +88,9 @@ watch(filmId, load);
           <span class="text-grey-7">Expiration:</span>
           {{ filmStore.currentFilm.expirationDate ? new Date(filmStore.currentFilm.expirationDate).toLocaleDateString() : 'N/A' }}
         </div>
+        <div class="col-12 col-md-6"><span class="text-grey-7">Purchase cost:</span> {{ formatCost(filmStore.currentFilm.purchaseCostAllocated) }}</div>
+        <div class="col-12 col-md-6"><span class="text-grey-7">Development cost:</span> {{ formatCost(filmStore.currentFilm.developmentCost) }}</div>
+        <div class="col-12 col-md-6"><span class="text-grey-7">Known total cost:</span> {{ formatKnownCost() }}</div>
       </q-card-section>
     </q-card>
 

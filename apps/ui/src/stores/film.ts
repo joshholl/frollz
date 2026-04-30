@@ -119,8 +119,8 @@ export const useFilmStore = defineStore('film', () => {
       filmFormatId: input.filmFormatId,
       quantity: 1,
       expirationDate: input.expirationDate,
-      supplierId: input.supplierId,
       supplierName: input.supplierName,
+      purchaseInfo: input.purchaseInfo,
       films: [{ name: input.name }]
     };
     const init: RequestInit = {
