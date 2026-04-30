@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { idSchema } from './common.js';
+import { idSchema, LIST_DEFAULT_LIMIT, LIST_MAX_LIMIT } from './common.js';
 
 // Expresses "omit the field entirely" vs "explicitly clear it to null"
 const nullableOptional = <T extends z.ZodTypeAny>(schema: T) => schema.nullable().optional();
@@ -41,7 +41,7 @@ export const updateFilmSupplierRequestSchema = z.object({
 export const listFilmSuppliersQuerySchema = z.object({
   q: z.string().optional().default(''),
   includeInactive: z.coerce.boolean().optional().default(false),
-  limit: z.coerce.number().int().min(1).max(200).optional().default(100)
+  limit: z.coerce.number().int().min(1).max(LIST_MAX_LIMIT).optional().default(LIST_DEFAULT_LIMIT)
 });
 
 export type FilmSupplier = z.infer<typeof filmSupplierSchema>;
