@@ -100,7 +100,6 @@ onMounted(async () => {
       </div>
       <div class="row q-gutter-sm">
         <q-btn color="primary" label="Add film" @click="openCreateDialog" />
-        <q-btn flat color="primary" label="Refresh" @click="filmStore.loadFilms" />
       </div>
     </div>
 
