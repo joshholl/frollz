@@ -2,11 +2,14 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useFilmLabsStore } from '../../stores/film-labs.js';
+import { useUiFeedback } from '../../composables/useUiFeedback.js';
 
 const filmLabsStore = useFilmLabsStore();
+const feedback = useUiFeedback();
 const includeInactive = ref(false);
 const query = ref('');
 const isLabDialogOpen = ref(false);
+const archiveTarget = ref<{ id: number; name: string } | null>(null);
 const form = reactive({
   id: null as number | null,
   name: '',
@@ -58,6 +61,7 @@ function beginEdit(id: number): void {
 async function save(): Promise<void> {
   if (!form.name.trim() || isSaving.value) return;
   isSaving.value = true;
+  const isEditing = form.id !== null;
   try {
     const payload = {
       name: form.name.trim(),
@@ -75,20 +79,42 @@ async function save(): Promise<void> {
     }
     isLabDialogOpen.value = false;
     form.id = null;
+    feedback.success(isEditing ? 'Lab updated.' : 'Lab created.');
     await loadLabs();
+  } catch (error) {
+    feedback.error(feedback.toErrorMessage(error, 'Failed to save lab.'));
   } finally {
     isSaving.value = false;
   }
 }
 
-async function archive(id: number): Promise<void> {
-  await filmLabsStore.updateFilmLab(id, { active: false });
-  await loadLabs();
+function beginArchive(id: number): void {
+  const lab = filmLabsStore.filmLabs.find((item) => item.id === id);
+  if (!lab) return;
+  archiveTarget.value = { id, name: lab.name };
+}
+
+async function confirmArchive(): Promise<void> {
+  if (!archiveTarget.value) return;
+  const { id } = archiveTarget.value;
+  archiveTarget.value = null;
+  try {
+    await filmLabsStore.updateFilmLab(id, { active: false });
+    await loadLabs();
+    feedback.success('Lab archived.');
+  } catch (error) {
+    feedback.error(feedback.toErrorMessage(error, 'Failed to archive lab.'));
+  }
 }
 
 async function restore(id: number): Promise<void> {
-  await filmLabsStore.updateFilmLab(id, { active: true });
-  await loadLabs();
+  try {
+    await filmLabsStore.updateFilmLab(id, { active: true });
+    await loadLabs();
+    feedback.success('Lab restored.');
+  } catch (error) {
+    feedback.error(feedback.toErrorMessage(error, 'Failed to restore lab.'));
+  }
 }
 
 onMounted(async () => {
@@ -102,33 +128,40 @@ onMounted(async () => {
       <div class="text-h5">Film Labs</div>
       <q-btn color="primary" label="Add lab" @click="beginCreate" />
     </div>
-    <div class="row q-gutter-sm items-center">
+    <div class="row q-col-gutter-md">
       <q-input v-model="query" filled label="Search labs" class="col" @update:model-value="loadLabs" />
       <q-toggle v-model="includeInactive" label="Show inactive" @update:model-value="loadLabs" />
     </div>
 
-    <q-table
-      :rows="filmLabsStore.filmLabs"
-      :columns="[
-        { name: 'name', label: 'Name', field: 'name', align: 'left' },
-        { name: 'rating', label: 'Rating', field: 'rating', align: 'left' },
-        { name: 'active', label: 'Active', field: 'active', align: 'left' },
-        { name: 'actions', label: 'Actions', field: 'id', align: 'left' }
-      ]"
-      row-key="id"
-      flat
-      bordered
-      :loading="filmLabsStore.isLoading"
-    >
+    <q-banner v-if="filmLabsStore.listError" class="bg-red-1 text-negative" rounded>
+      {{ filmLabsStore.listError }}
+    </q-banner>
+
+    <q-table :rows="filmLabsStore.filmLabs" :columns="[
+      { name: 'name', label: 'Name', field: 'name', align: 'left' },
+      { name: 'rating', label: 'Rating', field: 'rating', align: 'left' },
+      { name: 'active', label: 'Active', field: 'active', align: 'left' },
+      { name: 'actions', label: 'Actions', field: 'id', align: 'left' }
+    ]" row-key="id" flat bordered :loading="filmLabsStore.isLoading">
       <template #body-cell-rating="props">
         <q-td :props="props">
-          <q-rating :model-value="props.row.rating || 0" :max="5" size="18px" color="amber" readonly />
+          <q-rating v-if="props.row.rating" :model-value="props.row.rating" :max="5" size="18px" color="amber" readonly />
+          <span v-else class="text-muted">—</span>
+        </q-td>
+      </template>
+      <template #body-cell-active="props">
+        <q-td :props="props">
+          <q-badge
+            :color="props.row.active ? 'positive' : 'grey-5'"
+            :label="props.row.active ? 'Active' : 'Inactive'"
+            outline
+          />
         </q-td>
       </template>
       <template #body-cell-actions="props">
         <q-td :props="props" class="row q-gutter-xs">
           <q-btn flat dense color="primary" label="Edit" @click="beginEdit(props.row.id)" />
-          <q-btn v-if="props.row.active" flat dense color="negative" label="Archive" @click="archive(props.row.id)" />
+          <q-btn v-if="props.row.active" flat dense color="negative" label="Archive" @click="beginArchive(props.row.id)" />
           <q-btn v-else flat dense color="positive" label="Restore" @click="restore(props.row.id)" />
         </q-td>
       </template>
@@ -144,13 +177,26 @@ onMounted(async () => {
           <q-input v-model="form.contact" filled label="Contact" />
           <q-input v-model="form.email" filled label="Email" />
           <q-input v-model="form.website" filled label="Website" />
-          <q-input v-model="form.defaultProcesses" filled label="Default processes" />
+          <q-input v-model="form.defaultProcesses" filled label="Default processes" hint="e.g. C-41, E-6, B&W" />
           <q-input v-model="form.notes" filled type="textarea" label="Notes" />
-          <q-rating v-model="ratingModel" :max="5" size="24px" color="amber" />
+          <q-rating v-model="ratingModel" :max="5" size="24px" color="amber" aria-label="Rating (1–5 stars)" />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn v-close-popup flat label="Cancel" />
-          <q-btn color="primary" :label="form.id ? 'Save' : 'Create'" :loading="isSaving" @click="save" />
+          <q-btn color="primary" :label="form.id ? 'Save' : 'Create'" :loading="isSaving" :disable="isSaving" @click="save" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog :model-value="archiveTarget !== null" @update:model-value="archiveTarget = null">
+      <q-card>
+        <q-card-section class="text-h6">Archive lab</q-card-section>
+        <q-card-section>
+          Archive <strong>{{ archiveTarget?.name }}</strong>? It will be hidden but can be restored later.
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" @click="archiveTarget = null" />
+          <q-btn color="negative" label="Archive" @click="confirmArchive" />
         </q-card-actions>
       </q-card>
     </q-dialog>

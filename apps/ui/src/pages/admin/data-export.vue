@@ -31,7 +31,7 @@ async function handleImport() {
 
 <template>
   <q-page class="q-pa-md column q-gutter-md">
-    <div>
+    <div class="row items-center justify-between q-gutter-sm">
       <div class="text-h5">Data Export & Import</div>
       <div class="text-subtitle2 text-grey-7">
         Backup and restore your film tracking data
@@ -94,7 +94,7 @@ async function handleImport() {
         <q-card flat bordered>
           <q-card-section>
             <div class="row items-center q-gutter-sm">
-              <q-icon name="cloud_upload" color="secondary" size="32px" />
+              <q-icon name="cloud_upload" color="primary" size="32px" />
               <div class="text-h6">Import Data</div>
             </div>
           </q-card-section>
@@ -105,14 +105,18 @@ async function handleImport() {
             <p class="text-body2 q-mb-md">
               Restore your film tracking data from a previously exported JSON file.
             </p>
-            <q-file v-model="adminStore.importDataFile" label="Chose a file to upload" accept=".json"
-              @rejected="adminStore.importError" />
+            <q-file
+              v-model="adminStore.importDataFile"
+              label="Choose a backup file to import"
+              accept=".json"
+              @rejected="() => feedback.error('Please select a valid JSON export file.')"
+            />
           </q-card-section>
 
           <q-separator />
 
           <q-card-actions align="right">
-            <q-btn color="secondary" label="Import Data" icon="cloud_upload" :loading="adminStore.isImporting"
+            <q-btn color="primary" label="Import Data" icon="cloud_upload" :loading="adminStore.isImporting"
               :disable="!adminStore.importDataFile || adminStore.isImporting" @click="handleImport" />
           </q-card-actions>
         </q-card>

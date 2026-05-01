@@ -10,6 +10,7 @@ const feedback = useUiFeedback();
 const includeInactive = ref(false);
 const query = ref('');
 const isSupplierDialogOpen = ref(false);
+const archiveTarget = ref<{ id: number; name: string } | null>(null);
 const form = reactive({
   id: null as number | null,
   name: '',
@@ -87,17 +88,34 @@ async function save(): Promise<void> {
   }
 }
 
-async function archive(id: number): Promise<void> {
-  await filmSuppliersStore.updateFilmSupplier(id, { active: false });
-  // Filter out archived supplier if not showing inactive suppliers
-  if (!includeInactive.value) {
-    filmSuppliersStore.filmSuppliers = filmSuppliersStore.filmSuppliers.filter((s) => s.id !== id);
+function beginArchive(id: number): void {
+  const supplier = filmSuppliersStore.filmSuppliers.find((item) => item.id === id);
+  if (!supplier) return;
+  archiveTarget.value = { id, name: supplier.name };
+}
+
+async function confirmArchive(): Promise<void> {
+  if (!archiveTarget.value) return;
+  const { id } = archiveTarget.value;
+  archiveTarget.value = null;
+  try {
+    await filmSuppliersStore.updateFilmSupplier(id, { active: false });
+    if (!includeInactive.value) {
+      filmSuppliersStore.filmSuppliers = filmSuppliersStore.filmSuppliers.filter((s) => s.id !== id);
+    }
+    feedback.success('Supplier archived.');
+  } catch (error) {
+    feedback.error(feedback.toErrorMessage(error, 'Failed to archive supplier.'));
   }
 }
 
 async function restore(id: number): Promise<void> {
-  await filmSuppliersStore.updateFilmSupplier(id, { active: true });
-  // Store already updated; no need to reload
+  try {
+    await filmSuppliersStore.updateFilmSupplier(id, { active: true });
+    feedback.success('Supplier restored.');
+  } catch (error) {
+    feedback.error(feedback.toErrorMessage(error, 'Failed to restore supplier.'));
+  }
 }
 
 onMounted(async () => {
@@ -111,7 +129,7 @@ onMounted(async () => {
       <div class="text-h5">Film Suppliers</div>
       <q-btn color="primary" label="Add supplier" @click="beginCreate" />
     </div>
-    <div class="row q-gutter-sm items-center">
+    <div class="row q-col-gutter-md">
       <q-input v-model="query" filled label="Search suppliers" class="col" @update:model-value="loadSuppliers" />
       <q-toggle v-model="includeInactive" label="Show inactive" @update:model-value="loadSuppliers" />
     </div>
@@ -119,28 +137,31 @@ onMounted(async () => {
       {{ filmSuppliersStore.listError }}
     </q-banner>
 
-    <q-table
-      :rows="filmSuppliersStore.filmSuppliers"
-      :columns="[
-        { name: 'name', label: 'Name', field: 'name', align: 'left' },
-        { name: 'rating', label: 'Rating', field: 'rating', align: 'left' },
-        { name: 'active', label: 'Active', field: 'active', align: 'left' },
-        { name: 'actions', label: 'Actions', field: 'id', align: 'left' }
-      ]"
-      row-key="id"
-      flat
-      bordered
-      :loading="filmSuppliersStore.isLoading"
-    >
+    <q-table :rows="filmSuppliersStore.filmSuppliers" :columns="[
+      { name: 'name', label: 'Name', field: 'name', align: 'left' },
+      { name: 'rating', label: 'Rating', field: 'rating', align: 'left' },
+      { name: 'active', label: 'Active', field: 'active', align: 'left' },
+      { name: 'actions', label: 'Actions', field: 'id', align: 'left' }
+    ]" row-key="id" flat bordered :loading="filmSuppliersStore.isLoading">
       <template #body-cell-rating="props">
         <q-td :props="props">
-          <q-rating :model-value="props.row.rating || 0" :max="5" size="18px" color="amber" readonly />
+          <q-rating v-if="props.row.rating" :model-value="props.row.rating" :max="5" size="18px" color="amber" readonly />
+          <span v-else class="text-muted">—</span>
+        </q-td>
+      </template>
+      <template #body-cell-active="props">
+        <q-td :props="props">
+          <q-badge
+            :color="props.row.active ? 'positive' : 'grey-5'"
+            :label="props.row.active ? 'Active' : 'Inactive'"
+            outline
+          />
         </q-td>
       </template>
       <template #body-cell-actions="props">
         <q-td :props="props" class="row q-gutter-xs">
           <q-btn flat dense color="primary" label="Edit" @click="beginEdit(props.row.id)" />
-          <q-btn v-if="props.row.active" flat dense color="negative" label="Archive" @click="archive(props.row.id)" />
+          <q-btn v-if="props.row.active" flat dense color="negative" label="Archive" @click="beginArchive(props.row.id)" />
           <q-btn v-else flat dense color="positive" label="Restore" @click="restore(props.row.id)" />
         </q-td>
       </template>
@@ -157,11 +178,25 @@ onMounted(async () => {
           <q-input v-model="form.email" filled label="Email" />
           <q-input v-model="form.website" filled label="Website" />
           <q-input v-model="form.notes" filled type="textarea" label="Notes" />
-          <q-rating v-model="ratingModel" :max="5" size="24px" color="amber" />
+          <q-rating v-model="ratingModel" :max="5" size="24px" color="amber" aria-label="Rating (1–5 stars)" />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn v-close-popup flat label="Cancel" />
-          <q-btn color="primary" :label="form.id ? 'Save' : 'Create'" :loading="isSaving" :disable="isSaving" @click="save" />
+          <q-btn color="primary" :label="form.id ? 'Save' : 'Create'" :loading="isSaving" :disable="isSaving"
+            @click="save" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog :model-value="archiveTarget !== null" @update:model-value="archiveTarget = null">
+      <q-card>
+        <q-card-section class="text-h6">Archive supplier</q-card-section>
+        <q-card-section>
+          Archive <strong>{{ archiveTarget?.name }}</strong>? It will be hidden but can be restored later.
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" @click="archiveTarget = null" />
+          <q-btn color="negative" label="Archive" @click="confirmArchive" />
         </q-card-actions>
       </q-card>
     </q-dialog>
