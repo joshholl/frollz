@@ -106,9 +106,16 @@ export class FilmController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseIntPipe) id: number,
     @Param('frameId', ParseIntPipe) frameId: number,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Body(new ZodSchemaPipe(updateFilmFrameRequestSchema)) body: typeof updateFilmFrameRequestSchema['_output']
   ) {
-    return this.filmService.updateFrame(user.userId, id, frameId, body);
+    return this.idempotencyService.execute({
+      userId: user.userId,
+      key: idempotencyKey,
+      scope: 'film.update-frame',
+      requestPayload: { filmId: id, frameId, ...body },
+      handler: () => this.filmService.updateFrame(user.userId, id, frameId, body)
+    });
   }
 
   @Post(':id/frames/:frameId/events')
