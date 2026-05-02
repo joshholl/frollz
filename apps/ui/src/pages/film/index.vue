@@ -1,12 +1,13 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 import type { FilmSummary } from '@frollz2/schema';
 import FilmCreateDialog from '../../components/FilmCreateDialog.vue';
 import FilmInventoryTable from '../../components/FilmInventoryTable.vue';
 import { useFilmStore } from '../../stores/film.js';
 import { useReferenceStore } from '../../stores/reference.js';
 import { useFilmCreateForm } from '../../composables/useFilmCreateForm.js';
+import { useFilmCostFormatting } from '../../composables/useFilmCostFormatting.js';
 import { useFilmSuppliersStore } from '../../stores/film-suppliers.js';
 
 const filmStore = useFilmStore();
@@ -22,9 +23,7 @@ const {
   handleCreate,
 } = useFilmCreateForm();
 
-const search = ref<string | null>('');
-const stateFilter = ref<string | null>(null);
-const supplierFilter = ref<number | null>(null);
+const { formatKnownCost } = useFilmCostFormatting();
 
 const subtitle = computed(() =>
   lockedFormatFilters.value.length > 0
@@ -32,52 +31,11 @@ const subtitle = computed(() =>
     : 'Track film stock and move rolls through state transitions.'
 );
 
-const rows = computed(() => {
-  const query = (search.value ?? '').trim().toLowerCase();
-
-  return filmStore.films.filter((film) => {
-    if (lockedFormatFilters.value.length > 0 && !lockedFormatFilters.value.includes(film.filmFormat.code)) {
-      return false;
-    }
-
-    if (stateFilter.value && film.currentStateCode !== stateFilter.value) {
-      return false;
-    }
-    if (supplierFilter.value && film.supplierId !== supplierFilter.value) {
-      return false;
-    }
-
-    if (!query) {
-      return true;
-    }
-
-    const haystack = `${film.name} ${film.emulsion.manufacturer} ${film.emulsion.brand} ${film.currentState.label}`.toLowerCase();
-    return haystack.includes(query);
-  });
-});
-
 const extractName = (row: FilmSummary) => row.name;
 const extractState = (row: FilmSummary) => row.currentState.label;
 const extractEmulsion = (row: FilmSummary) => `${row.emulsion.manufacturer} ${row.emulsion.brand}`;
 const extractFormat = (row: FilmSummary) => row.filmFormat.label;
 const extractIso = (row: FilmSummary) => row.emulsion.isoSpeed.toString();
-const extractKnownCost = (row: FilmSummary) => {
-  const purchase = row.purchaseCostAllocated;
-  const development = row.developmentCost;
-  if (!purchase && !development) {
-    return 'Not recorded';
-  }
-
-  const format = (amount: number, code: string) => `${code} ${amount.toFixed(2)}`;
-  if (purchase && development && purchase.currencyCode === development.currencyCode) {
-    return format(purchase.amount + development.amount, purchase.currencyCode);
-  }
-  if (purchase && development) {
-    return `${format(purchase.amount, purchase.currencyCode)} + ${format(development.amount, development.currencyCode)}`;
-  }
-  const value = purchase ?? development;
-  return value ? format(value.amount, value.currencyCode) : 'Not recorded';
-};
 
 const stateOptions = computed(() =>
   referenceStore.filmStates.map((state) => ({ label: state.label, value: state.code }))
@@ -87,6 +45,7 @@ const supplierOptions = computed(() =>
 );
 
 onMounted(async () => {
+  filmStore.filmListLockedFormats = lockedFormatFilters.value;
   await Promise.allSettled([referenceStore.loadAll(), filmStore.loadFilms(), filmSuppliersStore.loadFilmSuppliers()]);
 });
 </script>
@@ -109,27 +68,27 @@ onMounted(async () => {
 
     <div class="row q-col-gutter-md">
       <div class="col-xs-12 col-lg-6">
-        <q-input v-model="search" filled clearable label="Search films" />
+        <q-input v-model="filmStore.filmListSearch" filled clearable label="Search films" />
       </div>
       <div class="col-xs-12 col-lg-6">
-        <q-select v-model="stateFilter" filled clearable emit-value map-options :options="stateOptions"
+        <q-select v-model="filmStore.filmListStateFilter" filled clearable emit-value map-options :options="stateOptions"
           label="Filter by state" />
       </div>
       <div class="col-xs-12 col-lg-6">
-        <q-select v-model="supplierFilter" filled clearable emit-value map-options :options="supplierOptions"
+        <q-select v-model="filmStore.filmListSupplierFilter" filled clearable emit-value map-options :options="supplierOptions"
           label="Filter by supplier" />
       </div>
     </div>
 
     <FilmInventoryTable
-      :rows="rows"
+      :rows="filmStore.filteredFilms"
       :is-loading="filmStore.isLoading"
       :extract-name="extractName"
       :extract-state="extractState"
       :extract-emulsion="extractEmulsion"
       :extract-format="extractFormat"
       :extract-iso="extractIso"
-      :extract-known-cost="extractKnownCost"
+      :extract-known-cost="formatKnownCost"
     />
 
     <FilmCreateDialog
