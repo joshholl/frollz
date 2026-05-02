@@ -92,8 +92,7 @@ When('I select the format {string}', async ({ page }, formatCode: string) => {
 When('I record the film as stored in {string}', async ({ page }, location: string) => {
   await page.getByLabel('Next state').click();
   await page.getByRole('option', { name: /stored/i }).click();
-  const localDateTime = new Date().toISOString().slice(0, 19);  // "2026-04-27T12:45:30"                                                                                           
-  await page.getByLabel('Occurred at').fill(localDateTime);
+  await page.getByLabel('Occurred at').fill(new Date().toISOString().slice(0, 10));
   await page.getByLabel('Storage location').click();
   await page.getByRole('option', { name: location, exact: false }).click();
   await page.getByRole('button', { name: /add event/i }).click();
@@ -102,8 +101,7 @@ When('I record the film as stored in {string}', async ({ page }, location: strin
 When('I record the film as loaded into device {string}', async ({ page }, deviceName: string) => {
   await page.getByLabel('Next state').click();
   await page.getByRole('option', { name: /loaded/i }).click();
-  const localDateTime = new Date().toISOString().slice(0, 19);
-  await page.getByLabel('Occurred at').fill(localDateTime);
+  await page.getByLabel('Occurred at').fill(new Date().toISOString().slice(0, 10));
 
   const deviceCombobox = page.getByRole('combobox', { name: 'Device', exact: true });
   await deviceCombobox.click();

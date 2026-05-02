@@ -217,6 +217,12 @@ export const useFilmStore = defineStore('film', () => {
     }
   }
 
+  function patchFrame(updated: FilmFrame): void {
+    currentFrames.value = currentFrames.value.map((f) =>
+      f.id === updated.id ? updated : f
+    );
+  }
+
   return {
     films,
     currentFilm,
@@ -237,6 +243,7 @@ export const useFilmStore = defineStore('film', () => {
     createFilm,
     updateFilm,
     addEvent,
-    addFrameEvent
+    addFrameEvent,
+    patchFrame
   };
 });

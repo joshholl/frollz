@@ -1,14 +1,16 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import type { FilmFrame } from '@frollz2/schema';
 import { useFilmStore } from '../../stores/film.js';
 import { useReferenceStore } from '../../stores/reference.js';
 import { useDeviceStore } from '../../stores/devices.js';
 import FilmEventForm from '../../components/FilmEventForm.vue';
+import FrameMetadataEditor from '../../components/FrameMetadataEditor.vue';
 import { filmTransitionMap } from '@frollz2/schema';
 import { useFilmCostFormatting } from '../../composables/useFilmCostFormatting.js';
+import { formatShutterSpeed } from '../../utils/shutterSpeed.js';
 
 const route = useRoute();
 const filmStore = useFilmStore();
@@ -16,11 +18,22 @@ const referenceStore = useReferenceStore();
 const deviceStore = useDeviceStore();
 
 const filmId = computed(() => Number(route.params.id));
+const expandedFrameIds = ref(new Set<number>());
+const isFrameEditable = computed(() => filmStore.currentFilm?.currentStateCode === 'loaded');
 
 const frameColumns = [
-  { name: 'frameNumber', label: 'Frame', field: 'frameNumber', sortable: true, align: 'left' as const },
-  { name: 'state', label: 'State', field: (row: FilmFrame) => row.currentStateCode, align: 'left' as const }
+  { name: 'frameNumber', label: '#', field: 'frameNumber', sortable: true, align: 'left' as const },
+  { name: 'state', label: 'State', field: (row: FilmFrame) => row.currentStateCode, align: 'left' as const },
+  { name: 'aperture', label: 'Aperture', field: (row: FilmFrame) => row.aperture !== null ? `f/${row.aperture}` : '—', align: 'left' as const },
+  { name: 'shutter', label: 'Shutter', field: (row: FilmFrame) => row.shutterSpeedSeconds !== null ? formatShutterSpeed(row.shutterSpeedSeconds) : '—', align: 'left' as const },
+  { name: 'filter', label: 'Filter', field: (row: FilmFrame) => row.filterUsed === true ? 'Yes' : row.filterUsed === false ? 'No' : '—', align: 'left' as const }
 ];
+
+function toggleFrame(id: number): void {
+  expandedFrameIds.value.has(id)
+    ? expandedFrameIds.value.delete(id)
+    : expandedFrameIds.value.add(id);
+}
 
 const { formatCost, formatKnownCost } = useFilmCostFormatting();
 
@@ -97,9 +110,26 @@ watch(filmId, load);
     <q-card flat bordered>
       <q-card-section class="text-subtitle1">Frames</q-card-section>
       <q-separator />
-      <q-card-section>
+      <q-card-section class="q-pa-none">
         <q-table :rows="filmStore.currentFrames" :columns="frameColumns" row-key="id" flat bordered
-          :loading="filmStore.isDetailLoading" />
+          :loading="filmStore.isDetailLoading">
+          <template #body="tProps">
+            <q-tr :props="tProps" class="cursor-pointer" @click="toggleFrame(tProps.row.id)">
+              <q-td v-for="col in tProps.cols" :key="col.name" :props="tProps">
+                {{ col.value }}
+              </q-td>
+            </q-tr>
+            <q-tr v-if="expandedFrameIds.has(tProps.row.id)" :props="tProps">
+              <q-td colspan="100%" class="q-pa-none">
+                <FrameMetadataEditor
+                  :frame="tProps.row"
+                  :film-id="filmId"
+                  :readonly="!isFrameEditable"
+                />
+              </q-td>
+            </q-tr>
+          </template>
+        </q-table>
       </q-card-section>
     </q-card>
   </q-page>

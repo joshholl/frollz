@@ -14,7 +14,8 @@ import type {
   FilmSupplier,
   FilmUpdateRequest,
   FrameJourneyEvent,
-  FrameSizeCode
+  FrameSizeCode,
+  UpdateFilmFrameRequest
 } from '@frollz2/schema';
 import { filmJourneyEventPayloadSchema, frameJourneyEventPayloadSchema, getFilmTypeForFormatCode, resolveNonLargeFrameCount } from '@frollz2/schema';
 import { DomainError } from '../../domain/errors.js';
@@ -166,6 +167,23 @@ export class FilmService {
     }
 
     return this.filmRepository.listFrames(userId, filmId);
+  }
+
+  async updateFrame(userId: number, filmId: number, frameId: number, input: UpdateFilmFrameRequest): Promise<FilmFrame> {
+    const film = await this.filmRepository.findByIdSummary(userId, filmId);
+    if (!film) {
+      throw new DomainError('NOT_FOUND', 'Film not found');
+    }
+    if (film.currentStateCode !== 'loaded') {
+      throw new DomainError('DOMAIN_ERROR', 'Frame metadata can only be updated while the film is loaded');
+    }
+
+    const updated = await this.filmRepository.updateFrame(userId, filmId, frameId, input);
+    if (!updated) {
+      throw new DomainError('NOT_FOUND', 'Frame not found');
+    }
+
+    return updated;
   }
 
   async createEvent(userId: number, filmId: number, input: CreateFilmJourneyEventRequest): Promise<FilmJourneyEvent> {
