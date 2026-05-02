@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import {
   createFrameJourneyEventRequestSchema,
   createFilmJourneyEventRequestSchema,
@@ -35,6 +35,23 @@ export const useFilmStore = defineStore('film', () => {
   const isDetailLoading = ref(false);
   const filmsError = ref<string | null>(null);
   const detailError = ref<string | null>(null);
+
+  const filmListSearch = ref<string>('');
+  const filmListStateFilter = ref<string | null>(null);
+  const filmListSupplierFilter = ref<number | null>(null);
+  const filmListLockedFormats = ref<string[]>([]);
+
+  const filteredFilms = computed(() => {
+    const query = filmListSearch.value.trim().toLowerCase();
+    return films.value.filter((film) => {
+      if (filmListLockedFormats.value.length > 0 && !filmListLockedFormats.value.includes(film.filmFormat.code)) return false;
+      if (filmListStateFilter.value && film.currentStateCode !== filmListStateFilter.value) return false;
+      if (filmListSupplierFilter.value !== null && film.supplierId !== filmListSupplierFilter.value) return false;
+      if (!query) return true;
+      const haystack = `${film.name} ${film.emulsion.manufacturer} ${film.emulsion.brand} ${film.currentState.label}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  });
   let loadFilmsInFlight: Promise<void> | null = null;
   let loadFilmInFlight: Promise<void> | null = null;
   let loadFilmInFlightId: number | null = null;
@@ -210,6 +227,11 @@ export const useFilmStore = defineStore('film', () => {
     isDetailLoading,
     filmsError,
     detailError,
+    filmListSearch,
+    filmListStateFilter,
+    filmListSupplierFilter,
+    filmListLockedFormats,
+    filteredFilms,
     loadFilms,
     loadFilm,
     createFilm,

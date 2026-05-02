@@ -8,6 +8,7 @@ import { useReferenceStore } from '../../stores/reference.js';
 import { useDeviceStore } from '../../stores/devices.js';
 import FilmEventForm from '../../components/FilmEventForm.vue';
 import { filmTransitionMap } from '@frollz2/schema';
+import { useFilmCostFormatting } from '../../composables/useFilmCostFormatting.js';
 
 const route = useRoute();
 const filmStore = useFilmStore();
@@ -21,28 +22,7 @@ const frameColumns = [
   { name: 'state', label: 'State', field: (row: FilmFrame) => row.currentStateCode, align: 'left' as const }
 ];
 
-function formatCost(cost: { amount: number; currencyCode: string } | null): string {
-  if (!cost) {
-    return 'Not recorded';
-  }
-  return `${cost.currencyCode} ${cost.amount.toFixed(2)}`;
-}
-
-function formatKnownCost(): string {
-  const film = filmStore.currentFilm;
-  if (!film) {
-    return 'Not recorded';
-  }
-  const purchase = film.purchaseCostAllocated;
-  const development = film.developmentCost;
-  if (!purchase && !development) {
-    return 'Not recorded';
-  }
-  if (purchase && development && purchase.currencyCode === development.currencyCode) {
-    return `${purchase.currencyCode} ${(purchase.amount + development.amount).toFixed(2)}`;
-  }
-  return `${formatCost(purchase)} + ${formatCost(development)}`;
-}
+const { formatCost, formatKnownCost } = useFilmCostFormatting();
 
 async function load(): Promise<void> {
   if (!Number.isFinite(filmId.value)) {
@@ -89,7 +69,7 @@ watch(filmId, load);
           formatCost(filmStore.currentFilm.purchaseCostAllocated) }}</div>
         <div class="col-12 col-md-6"><span class="text-grey-7">Development cost:</span> {{
           formatCost(filmStore.currentFilm.developmentCost) }}</div>
-        <div class="col-12 col-md-6"><span class="text-grey-7">Known total cost:</span> {{ formatKnownCost() }}</div>
+        <div class="col-12 col-md-6"><span class="text-grey-7">Known total cost:</span> {{ formatKnownCost(filmStore.currentFilm!) }}</div>
       </q-card-section>
     </q-card>
 
