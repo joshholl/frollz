@@ -21,8 +21,8 @@ export class FilmDeviceEntity extends AutoIncrementEntity {
   @ManyToOne(() => FilmFormatEntity, { fieldName: 'film_format_id' })
   filmFormat!: FilmFormatEntity;
 
-  @Property({ type: 'text', fieldName: 'frame_size' })
-  frameSize!: string;
+  @Property({ type: 'text', nullable: true, fieldName: 'frame_size' })
+  frameSize!: string | null;
 
   @OneToOne(() => CameraEntity, (camera) => camera.filmDevice, { nullable: true })
   camera?: CameraEntity | null;

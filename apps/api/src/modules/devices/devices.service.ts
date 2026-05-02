@@ -41,7 +41,13 @@ export class DevicesService {
   }
 
   async create(userId: number, input: CreateFilmDeviceRequest): Promise<FilmDevice> {
-    await this.assertFrameSizeMatchesFormat(input.filmFormatId, input.frameSize);
+
+    if ((input.deviceTypeCode === 'camera' && input.loadMode === 'direct') || input.deviceTypeCode !== 'camera') {
+      if (input.frameSize == null) {
+        throw new DomainError('DOMAIN_ERROR', 'Directly loadable cameras require a frame size');
+      }
+      await this.assertFrameSizeMatchesFormat(input.filmFormatId, input.frameSize);
+    }
     const device = await this.deviceRepository.create(userId, input);
     await this.upsertReferenceValues(userId, input as Record<string, unknown>);
     return device;
@@ -53,7 +59,16 @@ export class DevicesService {
       if (!current) {
         throw new DomainError('NOT_FOUND', 'Device not found');
       }
-      await this.assertFrameSizeMatchesFormat(input.filmFormatId ?? current.filmFormatId, input.frameSize ?? current.frameSize);
+      const effectiveLoadMode = current.deviceTypeCode === 'camera'
+        ? (input.loadMode ?? current.loadMode)
+        : null;
+      const isDirectlyLoadable = effectiveLoadMode !== 'interchangeable_back' && effectiveLoadMode !== 'film_holder';
+      if (isDirectlyLoadable) {
+        const effectiveFrameSize = input.frameSize !== undefined ? input.frameSize : current.frameSize;
+        if (effectiveFrameSize != null) {
+          await this.assertFrameSizeMatchesFormat(input.filmFormatId ?? current.filmFormatId, effectiveFrameSize);
+        }
+      }
     }
 
     const device = await this.deviceRepository.update(userId, deviceId, input);

@@ -27,7 +27,7 @@ export function mapFilmDeviceEntity(entity: FilmDeviceEntity): FilmDevice {
       userId: entity.user.id,
       deviceTypeId: entity.deviceType.id,
       filmFormatId: entity.filmFormat.id,
-      frameSize: frameSizeCodeSchema.parse(entity.frameSize),
+      frameSize: entity.frameSize ? frameSizeCodeSchema.parse(entity.frameSize) : null,
       deviceTypeCode: 'camera' as const,
       make: entity.camera.make,
       model: entity.camera.model,

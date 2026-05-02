@@ -457,6 +457,9 @@ export class FilmService {
         throw new DomainError('CONFLICT', 'Device already has an active loaded film');
       }
 
+      if (!device.frameSize) {
+        throw new DomainError('DOMAIN_ERROR', 'Device is missing a frame size');
+      }
       await this.ensureFramesCreated(entityManager, user, film, device.frameSize);
       film.currentDevice = device;
       return eventData;
@@ -471,6 +474,9 @@ export class FilmService {
         throw new DomainError('CONFLICT', 'Device already has an active loaded film');
       }
 
+      if (!device.frameSize) {
+        throw new DomainError('DOMAIN_ERROR', 'Device is missing a frame size');
+      }
       await this.ensureFramesCreated(entityManager, user, film, device.frameSize);
       film.currentDevice = device;
       return eventData;

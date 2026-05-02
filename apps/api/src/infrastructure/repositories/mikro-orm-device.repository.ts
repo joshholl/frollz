@@ -79,7 +79,7 @@ export class MikroOrmDeviceRepository extends DeviceRepository {
         user,
         deviceType,
         filmFormat,
-        frameSize: input.frameSize
+        frameSize: input.frameSize ?? null
       });
 
       transactionalEntityManager.persist(base);

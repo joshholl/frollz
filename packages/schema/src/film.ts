@@ -433,6 +433,7 @@ export const filmDeviceSummarySchema = z.object({
 
 export const cameraSchema = filmDeviceSummarySchema.extend({
   deviceTypeCode: z.literal('camera'),
+  frameSize: frameSizeCodeSchema.nullable(),
   make: z.string().min(1),
   model: z.string().min(1),
   loadMode: cameraLoadModeSchema,
@@ -469,7 +470,7 @@ export const createFilmDeviceRequestSchema = z.discriminatedUnion('deviceTypeCod
     deviceTypeCode: z.literal('camera'),
     deviceTypeId: idSchema,
     filmFormatId: idSchema,
-    frameSize: frameSizeCodeSchema,
+    frameSize: frameSizeCodeSchema.nullable().optional(),
     make: z.string().min(1),
     model: z.string().min(1),
     loadMode: cameraLoadModeSchema.optional().default('direct'),

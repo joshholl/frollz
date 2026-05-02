@@ -170,9 +170,7 @@ async function submit(): Promise<void> {
       deviceTypeCode: 'camera',
       deviceTypeId: deviceType.id,
       filmFormatId: createForm.filmFormatId,
-      frameSize: createForm.loadMode === 'direct'
-        ? createForm.frameSize as CreateFilmDeviceRequest['frameSize']
-        : 'full_frame',
+      ...(createForm.loadMode === 'direct' ? { frameSize: createForm.frameSize as CreateFilmDeviceRequest['frameSize'] } : {}),
       make: createForm.make.trim(),
       model: createForm.model.trim(),
       canUnload: true,
