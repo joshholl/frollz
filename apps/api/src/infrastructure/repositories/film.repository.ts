@@ -6,7 +6,8 @@ import type {
   FilmListQuery,
   FilmListResponse,
   FilmSummary,
-  FilmUpdateRequest
+  FilmUpdateRequest,
+  UpdateFilmFrameRequest
 } from '@frollz2/schema';
 
 export abstract class FilmRepository {
@@ -21,6 +22,8 @@ export abstract class FilmRepository {
   abstract listEvents(userId: number, filmId: number): Promise<FilmJourneyEvent[]>;
 
   abstract listFrames(userId: number, filmId: number): Promise<FilmFrame[]>;
+
+  abstract updateFrame(userId: number, filmId: number, frameId: number, input: UpdateFilmFrameRequest): Promise<FilmFrame | null>;
 
   abstract listDeviceLoadEvents(userId: number, deviceId: number): Promise<DeviceLoadTimelineEvent[]>;
 

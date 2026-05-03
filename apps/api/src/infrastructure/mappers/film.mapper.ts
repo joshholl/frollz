@@ -137,7 +137,10 @@ export function mapFilmFrameEntity(entity: FilmFrameEntity): FilmFrame {
     frameNumber: entity.frameNumber,
     currentStateId: entity.currentState.id,
     currentStateCode: filmStateSchema.shape.code.parse(entity.currentState.code),
-    currentState: mapFilmStateEntity(entity.currentState)
+    currentState: mapFilmStateEntity(entity.currentState),
+    aperture: entity.aperture,
+    shutterSpeedSeconds: entity.shutterSpeedSeconds,
+    filterUsed: entity.filterUsed
   };
 }
 

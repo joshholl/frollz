@@ -15,6 +15,15 @@ export class FilmFrameEntity extends AutoIncrementEntity {
   @Property({ type: 'integer', fieldName: 'frame_number' })
   frameNumber!: number;
 
+  @Property({ type: 'float', fieldName: 'aperture', nullable: true })
+  aperture: number | null = null;
+
+  @Property({ type: 'float', fieldName: 'shutter_speed_seconds', nullable: true })
+  shutterSpeedSeconds: number | null = null;
+
+  @Property({ type: 'boolean', fieldName: 'filter_used', nullable: true })
+  filterUsed: boolean | null = null;
+
   @ManyToOne(() => FilmStateEntity, { fieldName: 'current_state_id' })
   currentState!: FilmStateEntity;
 }

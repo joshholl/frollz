@@ -139,7 +139,7 @@ function reset(): void {
 
 watch(frameSizeOptions, (options) => {
   if (options.length === 0) return;
-  if (!options.includes(createForm.frameSize)) {
+  if (createForm.frameSize == null || !options.includes(createForm.frameSize)) {
     const next = options[0];
     if (!next) return;
     createForm.frameSize = next;
@@ -177,28 +177,28 @@ async function submit(): Promise<void> {
       loadMode: createForm.loadMode
     };
   } else if (createForm.deviceTypeCode === 'interchangeable_back') {
-    if (!createForm.name.trim() || !createForm.system.trim() || !createForm.filmFormatId) {
-      feedback.error('Name, system, and format are required.');
+    if (!createForm.name.trim() || !createForm.system.trim() || !createForm.filmFormatId || !createForm.frameSize) {
+      feedback.error('Name, system, format, and frame size are required.');
       return;
     }
     payload = {
       deviceTypeCode: 'interchangeable_back',
       deviceTypeId: deviceType.id,
       filmFormatId: createForm.filmFormatId,
-      frameSize: createForm.frameSize as CreateFilmDeviceRequest['frameSize'],
+      frameSize: createForm.frameSize,
       name: createForm.name.trim(),
       system: createForm.system.trim()
     };
   } else {
-    if (!createForm.name.trim() || !createForm.brand.trim() || !createForm.holderTypeId || !createForm.filmFormatId) {
-      feedback.error('Holder name, brand, holder type, and format are required.');
+    if (!createForm.name.trim() || !createForm.brand.trim() || !createForm.holderTypeId || !createForm.filmFormatId || !createForm.frameSize) {
+      feedback.error('Holder name, brand, holder type, format, and frame size are required.');
       return;
     }
     payload = {
       deviceTypeCode: 'film_holder',
       deviceTypeId: deviceType.id,
       filmFormatId: createForm.filmFormatId,
-      frameSize: createForm.frameSize as CreateFilmDeviceRequest['frameSize'],
+      frameSize: createForm.frameSize,
       name: createForm.name.trim(),
       brand: createForm.brand.trim(),
       slotCount: createForm.slotCount as 1 | 2,

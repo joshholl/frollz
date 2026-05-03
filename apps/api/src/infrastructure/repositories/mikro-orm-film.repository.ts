@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
-import type { DeviceLoadTimelineEvent, FilmListQuery } from '@frollz2/schema';
+import type { DeviceLoadTimelineEvent, FilmListQuery, UpdateFilmFrameRequest } from '@frollz2/schema';
 import { FilmRepository } from './film.repository.js';
 import { FilmEntity, FilmFrameEntity, FilmJourneyEventEntity } from '../entities/index.js';
 import { mapFilmDetailEntity, mapFilmFrameEntity, mapFilmJourneyEventEntity, mapFilmSummaryEntity, parseDevelopmentCost, parseLoadedEventData, formatEmulsionName } from '../mappers/index.js';
@@ -170,6 +170,31 @@ export class MikroOrmFilmRepository extends FilmRepository {
     );
 
     return frames.map(mapFilmFrameEntity);
+  }
+
+  async updateFrame(userId: number, filmId: number, frameId: number, input: UpdateFilmFrameRequest) {
+    const frame = await this.entityManager.findOne(
+      FilmFrameEntity,
+      { id: frameId, user: userId, film: filmId },
+      { populate: ['user', 'film', 'currentState'] }
+    );
+
+    if (!frame) {
+      return null;
+    }
+
+    if (input.aperture !== undefined) {
+      frame.aperture = input.aperture;
+    }
+    if (input.shutterSpeedSeconds !== undefined) {
+      frame.shutterSpeedSeconds = input.shutterSpeedSeconds;
+    }
+    if (input.filterUsed !== undefined) {
+      frame.filterUsed = input.filterUsed;
+    }
+
+    await this.entityManager.flush();
+    return mapFilmFrameEntity(frame);
   }
 
   async listDeviceLoadEvents(userId: number, deviceId: number): Promise<DeviceLoadTimelineEvent[]> {

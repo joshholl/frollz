@@ -35,6 +35,19 @@ export const FRAME_SIZE_CODES = [
   'instax_square'
 ] as const;
 
+// Full, half, and third stops in ascending order.
+// Half-stop values: 1.2, 1.7, 2.4, 3.4, 4.8, 6.7, 9.5, 13, 19, 27, 38, 54
+// Third-stop values fill the gaps between full stops.
+export const APERTURE_PRESETS = [
+  1, 1.1, 1.2, 1.4, 1.6, 1.7, 1.8,
+  2, 2.2, 2.4, 2.5, 2.8, 3.2, 3.4, 3.5,
+  4, 4.5, 4.8, 5, 5.6, 6.3, 6.7, 7.1,
+  8, 9, 9.5, 10, 11, 13, 14,
+  16, 18, 19, 20, 22, 25, 27, 29,
+  32, 36, 38, 40, 45, 51, 54, 57, 64
+] as const;
+export type AperturePreset = typeof APERTURE_PRESETS[number];
+
 export const frameSizeCodeSchema = z.enum(FRAME_SIZE_CODES);
 export const costAmountSchema = z.object({
   amount: z.number().nonnegative(),
@@ -363,7 +376,16 @@ export const filmFrameSchema = z.object({
   frameNumber: z.number().int().positive(),
   currentStateId: idSchema,
   currentStateCode: filmStateCodeSchema,
-  currentState: filmStateSchema
+  currentState: filmStateSchema,
+  aperture: z.number().positive().nullable(),
+  shutterSpeedSeconds: z.number().positive().max(14400).nullable(),
+  filterUsed: z.boolean().nullable()
+});
+
+export const updateFilmFrameRequestSchema = z.object({
+  aperture: z.number().positive().nullable().optional(),
+  shutterSpeedSeconds: z.number().positive().max(14400).nullable().optional(),
+  filterUsed: z.boolean().nullable().optional()
 });
 
 export const deviceLoadTimelineEventSchema = z.object({
@@ -525,6 +547,7 @@ export type FilmFrame = z.infer<typeof filmFrameSchema>;
 export type FilmCreateRequest = z.infer<typeof filmCreateRequestSchema>;
 export type FilmCreateForm = z.infer<typeof filmCreateFormSchema>;
 export type FilmUpdateRequest = z.infer<typeof filmUpdateRequestSchema>;
+export type UpdateFilmFrameRequest = z.infer<typeof updateFilmFrameRequestSchema>;
 export type FilmListQuery = z.infer<typeof filmListQuerySchema>;
 export type FilmListResponse = z.infer<typeof filmListResponseSchema>;
 export type FilmJourneyEvent = z.infer<typeof filmJourneyEventSchema>;

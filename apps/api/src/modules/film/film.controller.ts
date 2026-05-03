@@ -5,7 +5,8 @@ import {
   createFilmJourneyEventRequestSchema,
   filmLotCreateRequestSchema,
   filmListQuerySchema,
-  filmUpdateRequestSchema
+  filmUpdateRequestSchema,
+  updateFilmFrameRequestSchema
 } from '@frollz2/schema';
 import { ZodSchemaPipe } from '../../common/pipes/zod-schema.pipe.js';
 import { IdempotencyService } from '../../common/services/idempotency.service.js';
@@ -96,6 +97,25 @@ export class FilmController {
   @ApiResponse({ status: 200, description: 'Film frame list' })
   listFrames(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
     return this.filmService.listFrames(user.userId, id);
+  }
+
+  @Patch(':id/frames/:frameId')
+  @ApiOperation({ summary: 'Update frame exposure metadata' })
+  @ApiResponse({ status: 200, description: 'Frame updated' })
+  updateFrame(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('frameId', ParseIntPipe) frameId: number,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Body(new ZodSchemaPipe(updateFilmFrameRequestSchema)) body: typeof updateFilmFrameRequestSchema['_output']
+  ) {
+    return this.idempotencyService.execute({
+      userId: user.userId,
+      key: idempotencyKey,
+      scope: 'film.update-frame',
+      requestPayload: { filmId: id, frameId, ...body },
+      handler: () => this.filmService.updateFrame(user.userId, id, frameId, body)
+    });
   }
 
   @Post(':id/frames/:frameId/events')
