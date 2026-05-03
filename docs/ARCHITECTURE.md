@@ -1,74 +1,191 @@
 # Architecture
 
+## Monorepo Layout
+
+```
+frollz/
+├── apps/
+│   ├── api/          — NestJS + Fastify backend
+│   └── ui/           — Vue 3 + Quasar frontend
+└── packages/
+    └── schema/       — Shared Zod contracts (source of truth for all types)
+```
+
+Build system: **Turborepo**. Package manager: **pnpm** (never npm or yarn).
+
+---
+
 ## Layer Boundaries
-- `apps/api/src/domain` is pure TypeScript and must not import NestJS, MikroORM, or transport/framework concerns.
-- `apps/api/src/modules` owns HTTP concerns (routing, guards, DTO parsing) and delegates business rules to services.
-- `apps/api/src/infrastructure` owns persistence entities, repositories, mappers, migrations, and seeds.
-- `apps/ui` consumes API contracts from `packages/schema` and must not duplicate backend domain rules.
-- `packages/schema` is the shared contract layer and should be the only place where request/response shape types are defined.
+
+| Layer | Path | Responsibility |
+|---|---|---|
+| Schema | `packages/schema` | Zod schemas, TypeScript types, `filmTransitionMap`, `filmFormatDefinitions`. No runtime dependencies other than `zod`. |
+| Domain | `apps/api/src/domain` | Pure TypeScript business logic. Must not import NestJS, MikroORM, or transport concerns. Contains `applyFilmTransition`, `DomainError`, cost allocation. |
+| Infrastructure | `apps/api/src/infrastructure` | MikroORM entities, repositories, mappers, migrations, seeds, `database-runtime.ts`. |
+| Modules | `apps/api/src/modules` | NestJS modules: HTTP routing, guards, request parsing, controller → service delegation. |
+| UI | `apps/ui/src` | Vue 3 + Quasar. Consumes types from `packages/schema`. Must not duplicate backend domain rules. |
+
+**Key constraint**: the domain layer must remain framework-free. If you need to call business logic from a test without spinning up NestJS, the domain layer is where that logic lives.
+
+---
+
+## API Modules
+
+| Module | Controller prefix | Responsibility |
+|---|---|---|
+| `film` | `GET/PATCH /film` | Film list, detail, update, events, frames |
+| `film` | `POST /film/lots` | FilmLot creation (the correct entry point for all film creation) |
+| `film` | `POST /film/:id/events` | Append film journey events |
+| `film` | `GET /film/:id/events` | Fetch film journey events |
+| `film` | `GET /film/:id/frames` | Fetch film frames |
+| `film` | `PATCH /film/:id/frames/:frameId` | Update per-frame exposure metadata |
+| `film` | `POST /film/:id/frames/:frameId/events` | Append frame journey events |
+| `devices` | `/devices` | CRUD for FilmDevice (camera, back, holder), load event timeline, mount/unmount |
+| `film-labs` | `/film-labs` | CRUD for FilmLab |
+| `film-suppliers` | `/film-suppliers` | CRUD for FilmSupplier |
+| `reference` | `/reference` | Read-only reference data (formats, states, package types, etc.) |
+| `emulsions` | `/emulsions` | Read-only emulsion catalog |
+| `auth` | `/auth` | Register, login, refresh, logout, current user |
+| `admin` | `/admin` | Admin-only operations (seeding, reference data management) |
+
+`POST /film` is **deprecated** and must not be used. All film creation goes through `POST /film/lots`.
+
+---
 
 ## Reference vs User Data
-- Reference tables are globally shared (`film_format`, `development_process`, `package_type`, `film_state`, `storage_location`, `slot_state`, `device_type`, `holder_type`, `emulsion`) and exposed as authenticated read-only endpoints.
+
+- Reference tables (`film_format`, `development_process`, `package_type`, `film_state`, `storage_location`, `slot_state`, `device_type`, `holder_type`, `emulsion`) are globally shared, seeded at startup, and exposed as authenticated read-only endpoints.
 - User-owned tables include `user_id` and every repository query on those tables is scoped by `userId`.
 - Cross-user lookups return `404` to avoid leaking existence.
-- Future admin mutation endpoints for reference data should live in a dedicated module with elevated authorization.
+- Future admin mutation endpoints for reference data live in the `admin` module with elevated authorization.
+
+---
 
 ## ID Strategy
-- All entities use SQLite `INTEGER PRIMARY KEY AUTOINCREMENT`.
+
+- All entities use `INTEGER PRIMARY KEY AUTOINCREMENT`.
 - IDs are serialized as numeric JSON values across API and UI.
 - No UUIDs or string IDs are used in runtime contracts.
 
+---
+
 ## Date Strategy
-- API boundaries use ISO 8601 strings (`z.iso.datetime()`).
-- SQLite stores date/time values as `TEXT`.
-- `Date` objects are limited to runtime internals only (for timestamp creation) and are serialized immediately at boundaries.
+
+- API boundaries use ISO 8601 strings validated by `isoDateTimeSchema` (`z.iso.datetime()`).
+- The database stores date/time values as `TEXT`.
+- `Date` objects are limited to runtime internals only (for timestamp creation) and are serialized immediately at mapper boundaries.
+
+---
 
 ## Film State Machine
-- State transitions are encoded in a map (`from -> allowed to[]`) via `applyFilmTransition`.
-- `stored -> stored` is explicitly allowed for storage-location changes.
+
+- The canonical transition map is `filmTransitionMap` in `packages/schema/src/film.ts`.
+- The API re-exports it from `apps/api/src/domain/film/film-state-machine.ts` and exposes `applyFilmTransition(currentStateCode, incomingStateCode)` which returns either the new state code or a `DomainError`.
+- `stored → stored` is explicitly allowed for storage-location changes.
 - Backward transitions and undefined skips are rejected with `DomainError`.
-- Film archival is a state transition (`archived`) through journey events; film hard-delete is intentionally not supported.
+- Film archival is terminal (`archived`). Hard-delete of film records is not supported.
+
+---
 
 ## Event Model
-- `film_journey_event` is append-only history.
-- `film.current_state_id` is a denormalized cache for current status.
-- Event creation, current-state updates, and holder-slot side effects execute in one DB transaction.
-- Event payloads are validated against per-state Zod schemas before persistence.
 
-## FilmDevice CTI
+- `film_journey_event` is append-only history for film-level state changes.
+- `frame_journey_event` is append-only history for frame-level state changes.
+- `film.current_state_id` is a denormalized cache updated atomically with each event insert.
+- `film.current_device_id` is a denormalized cache set on `loaded` and cleared on `removed`.
+- Event creation, current-state updates, and holder-slot side effects all execute in a single DB transaction.
+- Event payloads are validated against per-state Zod schemas from `packages/schema` before persistence.
+
+---
+
+## FilmDevice CTI (Class Table Inheritance)
+
 - Base table: `film_device`; subtype tables: `camera`, `interchangeable_back`, `film_holder`.
-- Writes create base + subtype rows in one transaction.
-- Reads join base and subtype data and map to discriminated union types.
+- Writes create the base row and the appropriate subtype row in a single transaction.
+- Reads join the base and subtype data and map to a discriminated union (`filmDeviceSchema` in `packages/schema`).
+- The discriminator is `deviceTypeCode` (`'camera'`, `'interchangeable_back'`, `'film_holder'`).
+
+---
 
 ## FilmHolderSlot State
-- Slot state is persisted independently from film state (`empty`, `loaded`, `exposed`, `removed`).
-- Slot transitions are triggered by film journey events (`loaded`, `exposed`, `removed`).
-- Loading a previously removed slot creates a new slot cycle record to preserve history.
 
-## Swagger/OpenAPI
-- Swagger UI is mounted at `/api/docs`.
-- OpenAPI JSON is served at `/api/docs-json`.
-- Zod schemas power request/response contracts and runtime validation through shared schema package usage.
+- Slot state (`empty`, `loaded`, `exposed`, `removed`) is persisted independently from film state.
+- Slot transitions are triggered by film journey events (`loaded`, `exposed`, `removed`).
+- Loading a slot that was previously `removed` creates a **new slot cycle record** rather than mutating the existing one, preserving full load history.
+- `film_holder_slot.slot_state_code` is a denormalized copy of the slot state code for efficient querying.
+
+---
+
+## Film Format Definition System
+
+`packages/schema/src/film-format-definition.ts` is a static catalog — not a database table — that drives:
+
+- UI format and package-type selection dropdowns
+- Frame count resolution at load time (`resolveNonLargeFrameCount`)
+- Validation of frame size / package type combinations
+
+The catalog is keyed by the `film_format.code` values from the database (e.g. `'35mm'`, `'120'`, `'4x5'`). Both API and UI consume it directly from `packages/schema`.
+
+---
+
+## Database Runtime
+
+`apps/api/src/infrastructure/database-runtime.ts` contains `resolveDatabaseRuntime()`, which selects the database driver at startup:
+
+| Condition | Runtime |
+|---|---|
+| `DATABASE_DRIVER=postgres` or `postgresql` | Postgres |
+| `DATABASE_DRIVER=sqlite` | SQLite |
+| `DATABASE_URL` starts with `postgres://` or `postgresql://` | Postgres |
+| `DATABASE_URL` is set (other value) | SQLite |
+| `DATABASE_HOST` is set | Postgres |
+| Nothing set | SQLite (default for local dev) |
+
+Never hardcode a database assumption. All persistence code must work with both drivers.
+
+---
 
 ## API Envelope
-- Successful responses are wrapped as `{ data, meta }` by a global interceptor.
-- Error responses are wrapped as `{ error: { code, message, details } }` by filters/exception handlers.
+
+- Successful responses are wrapped as `{ data, meta }` by a global response interceptor.
+- Error responses are wrapped as `{ error: { code, message, details } }` by a global exception filter.
+
+---
 
 ## Idempotency
-- `POST /film`, `POST /film/:id/events`, and `POST /devices` support idempotent replay with an `Idempotency-Key` header.
-- Keys are scoped by `(userId, scope, key)` and persisted in `idempotency_key`.
-- Reusing the same key with identical payload returns the original response without creating a duplicate row.
-- Reusing the same key with a different payload returns `409 CONFLICT`.
 
-## Naive UI Constraint
-- UI relies on Naive UI layout/components and token-driven styling.
-- Custom CSS is intentionally avoided to keep styling consistent and centralized.
+- All mutating endpoints require an `Idempotency-Key` header.
+- Keys are scoped by `(userId, scope, key)` and persisted in `idempotency_key` with a TTL.
+- Replaying the same key with the same body returns the cached response without creating a duplicate.
+- Replaying the same key with a different body returns `409 CONFLICT`.
 
-## Adding A New Event Type
-1. Add/seed any required reference data.
-2. Add event payload schema variant in `packages/schema`.
-3. Extend transition map and domain tests.
-4. Add service preconditions and transactional side effects.
-5. Expose via API endpoints and update OpenAPI docs.
-6. Load supporting reference data in UI store.
-7. Extend dynamic event form rendering and timeline display logic.
+---
+
+## Swagger / OpenAPI
+
+- Swagger UI is mounted at `/api/docs`.
+- OpenAPI JSON is served at `/api/docs-json`.
+- Zod schemas power both runtime validation and the OpenAPI contract via the shared schema package.
+
+---
+
+## UI Architecture
+
+- Vue 3 (Composition API) + Quasar (component library and build tooling).
+- State management via **Pinia** stores (`apps/ui/src/stores/`). One store per domain: `film`, `devices`, `reference`, `emulsions`, `film-labs`, `film-suppliers`, `auth`.
+- Routing via Vue Router; routes defined in `apps/ui/src/router/`.
+- Styling via SCSS tokens (`app.scss`, `_tokens.scss`). Avoid ad-hoc inline styles.
+- Types consumed directly from `packages/schema` — never duplicated in the UI.
+- `filmTransitionMap` from `packages/schema` drives which event form options are shown to the user in `FilmEventForm.vue`.
+
+---
+
+## Adding a New Event Type
+
+1. Add or seed any required reference data (e.g. a new storage location or state code).
+2. Add the event payload Zod schema variant in `packages/schema/src/film.ts`.
+3. Extend `filmTransitionMap` and add domain tests in `apps/api/src/domain/__tests__/`.
+4. Add service preconditions and transactional side effects in `FilmService`.
+5. Expose via the appropriate controller and update OpenAPI docs.
+6. Load any new supporting reference data in the relevant UI Pinia store.
+7. Add a sub-form component in `apps/ui/src/components/film-event-forms/` and register it in `FilmEventForm.vue`.
