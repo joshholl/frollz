@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { buildFilmDashboardOverview, type FilmDashboardOverviewCard } from '@frollz2/contracts';
+import { useTranslation } from '@frollz2/i18n';
 import { useSession } from '../auth/session';
 import { PageHeader } from './PageHeader';
 
@@ -73,6 +74,7 @@ function StatCard({
 }
 
 export function DashboardView() {
+  const { t } = useTranslation();
   const { user } = useSession();
   const { api } = useSession();
   const [cards, setCards] = useState<FilmDashboardOverviewCard[]>([]);
@@ -97,22 +99,22 @@ export function DashboardView() {
         });
         setCards(buildFilmDashboardOverview(films.items, latestEventsByFilmId, now));
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+        setError(err instanceof Error ? err.message : t('dashboard.failedToLoad'));
       } finally {
         setIsLoading(false);
       }
     };
     void load();
-  }, [api]);
+  }, [api, t]);
 
   return (
     <main>
       <PageHeader
-        heading="Dashboard"
-        subtitle="Overview of film workflow, stock mix, and activity risk signals."
+        heading={t('dashboard.heading')}
+        subtitle={t('dashboard.subtitle')}
         action={
           <span style={{ fontSize: 14, color: 'var(--muted-ink)' }}>
-            {user?.name ?? 'Photographer'}
+            {user?.name ?? t('dashboard.photographerFallback')}
           </span>
         }
       />
@@ -120,7 +122,7 @@ export function DashboardView() {
       {error ? <div className="error-banner" role="alert">{error}</div> : null}
 
       {isLoading ? (
-        <div aria-busy="true" aria-label="Loading dashboard" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+        <div aria-busy="true" aria-label={t('dashboard.loadingLabel')} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
           {[...Array(4)].map((_, i) => (
             <div key={i} className="skeleton" style={{ height: 240, borderRadius: 16 }} />
           ))}

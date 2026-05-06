@@ -15,6 +15,7 @@
     "@frollz2/api-client": "workspace:*",
     "@frollz2/contracts": "workspace:*",
     "@frollz2/design-tokens": "workspace:*",
+    "@frollz2/i18n": "workspace:*",
     "expo": "^55.0.23",
     "expo-router": "^55.0.14",
     "react": "^19.2.5",
