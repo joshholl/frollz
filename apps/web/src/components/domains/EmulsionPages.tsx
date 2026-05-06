@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Trans, useTranslation } from '@frollz2/i18n';
+import { useTranslation } from '@frollz2/i18n';
 import { createEmulsionRequestSchema, updateEmulsionRequestSchema } from '@frollz2/schema';
 import type { DevelopmentProcess, Emulsion, FilmFormat } from '@frollz2/schema';
 import { useSession } from '../../auth/session';
+import { DeleteConfirmationName } from '../DeleteConfirmationName';
 import { FormDrawer } from '../FormDrawer';
 import { PageHeader } from '../PageHeader';
 import { ReferenceTypeaheadInput } from '../ReferenceTypeaheadInput';
@@ -422,7 +423,8 @@ export function EmulsionDetailPage() {
 
               <div className="danger-zone">
                 <h3>{t('emulsions.delete.heading')}</h3>
-                <p><Trans i18nKey="emulsions.delete.confirmationPrompt" values={{ name: emulsionName }} components={{ strong: <strong /> }} /></p>
+                <p>{t('emulsions.delete.confirmationPrompt')}</p>
+                <DeleteConfirmationName name={emulsionName} />
                 <div className="form-field">
                   <label htmlFor="delete-em-confirm">{t('emulsions.delete.confirmLabel')}</label>
                   <input id="delete-em-confirm" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} />

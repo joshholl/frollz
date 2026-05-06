@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Trans, useTranslation } from '@frollz2/i18n';
+import { useTranslation } from '@frollz2/i18n';
 import { createFilmDeviceRequestSchema, filmFormatDefinitions, frameSizeCodeSchema, updateFilmDeviceRequestSchema } from '@frollz2/schema';
 import type { CreateFilmDeviceRequest, DeviceLoadTimelineEvent, DeviceType, FilmDevice, FilmFormat, FilmHolderSlot, FrameSizeCode, HolderType } from '@frollz2/schema';
 import { useSession } from '../../auth/session';
+import { DeleteConfirmationName } from '../DeleteConfirmationName';
 import { FormDrawer } from '../FormDrawer';
 import { PageHeader } from '../PageHeader';
 import { ReferenceTypeaheadInput } from '../ReferenceTypeaheadInput';
@@ -707,7 +708,8 @@ export function DeviceDetailPage() {
 
               <div className="danger-zone">
                 <h3>{t('devices.delete.heading')}</h3>
-                <p><Trans i18nKey="devices.delete.confirmationPrompt" values={{ name: displayName }} components={{ strong: <strong /> }} /></p>
+                <p>{t('devices.delete.confirmationPrompt')}</p>
+                <DeleteConfirmationName name={displayName} />
                 <div className="form-field">
                   <label htmlFor="delete-device-confirm">{t('devices.delete.confirmLabel')}</label>
                   <input id="delete-device-confirm" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} />

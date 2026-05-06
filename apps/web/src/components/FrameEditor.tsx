@@ -133,7 +133,7 @@ export function FrameEditor({
 
   const apertureOptions = [
     ...APERTURE_PRESET_OPTIONS,
-    { label: 'Other…', value: '__custom__' }
+    { label: t('frameEditor.otherAperture'), value: '__custom__' }
   ];
 
   return (

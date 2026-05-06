@@ -6,10 +6,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const localesDir = join(__dirname, '../src/locales');
 
 function pseudoLocalize(str: string): string {
-  // Split on i18next interpolation tokens {{...}} to preserve them
-  const parts = str.split(/(\{\{[^}]+\}\})/);
+  const preservedTokenPattern = /(\{\{[^}]+\}\})/;
+  const parts = str.split(preservedTokenPattern);
   return parts
-    .map((part) => (/^\{\{[^}]+\}\}$/.test(part) ? part : part.split('').reverse().join('')))
+    .map((part) => (preservedTokenPattern.test(part) ? part : part.split('').reverse().join('')))
     .join('');
 }
 

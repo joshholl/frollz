@@ -45,6 +45,9 @@
   "locale": {
     "selectLabel": "egaugnaL"
   },
+  "clipboard": {
+    "copyName": " ypoC{{name}}draobpilc ot "
+  },
   "auth": {
     "signIn": "ni ngiS",
     "signInWelcome": ".zllorf ot kcab emocleW",
@@ -241,6 +244,7 @@
   "frameEditor": {
     "aperture": "erutrepA",
     "notRecorded": "dedrocer toN",
+    "otherAperture": "…rehtO",
     "customAperture": "erutrepa motsuC",
     "customAperturePlaceholder": "5.3 .g.e",
     "shutterSpeed": "deeps rettuhS",
@@ -334,7 +338,7 @@
     },
     "delete": {
       "heading": "noislume eteleD",
-      "confirmationPrompt": ">gnorts< epyT{{name}}.noiteled mrifnoc ot >gnorts/<",
+      "confirmationPrompt": ":noiteled mrifnoc ot eman siht epyT",
       "confirmLabel": "noitamrifnoC",
       "delete": "noislume eteleD",
       "deleting": "…gniteleD"
@@ -424,7 +428,7 @@
     },
     "delete": {
       "heading": "ecived eteleD",
-      "confirmationPrompt": ">gnorts< epyT{{name}}.noiteled mrifnoc ot >gnorts/<",
+      "confirmationPrompt": ":noiteled mrifnoc ot eman siht epyT",
       "confirmLabel": "noitamrifnoC",
       "delete": "ecived eteleD",
       "deleting": "…gniteleD"

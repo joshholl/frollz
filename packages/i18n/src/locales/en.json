@@ -45,6 +45,9 @@
   "locale": {
     "selectLabel": "Language"
   },
+  "clipboard": {
+    "copyName": "Copy {{name}} to clipboard"
+  },
   "auth": {
     "signIn": "Sign in",
     "signInWelcome": "Welcome back to frollz.",
@@ -241,6 +244,7 @@
   "frameEditor": {
     "aperture": "Aperture",
     "notRecorded": "Not recorded",
+    "otherAperture": "Other…",
     "customAperture": "Custom aperture",
     "customAperturePlaceholder": "e.g. 3.5",
     "shutterSpeed": "Shutter speed",
@@ -334,7 +338,7 @@
     },
     "delete": {
       "heading": "Delete emulsion",
-      "confirmationPrompt": "Type <strong>{{name}}</strong> to confirm deletion.",
+      "confirmationPrompt": "Type this name to confirm deletion:",
       "confirmLabel": "Confirmation",
       "delete": "Delete emulsion",
       "deleting": "Deleting…"
@@ -424,7 +428,7 @@
     },
     "delete": {
       "heading": "Delete device",
-      "confirmationPrompt": "Type <strong>{{name}}</strong> to confirm deletion.",
+      "confirmationPrompt": "Type this name to confirm deletion:",
       "confirmLabel": "Confirmation",
       "delete": "Delete device",
       "deleting": "Deleting…"
