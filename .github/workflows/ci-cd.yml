@@ -72,6 +72,11 @@ jobs:
       - name: Check-types web
         run: pnpm --filter @frollz2/web run check-types
 
+      - name: Build web for BDD
+        env:
+          API_URL: 'http://127.0.0.1:3001'
+        run: pnpm --filter @frollz2/web run build
+
       - name: Test web
         env:
           JWT_ACCESS_SECRET: ci-bdd-test-secret

@@ -15,6 +15,7 @@ const bddOutputDir = defineBddConfig({
 const API_URL = process.env['PLAYWRIGHT_API_URL'] ?? 'http://127.0.0.1:3001';
 const WEB_PORT = 4174;
 const BDD_BROWSER_CHANNEL = process.env['PLAYWRIGHT_BDD_CHANNEL'];
+const isCI = !!process.env['CI'];
 
 export default defineConfig({
   testDir: './e2e',
@@ -34,10 +35,12 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: `API_URL=${API_URL} pnpm exec next dev -p ${WEB_PORT} -H 127.0.0.1`,
+      command: isCI
+        ? `API_URL=${API_URL} pnpm exec next start -p ${WEB_PORT} -H 127.0.0.1`
+        : `API_URL=${API_URL} pnpm exec next dev -p ${WEB_PORT} -H 127.0.0.1`,
       cwd: configDir,
       url: `http://127.0.0.1:${WEB_PORT}`,
-      reuseExistingServer: false,
+      reuseExistingServer: !isCI,
       timeout: 120_000,
     },
   ],
