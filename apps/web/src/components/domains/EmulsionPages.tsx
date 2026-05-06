@@ -11,6 +11,7 @@ import { FormDrawer } from '../FormDrawer';
 import { PageHeader } from '../PageHeader';
 import { ReferenceTypeaheadInput } from '../ReferenceTypeaheadInput';
 import { useIdempotentSubmit } from '../../hooks/useIdempotentSubmit';
+import { resolveApiError } from '../../utils/resolve-api-error';
 
 export function EmulsionListPage({
   processFilterCode,
@@ -51,7 +52,7 @@ export function EmulsionListPage({
       setFormats(refs.filmFormats);
       setProcesses(refs.developmentProcesses);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('emulsions.failedToLoad'));
+      setError(resolveApiError(err, t, t('emulsions.failedToLoad')));
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +156,7 @@ export function EmulsionListPage({
             await load();
             setCreateOpen(false);
           } catch (err) {
-            setError(err instanceof Error ? err.message : t('emulsions.failedToCreate'));
+            setError(resolveApiError(err, t, t('emulsions.failedToCreate')));
           } finally {
             endCreateSubmit();
           }
@@ -273,7 +274,7 @@ export function EmulsionDetailPage() {
         filmFormatIds: detail.filmFormats.map((format) => String(format.id))
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('emulsions.failedToLoad'));
+      setError(resolveApiError(err, t, t('emulsions.failedToLoad')));
     }
   }
 
@@ -356,7 +357,7 @@ export function EmulsionDetailPage() {
                 await load();
                 setEditOpen(false);
               } catch (err) {
-                setError(err instanceof Error ? err.message : t('emulsions.failedToUpdate'));
+                setError(resolveApiError(err, t, t('emulsions.failedToUpdate')));
               } finally {
                 endSaveSubmit();
               }
@@ -436,7 +437,7 @@ export function EmulsionDetailPage() {
                       await api.deleteEmulsion(id, deleteIdempotencyKeyRef.current);
                       window.location.href = '/emulsions';
                     } catch (err) {
-                      setError(err instanceof Error ? err.message : t('emulsions.failedToDelete'));
+                      setError(resolveApiError(err, t, t('emulsions.failedToDelete')));
                     } finally {
                       endDeleteSubmit();
                     }

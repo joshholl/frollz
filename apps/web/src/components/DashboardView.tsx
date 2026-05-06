@@ -6,6 +6,7 @@ import { buildFilmDashboardOverview, type FilmDashboardOverviewCard } from '@fro
 import { useTranslation } from '@frollz2/i18n';
 import { useSession } from '../auth/session';
 import { PageHeader } from './PageHeader';
+import { resolveApiError } from '../utils/resolve-api-error';
 
 type ProgressRowProps = { label: string; value: number; max: number; color: string };
 function ProgressRow({ label, value, max, color }: ProgressRowProps) {
@@ -97,9 +98,9 @@ export function DashboardView() {
             latestEventsByFilmId[filmId] = latestEvent;
           }
         });
-        setCards(buildFilmDashboardOverview(films.items, latestEventsByFilmId, now));
+        setCards(buildFilmDashboardOverview(films.items, latestEventsByFilmId, now, { t: (key, opts) => t(key, opts ?? {}) }));
       } catch (err) {
-        setError(err instanceof Error ? err.message : t('dashboard.failedToLoad'));
+        setError(resolveApiError(err, t, t('dashboard.failedToLoad')));
       } finally {
         setIsLoading(false);
       }

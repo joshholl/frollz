@@ -6,6 +6,7 @@ import { APERTURE_PRESETS, updateFilmFrameRequestSchema } from '@frollz2/schema'
 import type { FilmFrame } from '@frollz2/schema';
 import { useSession } from '../auth/session';
 import { parseShutterSpeedInput, formatShutterSpeed } from '../utils/shutterSpeed';
+import { resolveApiError } from '../utils/resolve-api-error';
 
 type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
 
@@ -68,7 +69,7 @@ export function FrameEditor({
       setSaveStatus('saved');
     } catch (err) {
       setSaveStatus('error');
-      setSaveError(err instanceof Error ? err.message : t('frameEditor.saveFailed'));
+      setSaveError(resolveApiError(err, t, t('frameEditor.saveFailed')));
     } finally {
       saveLockRef.current = false;
     }

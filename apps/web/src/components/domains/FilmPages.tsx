@@ -15,6 +15,7 @@ import { FilmEventForm } from '../FilmEventForm';
 import { FrameEditor } from '../FrameEditor';
 import { formatCost, formatKnownCost } from '../../utils/filmCost';
 import { useIdempotentSubmit } from '../../hooks/useIdempotentSubmit';
+import { resolveApiError } from '../../utils/resolve-api-error';
 
 function toIsoFromDateInput(value: string): string | null {
   if (!value) return null;
@@ -113,7 +114,7 @@ export function FilmListPage() {
       setEmulsions(ems);
       setSuppliers(sups);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('film.failedToLoad'));
+      setError(resolveApiError(err, t, t('film.failedToLoad')));
     } finally {
       setIsLoading(false);
     }
@@ -341,7 +342,7 @@ export function FilmListPage() {
             await load(stateCode, supplierId);
             setCreateOpen(false);
           } catch (err) {
-            setError(err instanceof Error ? err.message : t('film.failedToCreate'));
+            setError(resolveApiError(err, t, t('film.failedToCreate')));
           } finally {
             endCreateSubmit();
           }
@@ -480,7 +481,7 @@ export function FilmDetailPage() {
       setName(detail.name);
       setExpirationDate(detail.expirationDate ? detail.expirationDate.slice(0, 10) : '');
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('film.failedToLoadDetail'));
+      setError(resolveApiError(err, t, t('film.failedToLoadDetail')));
     }
   }
 
@@ -673,7 +674,7 @@ export function FilmDetailPage() {
                 await load();
                 setEditOpen(false);
               } catch (err) {
-                setError(err instanceof Error ? err.message : t('film.failedToUpdate'));
+                setError(resolveApiError(err, t, t('film.failedToUpdate')));
               } finally {
                 endEditSubmit();
               }

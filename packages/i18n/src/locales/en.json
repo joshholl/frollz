@@ -69,7 +69,84 @@
     "subtitle": "Overview of film workflow, stock mix, and activity risk signals.",
     "loadingLabel": "Loading dashboard",
     "failedToLoad": "Failed to load dashboard",
-    "photographerFallback": "Photographer"
+    "photographerFallback": "Photographer",
+    "kpi": {
+      "total": {
+        "title": "Total Films",
+        "helper": "All tracked rolls and sheets",
+        "actionLabel": "Open film",
+        "segments": {
+          "loaded": "Loaded",
+          "removed": "Removed",
+          "atLab": "At Lab",
+          "archived": "Archived"
+        }
+      },
+      "format": {
+        "title": "By Format",
+        "helper": "35mm {{count35mm}} · 120 {{count120}} · Sheet {{countSheet}}",
+        "actionLabel": "Open formats",
+        "segments": {
+          "mm35": "35mm",
+          "mm120": "120",
+          "sheet": "Sheet"
+        }
+      },
+      "loaded": {
+        "title": "Loaded (Idle Risk)",
+        "helper": "{{loadedIdleCount}} idle > {{loadedIdleDays}} days",
+        "actionLabel": "View loaded",
+        "segments": {
+          "idle": "Idle > {{days}}d",
+          "active": "Active ≤ {{days}}d"
+        }
+      },
+      "removed": {
+        "title": "Removed (Not Sent)",
+        "helper": "Oldest waiting: {{days}} days",
+        "actionLabel": "View removed",
+        "segments": {
+          "awaitingLab": "Awaiting lab",
+          "otherStates": "Other states"
+        }
+      },
+      "sentForDev": {
+        "title": "Sent for Dev",
+        "helper": "Oldest at lab: {{days}} days",
+        "actionLabel": "View lab queue",
+        "segments": {
+          "inLabQueue": "In lab queue",
+          "notInLab": "Not in lab"
+        }
+      },
+      "expiring": {
+        "title": "Expiring Soon",
+        "helper": "Expires in next {{days}} days",
+        "actionLabel": "Review stock",
+        "segments": {
+          "expiringSoon": "Expires ≤ {{days}}d",
+          "stableHorizon": "Stable horizon"
+        }
+      },
+      "archived": {
+        "title": "Archived",
+        "helper": "Completed rolls and sheets",
+        "actionLabel": "View archived",
+        "segments": {
+          "completed": "Completed",
+          "stillActive": "Still active"
+        }
+      },
+      "recent": {
+        "title": "Recent Activity ({{days}}d)",
+        "helper": "Films with new state changes",
+        "actionLabel": "Open film",
+        "segments": {
+          "changed": "Changed ≤ {{days}}d",
+          "noRecentChange": "No recent change"
+        }
+      }
+    }
   },
   "film": {
     "inventory": "Film Inventory",
@@ -462,5 +539,110 @@
     "migrationBaseline": "MIGRATION BASELINE",
     "appName": "Frollz Mobile (Expo)",
     "headerTitle": "frōllz Mobile"
+  },
+  "errors": {
+    "validation": {
+      "failed": "Validation failed"
+    },
+    "idempotency": {
+      "keyTooLong": "Idempotency key must be 255 characters or fewer",
+      "keyConflict": "Idempotency key was already used with a different payload"
+    },
+    "auth": {
+      "emailConflict": "A user with that email already exists",
+      "invalidCredentials": "Invalid email or password",
+      "refreshTokenReuse": "Refresh token reuse detected",
+      "invalidRefreshToken": "Invalid refresh token",
+      "refreshTokenExpired": "Refresh token has expired",
+      "userNotFound": "User not found"
+    },
+    "film": {
+      "notFound": "Film not found",
+      "stateNotFound": "Film state not found",
+      "lotNotFoundAfterCreation": "Film lot not found after creation",
+      "frameNotFound": "Frame not found",
+      "packageTypeNotFound": "Package type not found",
+      "formatNotFound": "Film format not found",
+      "formatPackageMismatch": "Film format must match the selected package type",
+      "nameConflict": "You already have a film with that name",
+      "nameConflictCollection": "A film with that name already exists in your collection",
+      "frameMetadataRequiresLoaded": "Frame metadata can only be updated while the film is loaded",
+      "labIdRequired": "labId is required for lab events",
+      "loadEventRequiresTarget": "A loaded event requires a valid load target",
+      "bulkRequiresConversion": "35mm 100ft bulk must be converted to a supported roll before loading",
+      "alreadyLoaded": "This film has already been loaded and cannot be reloaded",
+      "loadFrameEventRequiresTarget": "A loaded frame event requires a valid load target",
+      "loadFrameTargetMismatch": "Loaded frame target does not match selected frame",
+      "frameAlreadyLoaded": "That frame has already been loaded and cannot be reused",
+      "cameraNotDirectLoad": "This camera cannot be loaded directly",
+      "loadRequiresCompatibleDevice": "Loaded events require a compatible device",
+      "deviceFormatMismatch": "Device format does not match the film format",
+      "useCameraDirectTarget": "Use camera_direct load target for direct camera loads",
+      "useInterchangeableBackTarget": "Use interchangeable_back load target for back loads",
+      "holderLoadRequiresSlotTarget": "A holder load requires film_holder_slot target with slotNumber",
+      "holderSlotNotExists": "That holder slot does not exist for this holder",
+      "holderSlotOccupied": "That holder slot is already occupied",
+      "holderSlotNotLoaded": "That holder slot is not loaded",
+      "holderSlotNotExposed": "That holder slot is not exposed",
+      "exposedRequiresLoaded": "An exposed event requires a previously loaded device context",
+      "holderExposedRequiresSlot": "A holder exposed event requires a slotSideNumber",
+      "exposedFrameRequiresLoaded": "An exposed frame event requires a previous loaded frame event",
+      "removedRequiresLoaded": "A removed event requires a previously loaded device context",
+      "cameraNoUnload": "This camera does not support unloading; continue directly to sent_for_dev",
+      "holderRemovedRequiresSlot": "A holder removed event requires a slotSideNumber",
+      "removedFrameRequiresLoaded": "A removed frame event requires a previous loaded frame event",
+      "unknownState": "Unknown film state: {{state}}",
+      "invalidTransition": "Invalid film transition from {{from}} to {{to}}"
+    },
+    "devices": {
+      "notFound": "Device not found",
+      "cameraNotFound": "Camera not found",
+      "mountedDeviceNotFound": "Mounted device not found",
+      "formatNotFound": "Film format not found",
+      "activeMountNotFound": "Active mount not found",
+      "directLoadRequiresFrameSize": "Directly loadable cameras require a frame size",
+      "invalidFrameSize": "Frame size {{frameSize}} is not valid for {{format}}",
+      "hasActiveFilm": "Device still has an active loaded film",
+      "duplicate": "A device with those details already exists",
+      "alreadyLoaded": "Device already has an active loaded film",
+      "missingFrameSize": "Device is missing a frame size",
+      "onlyBacksOrHolders": "Only interchangeable backs or film holders can be mounted",
+      "cameraNoMounted": "This camera does not support mounted devices",
+      "cameraOnlyBacks": "This camera can only mount interchangeable backs",
+      "cameraRequiresSystem": "This camera requires a system to mount interchangeable backs",
+      "backSystemIncompatible": "Interchangeable back system is not compatible with this camera",
+      "cameraOnlyHolders": "This camera can only mount film holders",
+      "cameraAlreadyMounted": "Camera already has an active mounted device",
+      "alreadyMounted": "This device is already mounted to another camera"
+    },
+    "emulsions": {
+      "notFound": "Emulsion not found",
+      "inUse": "Emulsion cannot be deleted because it is in use by existing films",
+      "duplicate": "An emulsion with that brand, manufacturer, and ISO already exists",
+      "developmentProcessNotFound": "Development process not found",
+      "formatsNotFound": "One or more film formats were not found"
+    },
+    "filmLabs": {
+      "notFound": "Film lab not found",
+      "nameConflict": "A film lab with that name already exists",
+      "inactive": "Film lab is inactive"
+    },
+    "filmSuppliers": {
+      "notFound": "Film supplier not found",
+      "nameConflict": "A film supplier with that name already exists"
+    },
+    "admin": {
+      "importOwnAccountOnly": "You can only import data for your own user account"
+    },
+    "frameGeneration": {
+      "unsupportedFormat": "Unsupported film format for non-large frame generation",
+      "unsupported35mmFrameSize": "Unsupported 35mm frame size for frame generation",
+      "unsupportedMediumFrameSize": "Unsupported medium format frame size for frame generation",
+      "unsupportedInstaxFrameSize": "Unsupported Instax frame size for frame generation",
+      "spoolRequiresConversion": "35mm spool must be converted to a supported roll before loading",
+      "unsupported35mmPackageType": "Unsupported 35mm package type for frame generation",
+      "unsupportedMediumPackageType": "Unsupported medium format package type for frame generation",
+      "unsupportedInstaxPackageType": "Unsupported Instax package type for frame generation"
+    }
   }
 }

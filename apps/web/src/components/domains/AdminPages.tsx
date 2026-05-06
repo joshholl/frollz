@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Trans, useTranslation } from '@frollz2/i18n';
+import { useTranslation } from '@frollz2/i18n';
 import {
   LIST_MAX_LIMIT,
   createFilmLabRequestSchema,
@@ -13,6 +13,7 @@ import {
 } from '@frollz2/schema';
 import type { ReferenceValueKind } from '@frollz2/schema';
 import { useSession } from '../../auth/session';
+import { resolveApiError } from '../../utils/resolve-api-error';
 import { FormDrawer } from '../FormDrawer';
 import { PageHeader } from '../PageHeader';
 import { ReferenceTypeaheadInput } from '../ReferenceTypeaheadInput';
@@ -184,7 +185,7 @@ function AdminListPage({
       const data = await fetchRows({ q, includeInactive });
       setRows(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('admin.failedToLoad', { entity: entityName }));
+      setError(resolveApiError(err, t, t('admin.failedToLoad', { entity: entityName })));
     } finally {
       setIsLoading(false);
     }
@@ -287,7 +288,7 @@ function AdminListPage({
                               await updateRow(row.id, { active: !row.active }, createIdempotencyKey());
                               await load();
                             } catch (err) {
-                              setError(err instanceof Error ? err.message : t('admin.failedToUpdate', { entity: entityName }));
+                              setError(resolveApiError(err, t, t('admin.failedToUpdate', { entity: entityName })));
                             } finally {
                               rowToggleLockRef.current = false;
                               setIsTogglingRow(null);
@@ -347,7 +348,7 @@ function AdminListPage({
             setFormOpen(false);
             await load();
           } catch (err) {
-            setError(err instanceof Error ? err.message : t('admin.failedToSave', { entity: entityName }));
+            setError(resolveApiError(err, t, t('admin.failedToSave', { entity: entityName })));
           } finally {
             endFormSubmit();
           }
@@ -523,7 +524,7 @@ export function DataExportImportPage() {
                 URL.revokeObjectURL(url);
                 setSuccess(t('admin.dataExport.export.success'));
               } catch (err) {
-                setError(err instanceof Error ? err.message : t('admin.dataExport.export.failed'));
+                setError(resolveApiError(err, t, t('admin.dataExport.export.failed')));
               } finally {
                 setIsExporting(false);
               }
@@ -561,7 +562,7 @@ export function DataExportImportPage() {
               resetImportIdempotencyKey();
               setSuccess(t('admin.dataExport.import.success'));
             } catch (err) {
-              setError(err instanceof Error ? err.message : t('admin.dataExport.import.failed'));
+              setError(resolveApiError(err, t, t('admin.dataExport.import.failed')));
             } finally {
               setIsImporting(false);
             }

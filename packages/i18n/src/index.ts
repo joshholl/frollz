@@ -10,8 +10,7 @@ void i18next.use(initReactI18next).init({
   },
   lng: 'en',
   fallbackLng: 'en',
-  interpolation: { escapeValue: false },
-  initImmediate: false
+  interpolation: { escapeValue: false }
 });
 
 export { Trans, useTranslation } from 'react-i18next';

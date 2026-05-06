@@ -11,6 +11,7 @@ import { FormDrawer } from '../FormDrawer';
 import { PageHeader } from '../PageHeader';
 import { ReferenceTypeaheadInput } from '../ReferenceTypeaheadInput';
 import { useIdempotentSubmit } from '../../hooks/useIdempotentSubmit';
+import { resolveApiError } from '../../utils/resolve-api-error';
 
 type DeviceTypeCode = FilmDevice['deviceTypeCode'];
 
@@ -128,7 +129,7 @@ export function DeviceListPage({ lockedDeviceTypeCode }: { lockedDeviceTypeCode?
         return { ...prev, deviceTypeId: selectedType ? String(selectedType.id) : '' };
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('devices.failedToLoad'));
+      setError(resolveApiError(err, t, t('devices.failedToLoad')));
     } finally {
       setIsLoading(false);
     }
@@ -319,7 +320,7 @@ export function DeviceListPage({ lockedDeviceTypeCode }: { lockedDeviceTypeCode?
             await load();
             setCreateOpen(false);
           } catch (err) {
-            setError(err instanceof Error ? err.message : t('devices.failedToCreate'));
+            setError(resolveApiError(err, t, t('devices.failedToCreate')));
           } finally {
             endCreateSubmit();
           }
@@ -505,7 +506,7 @@ export function DeviceDetailPage() {
         setEditName(detail.name);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('devices.failedToLoad'));
+      setError(resolveApiError(err, t, t('devices.failedToLoad')));
       setDevice(null);
       setSlots([]);
       setLoadEvents([]);
@@ -667,7 +668,7 @@ export function DeviceDetailPage() {
                 await load();
                 setEditOpen(false);
               } catch (err) {
-                setError(err instanceof Error ? err.message : t('devices.failedToUpdate'));
+                setError(resolveApiError(err, t, t('devices.failedToUpdate')));
               } finally {
                 endEditSubmit();
               }
@@ -721,7 +722,7 @@ export function DeviceDetailPage() {
                       await api.deleteDevice(id, deleteIdempotencyKeyRef.current);
                       window.location.href = '/devices';
                     } catch (err) {
-                      setError(err instanceof Error ? err.message : t('devices.failedToDelete'));
+                      setError(resolveApiError(err, t, t('devices.failedToDelete')));
                     } finally {
                       endDeleteSubmit();
                     }

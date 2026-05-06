@@ -7,6 +7,7 @@ import { changeLocale, i18n, LOCALES, useTranslation } from '@frollz2/i18n';
 import type { Locale } from '@frollz2/i18n';
 import { loginRequestSchema, registerRequestSchema } from '@frollz2/schema';
 import { useSession } from '../auth/session';
+import { resolveApiError } from '../utils/resolve-api-error';
 
 function LocalePicker() {
   const { t } = useTranslation();
@@ -66,7 +67,7 @@ export function LoginForm() {
             await login(payload);
             router.replace('/dashboard');
           } catch (err) {
-            setError(err instanceof Error ? err.message : t('auth.loginFailed'));
+            setError(resolveApiError(err, t, t('auth.loginFailed')));
           } finally {
             submitLockRef.current = false;
             setLoading(false);
@@ -129,7 +130,7 @@ export function RegisterForm() {
             await register(payload);
             router.replace('/dashboard');
           } catch (err) {
-            setError(err instanceof Error ? err.message : t('auth.registrationFailed'));
+            setError(resolveApiError(err, t, t('auth.registrationFailed')));
           } finally {
             submitLockRef.current = false;
             setLoading(false);

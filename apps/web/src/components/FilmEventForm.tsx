@@ -13,6 +13,7 @@ import type { FilmDevice, FilmState, ReferenceTables } from '@frollz2/schema';
 import { useSession } from '../auth/session';
 import { useIdempotencyKey, useIdempotentSubmit } from '../hooks/useIdempotentSubmit';
 import { ReferenceTypeaheadInput } from './ReferenceTypeaheadInput';
+import { resolveApiError } from '../utils/resolve-api-error';
 
 type EventData = Record<string, unknown>;
 
@@ -335,7 +336,7 @@ export function FilmEventForm({ filmId, filmFormatId, currentStateCode, availabl
       resetLabCreateIdempotencyKey();
       onEventAdded();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('filmEvent.failedToAdd'));
+      setError(resolveApiError(err, t, t('filmEvent.failedToAdd')));
     } finally {
       endSubmit();
     }
