@@ -81,6 +81,15 @@ jobs:
         env:
           JWT_ACCESS_SECRET: ci-bdd-test-secret
           AUTO_MIGRATE_SEED: 'true'
+          PORT: '3001'
+          DATABASE_URL: ':memory:'
+          SEED_DEMO_USER: 'true'
+          SEED_TEST_USER: 'true'
+          TEST_USER_EMAIL: demo@example.com
+          TEST_USER_PASSWORD: password123
+          TEST_USER_NAME: Demo User
+          ALLOWED_ORIGINS: 'http://127.0.0.1:4173'
+          AUTH_REFRESH_REPLAY_GRACE_SECONDS: '1'
         run: pnpm --filter @frollz2/web run test:bdd
 
   semgrep:
